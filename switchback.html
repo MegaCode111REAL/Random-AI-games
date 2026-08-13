@@ -388,9 +388,14 @@ button{
 
             </div>
 
-            <button class="mainButton" id="start">
-                Open The Depot
-            </button>
+            <button
+    type="button"
+    class="mainButton"
+    id="start"
+    onclick="window.__switchbackStart && window.__switchbackStart()"
+>
+    Open The Depot
+</button>
 
             <div class="best">
                 Best delivery count:
@@ -439,9 +444,14 @@ button{
 
             </div>
 
-            <button class="mainButton" id="restart">
-                Reopen Depot
-            </button>
+            <button
+    type="button"
+    class="mainButton"
+    id="restart"
+    onclick="window.__switchbackStart && window.__switchbackStart()"
+>
+    Reopen Depot
+</button>
 
             <div class="best">
                 Press R or ENTER to restart.
@@ -470,9 +480,14 @@ button{
                 They are surprisingly understanding.
             </div>
 
-            <button class="mainButton" id="resume">
-                Resume Shift
-            </button>
+            <button
+    type="button"
+    class="mainButton"
+    id="resume"
+    onclick="window.__switchbackResume && window.__switchbackResume()"
+>
+    Resume Shift
+</button>
 
         </div>
 
@@ -482,6 +497,89 @@ button{
 
 <script>
 "use strict";
+
+/* =========================================================
+   GUARANTEED MENU CONTROLS
+========================================================= */
+
+window.__switchbackStart = function(){
+
+    try{
+
+        if(typeof initAudio === "function"){
+            try{
+                initAudio();
+            }
+            catch(e){}
+        }
+
+        if(typeof startGame === "function"){
+            startGame();
+            return;
+        }
+
+        /*
+           Fallback in case the main game initialization
+           hasn't completed yet.
+        */
+
+        const menu =
+            document.getElementById("menu");
+
+        const hud =
+            document.getElementById("hud");
+
+        if(menu){
+            menu.classList.add("hidden");
+        }
+
+        if(hud){
+            hud.classList.remove("hidden");
+        }
+
+    }
+    catch(error){
+
+        console.error(
+            "SWITCHBACK startup error:",
+            error
+        );
+
+        /*
+           Even if another optional system fails,
+           remove the menu so the player isn't trapped.
+        */
+
+        const menu =
+            document.getElementById("menu");
+
+        const hud =
+            document.getElementById("hud");
+
+        if(menu){
+            menu.classList.add("hidden");
+        }
+
+        if(hud){
+            hud.classList.remove("hidden");
+        }
+
+    }
+
+};
+
+window.__switchbackResume = function(){
+
+    paused = false;
+
+    const pauseScreen =
+        document.getElementById("pause");
+
+    if(pauseScreen){
+        pauseScreen.classList.add("hidden");
+    }
+
+};
 
 /* =========================================================
    CANVAS SETUP
@@ -2689,15 +2787,22 @@ function drawDecorativeMachine(){
 
 function startGame(){
 
-    initAudio();
+    try{
+        initAudio();
 
-    if(
-        audio &&
-        audio.state === "suspended"
-    ){
-
-        audio.resume();
-
+        if(
+            audio &&
+            audio.state === "suspended"
+        ){
+            audio.resume();
+        }
+    }
+    catch(e){
+        /*
+           Audio is optional.
+           Gameplay must still start if
+           the browser blocks audio.
+        */
     }
 
     menu.classList.add(
