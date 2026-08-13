@@ -1,0 +1,2627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>RIPPLE//RUN</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#080b12;
+    color:#eef3ff;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+body{
+    touch-action:none;
+}
+
+#wrap{
+    position:fixed;
+    inset:0;
+}
+
+canvas{
+    display:block;
+    width:100%;
+    height:100%;
+    touch-action:none;
+}
+
+#hud{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    display:none;
+}
+
+.top{
+    position:absolute;
+    top:14px;
+    left:16px;
+    right:16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+}
+
+.stat{
+    background:rgba(9,13,22,.78);
+    border:1px solid rgba(180,205,255,.16);
+    padding:8px 12px;
+    border-radius:12px;
+    backdrop-filter:blur(8px);
+    box-shadow:0 8px 30px rgba(0,0,0,.18);
+}
+
+.label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.16em;
+    opacity:.55;
+}
+
+.value{
+    font-size:18px;
+    font-weight:800;
+    line-height:1.1;
+    margin-top:2px;
+}
+
+.right{
+    display:flex;
+    gap:8px;
+}
+
+.pill{
+    min-width:86px;
+}
+
+.bottom{
+    position:absolute;
+    bottom:15px;
+    left:50%;
+    transform:translateX(-50%);
+    display:flex;
+    gap:8px;
+    align-items:center;
+}
+
+.hint{
+    font-size:11px;
+    opacity:.52;
+    text-align:center;
+}
+
+.meter{
+    width:170px;
+    height:8px;
+    border-radius:8px;
+    background:rgba(255,255,255,.08);
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.08);
+}
+
+#pulseBar{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,#7ee7ff,#b78cff);
+    box-shadow:0 0 18px #7ee7ff66;
+}
+
+.overlay{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+        radial-gradient(
+            circle at 50% 40%,
+            rgba(42,57,91,.25),
+            rgba(4,6,11,.92)
+        );
+    z-index:5;
+}
+
+.panel{
+    width:min(680px,calc(100vw - 32px));
+    padding:34px;
+    border-radius:26px;
+    background:rgba(10,14,24,.91);
+    border:1px solid rgba(189,211,255,.18);
+    box-shadow:0 25px 90px rgba(0,0,0,.55);
+    text-align:center;
+}
+
+.title{
+    font-size:clamp(46px,9vw,92px);
+    font-weight:950;
+    letter-spacing:-.065em;
+    line-height:.88;
+    margin:0;
+    background:
+        linear-gradient(
+            120deg,
+            #eaf7ff,
+            #8de7ff 40%,
+            #b998ff
+        );
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+}
+
+.sub{
+    margin:13px auto 24px;
+    max-width:520px;
+    color:#b9c5dd;
+    line-height:1.55;
+}
+
+.rule{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin:22px 0;
+}
+
+.card{
+    padding:14px;
+    border:1px solid rgba(255,255,255,.09);
+    border-radius:16px;
+    background:rgba(255,255,255,.025);
+}
+
+.card b{
+    display:block;
+    margin-bottom:4px;
+}
+
+.card span{
+    font-size:12px;
+    opacity:.62;
+}
+
+.btn{
+    border:0;
+    border-radius:14px;
+    padding:13px 22px;
+    font:800 14px system-ui;
+    color:#071019;
+    background:#b8f0ff;
+    cursor:pointer;
+    box-shadow:0 8px 28px rgba(126,231,255,.18);
+    transition:
+        .15s transform,
+        .15s filter;
+}
+
+.btn:hover{
+    transform:translateY(-2px);
+    filter:brightness(1.08);
+}
+
+.btn:active{
+    transform:translateY(1px);
+}
+
+.small{
+    margin-top:13px;
+    font-size:11px;
+    opacity:.42;
+}
+
+.choices{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin:20px 0;
+}
+
+.choice{
+    text-align:left;
+    padding:16px;
+    border-radius:16px;
+    background:#111827;
+    border:1px solid rgba(255,255,255,.1);
+    cursor:pointer;
+    color:#eef3ff;
+}
+
+.choice:hover{
+    border-color:#9feaff88;
+    background:#151e30;
+}
+
+.choice strong{
+    display:block;
+    font-size:16px;
+}
+
+.choice p{
+    font-size:12px;
+    opacity:.62;
+    line-height:1.4;
+    margin:7px 0 0;
+}
+
+.hidden{
+    display:none!important;
+}
+
+@media(max-width:600px){
+    .panel{
+        padding:25px;
+    }
+
+    .rule,
+    .choices{
+        grid-template-columns:1fr;
+    }
+
+    .stat{
+        padding:7px 9px;
+    }
+
+    .value{
+        font-size:16px;
+    }
+
+    .hint{
+        display:none;
+    }
+
+    .meter{
+        width:115px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="wrap">
+    <canvas id="game"></canvas>
+</div>
+
+<div id="hud">
+
+    <div class="top">
+
+        <div class="stat">
+            <div class="label">Score</div>
+            <div class="value" id="score">0</div>
+        </div>
+
+        <div class="right">
+
+            <div class="stat pill">
+                <div class="label">Wave</div>
+                <div class="value" id="wave">1</div>
+            </div>
+
+            <div class="stat pill">
+                <div class="label">Streak</div>
+                <div class="value" id="streak">x1</div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="bottom">
+
+        <div class="meter">
+            <div id="pulseBar"></div>
+        </div>
+
+        <div class="hint">
+            SPACE / TAP = RIPPLE
+            &nbsp; • &nbsp;
+            WASD / ARROWS = MOVE
+            &nbsp; • &nbsp;
+            P = PAUSE
+        </div>
+
+    </div>
+
+</div>
+
+<div class="overlay" id="menu">
+
+    <div class="panel">
+
+        <h1 class="title">RIPPLE//RUN</h1>
+
+        <div class="sub">
+            You are a living disturbance in a hostile field.
+            Every ripple creates a temporary zone of stillness.
+            Turn tiny moments of control into enormous chains.
+        </div>
+
+        <div class="rule">
+
+            <div class="card">
+                <b>MOVE</b>
+                <span>
+                    WASD, arrows, or drag on touch
+                </span>
+            </div>
+
+            <div class="card">
+                <b>RIPPLE</b>
+                <span>
+                    Space / tap to emit a growing shockwave
+                </span>
+            </div>
+
+            <div class="card">
+                <b>CHAIN</b>
+                <span>
+                    Freeze threats and turn dangerous moments into points
+                </span>
+            </div>
+
+        </div>
+
+        <button class="btn" id="startBtn">
+            ENTER THE FIELD
+        </button>
+
+        <div class="small">
+            Best score:
+            <b id="bestMenu">0</b>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="overlay hidden" id="upgrade">
+
+    <div class="panel">
+
+        <div class="label">
+            WAVE CLEARED
+        </div>
+
+        <h2 style="font-size:34px;margin:7px 0 0">
+            Choose a mutation
+        </h2>
+
+        <div class="sub" style="margin-bottom:10px">
+            Your next field is tougher.
+            Pick one rule to bend.
+        </div>
+
+        <div class="choices" id="choices"></div>
+
+    </div>
+
+</div>
+
+<div class="overlay hidden" id="gameover">
+
+    <div class="panel">
+
+        <div class="label">
+            FIELD COLLAPSED
+        </div>
+
+        <h2 style="font-size:42px;margin:7px 0">
+            Run ended
+        </h2>
+
+        <div class="sub">
+            Score <b id="finalScore">0</b>
+            · Wave <b id="finalWave">1</b>
+            · Best <b id="bestFinal">0</b>
+        </div>
+
+        <button class="btn" id="againBtn">
+            RUN IT BACK
+        </button>
+
+        <div class="small">
+            Press R or Enter to restart
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+(() => {
+
+"use strict";
+
+/* =========================================================
+   CANVAS
+========================================================= */
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let W = innerWidth;
+let H = innerHeight;
+let dpr = 1;
+
+function resize(){
+
+    W = innerWidth;
+    H = innerHeight;
+
+    dpr = Math.min(2, devicePixelRatio || 1);
+
+    canvas.width = Math.max(
+        1,
+        Math.floor(W * dpr)
+    );
+
+    canvas.height = Math.max(
+        1,
+        Math.floor(H * dpr)
+    );
+
+    ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
+}
+
+addEventListener(
+    "resize",
+    resize,
+    {passive:true}
+);
+
+resize();
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const hud = document.getElementById("hud");
+
+const menu =
+    document.getElementById("menu");
+
+const upgrade =
+    document.getElementById("upgrade");
+
+const gameover =
+    document.getElementById("gameover");
+
+const scoreEl =
+    document.getElementById("score");
+
+const waveEl =
+    document.getElementById("wave");
+
+const streakEl =
+    document.getElementById("streak");
+
+const pulseBar =
+    document.getElementById("pulseBar");
+
+const bestMenu =
+    document.getElementById("bestMenu");
+
+const finalScore =
+    document.getElementById("finalScore");
+
+const finalWave =
+    document.getElementById("finalWave");
+
+const bestFinal =
+    document.getElementById("bestFinal");
+
+const choices =
+    document.getElementById("choices");
+
+/* =========================================================
+   UTILITIES
+========================================================= */
+
+const TAU = Math.PI * 2;
+
+function rand(a,b){
+    return Math.random() * (b-a) + a;
+}
+
+function clamp(v,a,b){
+    return Math.max(a,Math.min(b,v));
+}
+
+function dist(a,b,c,d){
+    return Math.hypot(a-c,b-d);
+}
+
+/* =========================================================
+   AUDIO
+========================================================= */
+
+let audio = null;
+
+function sound(type,p=1){
+
+    try{
+
+        if(!audio){
+
+            audio =
+                new (
+                    window.AudioContext ||
+                    window.webkitAudioContext
+                )();
+
+        }
+
+        if(audio.state === "suspended"){
+            audio.resume();
+        }
+
+        const oscillator =
+            audio.createOscillator();
+
+        const gain =
+            audio.createGain();
+
+        oscillator.connect(gain);
+        gain.connect(audio.destination);
+
+        let frequency;
+
+        if(type === "hit"){
+            frequency = 150;
+        }
+        else if(type === "pulse"){
+            frequency = 90;
+        }
+        else if(type === "collect"){
+            frequency = 620;
+        }
+        else if(type === "die"){
+            frequency = 70;
+        }
+        else{
+            frequency = 320;
+        }
+
+        oscillator.frequency.setValueAtTime(
+            frequency,
+            audio.currentTime
+        );
+
+        oscillator.frequency.exponentialRampToValueAtTime(
+            frequency * (
+                type === "die" ? .35 : 1.7
+            ),
+            audio.currentTime + .12
+        );
+
+        oscillator.type =
+            type === "pulse"
+                ? "sine"
+                : "triangle";
+
+        gain.gain.setValueAtTime(
+            .0001,
+            audio.currentTime
+        );
+
+        gain.gain.exponentialRampToValueAtTime(
+            .045 * p,
+            audio.currentTime + .008
+        );
+
+        gain.gain.exponentialRampToValueAtTime(
+            .0001,
+            audio.currentTime + .16
+        );
+
+        oscillator.start();
+
+        oscillator.stop(
+            audio.currentTime + .18
+        );
+
+    }
+    catch(e){
+        /* Audio is optional. */
+    }
+}
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+const keys = new Set();
+
+addEventListener(
+    "keydown",
+    e => {
+
+        const key =
+            e.key.toLowerCase();
+
+        keys.add(key);
+
+        if([
+            " ",
+            "arrowup",
+            "arrowdown",
+            "arrowleft",
+            "arrowright"
+        ].includes(key)){
+            e.preventDefault();
+        }
+
+        if(key === "p"){
+            togglePause();
+        }
+
+        if(
+            key === "r" &&
+            state === "over"
+        ){
+            start();
+        }
+
+        if(
+            key === "enter" &&
+            (
+                state === "over" ||
+                state === "menu"
+            )
+        ){
+            start();
+        }
+
+    },
+    {passive:false}
+);
+
+addEventListener(
+    "keyup",
+    e => {
+        keys.delete(
+            e.key.toLowerCase()
+        );
+    }
+);
+
+let pointer = {
+    x: W / 2,
+    y: H / 2,
+    down:false,
+    id:null
+};
+
+function pointerPos(e){
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+    return {
+        x:e.clientX - rect.left,
+        y:e.clientY - rect.top
+    };
+}
+
+canvas.addEventListener(
+    "pointerdown",
+    e => {
+
+        const p = pointerPos(e);
+
+        pointer.x = p.x;
+        pointer.y = p.y;
+        pointer.down = true;
+        pointer.id = e.pointerId;
+
+        canvas.setPointerCapture(
+            e.pointerId
+        );
+
+        if(
+            state === "play" &&
+            e.pointerType !== "mouse"
+        ){
+            emitRipple();
+        }
+
+    }
+);
+
+canvas.addEventListener(
+    "pointermove",
+    e => {
+
+        const p = pointerPos(e);
+
+        pointer.x = p.x;
+        pointer.y = p.y;
+
+        if(
+            pointer.down &&
+            state === "play" &&
+            e.pointerType !== "mouse"
+        ){
+            moveTouch(p);
+        }
+
+    }
+);
+
+canvas.addEventListener(
+    "pointerup",
+    () => {
+        pointer.down = false;
+    }
+);
+
+canvas.addEventListener(
+    "pointercancel",
+    () => {
+        pointer.down = false;
+    }
+);
+
+/* =========================================================
+   UPGRADES
+========================================================= */
+
+const upgrades = [
+
+    [
+        "Wider Pulse",
+        "Ripple radius +28%.",
+        "radius",
+        28
+    ],
+
+    [
+        "Quick Charge",
+        "Ripple recharge 18% faster.",
+        "charge",
+        .18
+    ],
+
+    [
+        "Long Fuse",
+        "Frozen hazards last 22% longer.",
+        "freeze",
+        .22
+    ],
+
+    [
+        "Glass Cannon",
+        "You move 18% faster, but your core is 12% smaller.",
+        "speed",
+        .18
+    ],
+
+    [
+        "Echo Score",
+        "Ripple hits are worth 35% more.",
+        "chain",
+        .35
+    ],
+
+    [
+        "Second Beat",
+        "Ripple hits have a chance to refund charge.",
+        "refund",
+        .20
+    ],
+
+    [
+        "Soft Landing",
+        "Taking a hit only partially damages your streak.",
+        "streak",
+        1
+    ],
+
+    [
+        "Magnetic Dust",
+        "Collectibles drift toward you from farther away.",
+        "magnet",
+        55
+    ],
+
+    [
+        "Crowded Sky",
+        "More enemies, but enemies are worth more.",
+        "danger",
+        .15
+    ],
+
+    [
+        "Pulse Bloom",
+        "Ripples start larger and expand faster.",
+        "bloom",
+        .35
+    ]
+
+];
+
+/* =========================================================
+   GAME STATE
+========================================================= */
+
+let state = "menu";
+let paused = false;
+
+let score = 0;
+let wave = 1;
+let streak = 1;
+
+let best =
+    Number(
+        localStorage.getItem(
+            "rippleRunBest"
+        ) || 0
+    );
+
+let waveTimer = 0;
+let spawnTimer = 0;
+
+let pulse = 1;
+let pulseMax = 1;
+
+let pulseCooldown = 2.4;
+let freezeTime = .72;
+
+let scoreMult = 1;
+let speedMult = 1;
+
+let coreR = 12;
+
+let magnet = 0;
+let refund = 0;
+let chainBonus = 0;
+
+let soft = false;
+let danger = 0;
+let bloom = 0;
+
+let player;
+let orbs = [];
+let hazards = [];
+let particles = [];
+let texts = [];
+let ripples = [];
+let stars = [];
+
+bestMenu.textContent = best;
+
+/* =========================================================
+   WORLD RESET
+========================================================= */
+
+function resetWorld(){
+
+    orbs = [];
+    hazards = [];
+    particles = [];
+    texts = [];
+    ripples = [];
+    stars = [];
+
+    for(let i=0;i<90;i++){
+
+        stars.push({
+            x:Math.random()*W,
+            y:Math.random()*H,
+            r:rand(.4,1.6),
+            a:rand(.15,.65)
+        });
+
+    }
+
+    player = {
+        x:W/2,
+        y:H/2,
+        vx:0,
+        vy:0,
+        r:coreR,
+        inv:1
+    };
+
+    score = 0;
+    wave = 1;
+    streak = 1;
+
+    waveTimer = 0;
+    spawnTimer = .3;
+
+    pulse = 1;
+
+    scoreMult = 1;
+    speedMult = 1;
+
+    coreR = 12;
+
+    magnet = 0;
+    refund = 0;
+    chainBonus = 0;
+
+    soft = false;
+    danger = 0;
+    bloom = 0;
+}
+
+/* =========================================================
+   START / END
+========================================================= */
+
+function start(){
+
+    menu.classList.add("hidden");
+    gameover.classList.add("hidden");
+    upgrade.classList.add("hidden");
+
+    hud.style.display = "block";
+
+    paused = false;
+    state = "play";
+
+    resetWorld();
+
+    sound("start");
+}
+
+function togglePause(){
+
+    if(state !== "play"){
+        return;
+    }
+
+    paused = !paused;
+
+    if(paused){
+        state = "pause";
+        showPause();
+    }
+    else{
+        state = "play";
+        hidePause();
+    }
+
+}
+
+function showPause(){
+
+    texts.push({
+        x:W/2,
+        y:H/2-30,
+        t:"PAUSED",
+        life:999,
+        ttl:999,
+        big:true
+    });
+
+}
+
+function hidePause(){
+
+    texts =
+        texts.filter(
+            t => !t.big
+        );
+
+}
+
+function endRun(){
+
+    state = "over";
+
+    sound("die",1.5);
+
+    best =
+        Math.max(
+            best,
+            Math.floor(score)
+        );
+
+    localStorage.setItem(
+        "rippleRunBest",
+        best
+    );
+
+    bestFinal.textContent = best;
+
+    finalScore.textContent =
+        Math.floor(score);
+
+    finalWave.textContent =
+        wave;
+
+    gameover.classList.remove(
+        "hidden"
+    );
+
+    hud.style.display = "none";
+}
+
+/* =========================================================
+   MUTATION SELECTION
+========================================================= */
+
+function chooseUpgrade(){
+
+    state = "upgrade";
+
+    upgrade.classList.remove(
+        "hidden"
+    );
+
+    choices.innerHTML = "";
+
+    const pool =
+        [...upgrades]
+            .sort(() => Math.random()-.5)
+            .slice(0,3);
+
+    pool.forEach(u => {
+
+        const button =
+            document.createElement("button");
+
+        button.className = "choice";
+
+        button.innerHTML =
+            "<strong>" +
+            u[0] +
+            "</strong>" +
+            "<p>" +
+            u[1] +
+            "</p>";
+
+        button.onclick =
+            () => applyUpgrade(u);
+
+        choices.appendChild(button);
+
+    });
+
+}
+
+function applyUpgrade(u){
+
+    const type = u[2];
+    const value = u[3];
+
+    if(type === "radius"){
+        pulseMax += value / 100;
+    }
+
+    if(type === "charge"){
+        pulseCooldown *= 1 - value;
+    }
+
+    if(type === "freeze"){
+        freezeTime *= 1 + value;
+    }
+
+    if(type === "speed"){
+        speedMult *= 1 + value;
+        coreR *= .88;
+        player.r = coreR;
+    }
+
+    if(type === "chain"){
+        chainBonus += value;
+    }
+
+    if(type === "refund"){
+        refund += value;
+    }
+
+    if(type === "streak"){
+        soft = true;
+    }
+
+    if(type === "magnet"){
+        magnet += value;
+    }
+
+    if(type === "danger"){
+        danger += value;
+    }
+
+    if(type === "bloom"){
+        bloom += value;
+    }
+
+    upgrade.classList.add(
+        "hidden"
+    );
+
+    state = "play";
+
+    waveTimer = 0;
+    spawnTimer = .15;
+
+    sound("collect",1.2);
+}
+
+/* =========================================================
+   SPAWNING
+========================================================= */
+
+function spawnHazard(){
+
+    const edge =
+        Math.floor(
+            Math.random()*4
+        );
+
+    let x;
+    let y;
+
+    if(edge === 0){
+        x = -30;
+        y = rand(30,H-30);
+    }
+    else if(edge === 1){
+        x = W+30;
+        y = rand(30,H-30);
+    }
+    else if(edge === 2){
+        x = rand(30,W-30);
+        y = -30;
+    }
+    else{
+        x = rand(30,W-30);
+        y = H+30;
+    }
+
+    const angle =
+        Math.atan2(
+            player.y-y,
+            player.x-x
+        ) +
+        rand(-.55,.55);
+
+    const speed =
+        rand(75,120) +
+        wave*4;
+
+    const kind =
+        Math.random() <
+        Math.min(.28,wave*.012)
+            ? "seeker"
+            : "drifter";
+
+    hazards.push({
+
+        x,
+        y,
+
+        vx:Math.cos(angle)*speed,
+        vy:Math.sin(angle)*speed,
+
+        r:rand(8,15),
+
+        kind,
+
+        freeze:0,
+
+        rot:rand(0,TAU),
+
+        spin:rand(-2,2),
+
+        hit:false,
+
+        dead:false
+
+    });
+
+}
+
+function spawnOrb(){
+
+    let x;
+    let y;
+
+    do{
+
+        x = rand(45,W-45);
+        y = rand(55,H-45);
+
+    }
+    while(
+        dist(
+            x,
+            y,
+            player.x,
+            player.y
+        ) < 130
+    );
+
+    orbs.push({
+
+        x,
+        y,
+
+        r:5,
+
+        p:rand(0,TAU),
+
+        life:10,
+
+        dead:false
+
+    });
+
+}
+
+/* =========================================================
+   RIPPLE
+========================================================= */
+
+function emitRipple(){
+
+    if(
+        state !== "play" ||
+        pulse < 1
+    ){
+        return;
+    }
+
+    pulse = 0;
+
+    sound("pulse",1);
+
+    ripples.push({
+
+        x:player.x,
+        y:player.y,
+
+        r:bloom ? 12 : 8,
+
+        max:190*pulseMax,
+
+        speed:
+            (bloom ? 310 : 250) *
+            (1+bloom),
+
+        hit:new Set(),
+
+        age:0,
+
+        dead:false
+
+    });
+
+    for(let i=0;i<18;i++){
+
+        const angle =
+            rand(0,TAU);
+
+        particles.push({
+
+            x:player.x,
+            y:player.y,
+
+            vx:
+                Math.cos(angle) *
+                rand(50,170),
+
+            vy:
+                Math.sin(angle) *
+                rand(50,170),
+
+            life:.4,
+            ttl:.4,
+
+            r:rand(1,3)
+
+        });
+
+    }
+
+}
+
+/* =========================================================
+   EFFECTS
+========================================================= */
+
+function addText(x,y,t){
+
+    texts.push({
+
+        x,
+        y,
+        t,
+
+        life:.9,
+        ttl:.9
+
+    });
+
+}
+
+function burst(
+    x,
+    y,
+    n=12,
+    boost=1
+){
+
+    for(let i=0;i<n;i++){
+
+        const angle =
+            rand(0,TAU);
+
+        const speed =
+            rand(30,180) *
+            boost;
+
+        particles.push({
+
+            x,
+            y,
+
+            vx:
+                Math.cos(angle) *
+                speed,
+
+            vy:
+                Math.sin(angle) *
+                speed,
+
+            life:rand(.35,.7),
+            ttl:.6,
+
+            r:rand(1,3)
+
+        });
+
+    }
+
+}
+
+/* =========================================================
+   RIPPLE HITS
+========================================================= */
+
+function hitHazard(h){
+
+    if(h.freeze > 0){
+        return;
+    }
+
+    h.freeze = freezeTime;
+
+    h.vx *= .04;
+    h.vy *= .04;
+
+    const points =
+        Math.round(
+            35 *
+            scoreMult *
+            (1+chainBonus)
+        );
+
+    score += points;
+
+    streak++;
+
+    addText(
+        h.x,
+        h.y,
+        "+" + points
+    );
+
+    burst(
+        h.x,
+        h.y,
+        10,
+        1
+    );
+
+    sound("hit");
+
+    if(
+        Math.random() <
+        .14 + refund
+    ){
+
+        pulse =
+            Math.min(
+                1,
+                pulse+.35
+            );
+
+        addText(
+            h.x,
+            h.y-16,
+            "RIPPLE REFUND"
+        );
+
+    }
+
+}
+
+/* =========================================================
+   TOUCH MOVEMENT
+========================================================= */
+
+function moveTouch(p){
+
+    const dx =
+        p.x-player.x;
+
+    const dy =
+        p.y-player.y;
+
+    const d =
+        Math.hypot(
+            dx,
+            dy
+        );
+
+    if(d > 15){
+
+        player.vx +=
+            dx/d *
+            650/60;
+
+        player.vy +=
+            dy/d *
+            650/60;
+
+    }
+
+}
+
+/* =========================================================
+   UPDATE
+========================================================= */
+
+function update(dt){
+
+    if(state !== "play"){
+        return;
+    }
+
+    dt =
+        Math.min(
+            dt,
+            .035
+        );
+
+    waveTimer += dt;
+
+    spawnTimer -= dt;
+
+    pulse =
+        Math.min(
+            1,
+            pulse +
+            dt/pulseCooldown
+        );
+
+    /*
+       Every 18 seconds the current wave is complete.
+    */
+
+    if(waveTimer > 18){
+
+        wave++;
+
+        waveTimer = 0;
+
+        chooseUpgrade();
+
+        return;
+    }
+
+    const desired =
+        6 +
+        wave*1.25 +
+        danger*5;
+
+    while(
+        hazards.length < desired &&
+        spawnTimer <= 0
+    ){
+
+        spawnHazard();
+
+        spawnTimer =
+            Math.max(
+                .22,
+                .9-wave*.025
+            );
+
+    }
+
+    if(
+        Math.random() <
+        dt *
+        (.35+wave*.025)
+    ){
+
+        spawnOrb();
+
+    }
+
+    /* -----------------------------------------------------
+       MOVEMENT
+    ----------------------------------------------------- */
+
+    let ax = 0;
+    let ay = 0;
+
+    if(
+        keys.has("w") ||
+        keys.has("arrowup")
+    ){
+        ay--;
+    }
+
+    if(
+        keys.has("s") ||
+        keys.has("arrowdown")
+    ){
+        ay++;
+    }
+
+    if(
+        keys.has("a") ||
+        keys.has("arrowleft")
+    ){
+        ax--;
+    }
+
+    if(
+        keys.has("d") ||
+        keys.has("arrowright")
+    ){
+        ax++;
+    }
+
+    if(ax || ay){
+
+        const length =
+            Math.hypot(
+                ax,
+                ay
+            );
+
+        ax /= length;
+        ay /= length;
+
+        player.vx +=
+            ax *
+            520 *
+            dt *
+            speedMult;
+
+        player.vy +=
+            ay *
+            520 *
+            dt *
+            speedMult;
+
+    }
+    else{
+
+        player.vx *=
+            Math.pow(
+                .001,
+                dt
+            );
+
+        player.vy *=
+            Math.pow(
+                .001,
+                dt
+            );
+
+    }
+
+    if(
+        pointer.down &&
+        pointer.id !== null &&
+        innerWidth < 800
+    ){
+        moveTouch(pointer);
+    }
+
+    player.vx =
+        clamp(
+            player.vx,
+            -260*speedMult,
+            260*speedMult
+        );
+
+    player.vy =
+        clamp(
+            player.vy,
+            -260*speedMult,
+            260*speedMult
+        );
+
+    player.x +=
+        player.vx * dt;
+
+    player.y +=
+        player.vy * dt;
+
+    const pad =
+        player.r + 5;
+
+    if(player.x < pad){
+
+        player.x = pad;
+
+        player.vx =
+            Math.abs(
+                player.vx
+            )*.55;
+
+    }
+
+    if(player.x > W-pad){
+
+        player.x = W-pad;
+
+        player.vx =
+            -Math.abs(
+                player.vx
+            )*.55;
+
+    }
+
+    if(player.y < pad+30){
+
+        player.y = pad+30;
+
+        player.vy =
+            Math.abs(
+                player.vy
+            )*.55;
+
+    }
+
+    if(player.y > H-pad){
+
+        player.y = H-pad;
+
+        player.vy =
+            -Math.abs(
+                player.vy
+            )*.55;
+
+    }
+
+    player.inv =
+        Math.max(
+            0,
+            player.inv-dt
+        );
+
+    /* -----------------------------------------------------
+       HAZARDS
+    ----------------------------------------------------- */
+
+    for(const h of hazards){
+
+        if(h.freeze > 0){
+
+            h.freeze -= dt;
+
+            h.vx *=
+                Math.pow(
+                    .01,
+                    dt
+                );
+
+            h.vy *=
+                Math.pow(
+                    .01,
+                    dt
+                );
+
+            h.rot +=
+                h.spin *
+                dt *
+                .3;
+
+        }
+        else{
+
+            if(h.kind === "seeker"){
+
+                const angle =
+                    Math.atan2(
+                        player.y-h.y,
+                        player.x-h.x
+                    );
+
+                h.vx +=
+                    Math.cos(angle) *
+                    30 *
+                    dt;
+
+                h.vy +=
+                    Math.sin(angle) *
+                    30 *
+                    dt;
+
+                const speed =
+                    Math.hypot(
+                        h.vx,
+                        h.vy
+                    );
+
+                if(speed > 165){
+
+                    h.vx *=
+                        165/speed;
+
+                    h.vy *=
+                        165/speed;
+
+                }
+
+            }
+
+            h.x +=
+                h.vx*dt;
+
+            h.y +=
+                h.vy*dt;
+
+            h.rot +=
+                h.spin*dt;
+
+        }
+
+        if(
+            h.x < -80 ||
+            h.x > W+80 ||
+            h.y < -80 ||
+            h.y > H+80
+        ){
+            h.dead = true;
+        }
+
+        /*
+           Frozen hazards cannot hurt the player.
+        */
+
+        if(
+            player.inv <= 0 &&
+            h.freeze <= 0 &&
+            dist(
+                player.x,
+                player.y,
+                h.x,
+                h.y
+            ) <
+            player.r+h.r
+        ){
+
+            player.inv = .8;
+
+            burst(
+                player.x,
+                player.y,
+                25,
+                1.3
+            );
+
+            score =
+                Math.max(
+                    0,
+                    score-50
+                );
+
+            streak =
+                soft
+                    ? Math.max(
+                        1,
+                        streak-2
+                    )
+                    : 1;
+
+            addText(
+                player.x,
+                player.y-25,
+                "HIT"
+            );
+
+            sound(
+                "die",
+                .7
+            );
+
+            h.dead = true;
+
+            player.vx *= -.8;
+            player.vy *= -.8;
+
+        }
+
+    }
+
+    hazards =
+        hazards.filter(
+            h => !h.dead
+        );
+
+    /* -----------------------------------------------------
+       RIPPLES
+    ----------------------------------------------------- */
+
+    for(const r of ripples){
+
+        r.age += dt;
+
+        r.r +=
+            r.speed*dt;
+
+        if(r.r > r.max){
+
+            r.dead = true;
+
+        }
+
+        for(const h of hazards){
+
+            if(r.hit.has(h)){
+                continue;
+            }
+
+            const d =
+                dist(
+                    r.x,
+                    r.y,
+                    h.x,
+                    h.y
+                );
+
+            if(
+                Math.abs(
+                    d-r.r
+                ) <
+                h.r+10
+            ){
+
+                r.hit.add(h);
+
+                hitHazard(h);
+
+            }
+
+        }
+
+    }
+
+    ripples =
+        ripples.filter(
+            r => !r.dead
+        );
+
+    /* -----------------------------------------------------
+       COLLECTIBLES
+    ----------------------------------------------------- */
+
+    for(const o of orbs){
+
+        o.p += dt*3;
+
+        o.life -= dt;
+
+        if(magnet){
+
+            const d =
+                dist(
+                    o.x,
+                    o.y,
+                    player.x,
+                    player.y
+                );
+
+            if(d < magnet){
+
+                o.x +=
+                    (player.x-o.x) *
+                    dt *
+                    1.8;
+
+                o.y +=
+                    (player.y-o.y) *
+                    dt *
+                    1.8;
+
+            }
+
+        }
+
+        if(
+            dist(
+                o.x,
+                o.y,
+                player.x,
+                player.y
+            ) <
+            player.r+o.r+6
+        ){
+
+            o.dead = true;
+
+            const points =
+                Math.round(
+                    100 *
+                    scoreMult *
+                    (
+                        1+
+                        Math.min(
+                            2,
+                            streak*.03
+                        )
+                    )
+                );
+
+            score += points;
+
+            streak++;
+
+            addText(
+                o.x,
+                o.y,
+                "+" + points
+            );
+
+            burst(
+                o.x,
+                o.y,
+                8,
+                1.4
+            );
+
+            sound("collect");
+
+        }
+
+    }
+
+    orbs =
+        orbs.filter(
+            o =>
+                !o.dead &&
+                o.life > 0
+        );
+
+    /* -----------------------------------------------------
+       PARTICLES
+    ----------------------------------------------------- */
+
+    for(const p of particles){
+
+        p.life -= dt;
+
+        p.x +=
+            p.vx*dt;
+
+        p.y +=
+            p.vy*dt;
+
+        p.vx *=
+            Math.pow(
+                .05,
+                dt
+            );
+
+        p.vy *=
+            Math.pow(
+                .05,
+                dt
+            );
+
+    }
+
+    particles =
+        particles.filter(
+            p => p.life > 0
+        );
+
+    /* -----------------------------------------------------
+       FLOATING TEXT
+    ----------------------------------------------------- */
+
+    for(const t of texts){
+
+        t.life -= dt;
+
+        t.y -=
+            22*dt;
+
+    }
+
+    texts =
+        texts.filter(
+            t => t.life > 0
+        );
+
+    /* -----------------------------------------------------
+       SCORE
+    ----------------------------------------------------- */
+
+    score +=
+        dt *
+        (2+wave*.5) *
+        scoreMult;
+
+    scoreEl.textContent =
+        Math.floor(score);
+
+    waveEl.textContent =
+        wave;
+
+    streakEl.textContent =
+        "x" + streak;
+
+    pulseBar.style.width =
+        (pulse*100) + "%";
+}
+
+/* =========================================================
+   DRAW
+========================================================= */
+
+function draw(){
+
+    ctx.clearRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+    /*
+       Background.
+    */
+
+    const background =
+        ctx.createRadialGradient(
+            W*.5,
+            H*.45,
+            30,
+            W*.5,
+            H*.45,
+            Math.max(W,H)*.75
+        );
+
+    background.addColorStop(
+        0,
+        "#111a2c"
+    );
+
+    background.addColorStop(
+        1,
+        "#070a11"
+    );
+
+    ctx.fillStyle =
+        background;
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+    /*
+       Background field particles.
+    */
+
+    for(const s of stars){
+
+        ctx.globalAlpha =
+            s.a;
+
+        ctx.fillStyle =
+            "#b8c9e8";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            s.x,
+            s.y,
+            s.r,
+            0,
+            TAU
+        );
+
+        ctx.fill();
+
+    }
+
+    ctx.globalAlpha = 1;
+
+    /* -----------------------------------------------------
+       COLLECTIBLES
+    ----------------------------------------------------- */
+
+    for(const o of orbs){
+
+        ctx.save();
+
+        ctx.translate(
+            o.x,
+            o.y
+        );
+
+        ctx.rotate(
+            o.p
+        );
+
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = "#8de7ff";
+
+        ctx.strokeStyle =
+            "#aeeeff";
+
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            0,
+            -o.r*1.8
+        );
+
+        ctx.lineTo(
+            o.r*1.2,
+            0
+        );
+
+        ctx.lineTo(
+            0,
+            o.r*1.8
+        );
+
+        ctx.lineTo(
+            -o.r*1.2,
+            0
+        );
+
+        ctx.closePath();
+
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+    /* -----------------------------------------------------
+       RIPPLES
+    ----------------------------------------------------- */
+
+    for(const r of ripples){
+
+        ctx.globalAlpha =
+            Math.max(
+                0,
+                1-r.r/r.max
+            );
+
+        ctx.strokeStyle =
+            "#9cecff";
+
+        ctx.lineWidth = 3;
+
+        ctx.shadowBlur = 18;
+
+        ctx.shadowColor =
+            "#79ddff";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            r.x,
+            r.y,
+            r.r,
+            0,
+            TAU
+        );
+
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+
+    }
+
+    ctx.globalAlpha = 1;
+
+    /* -----------------------------------------------------
+       HAZARDS
+    ----------------------------------------------------- */
+
+    for(const h of hazards){
+
+        ctx.save();
+
+        ctx.translate(
+            h.x,
+            h.y
+        );
+
+        ctx.rotate(
+            h.rot
+        );
+
+        const frozen =
+            h.freeze > 0;
+
+        ctx.shadowBlur =
+            frozen
+                ? 18
+                : 8;
+
+        ctx.shadowColor =
+            frozen
+                ? "#d9c8ff"
+                : "#ff668c";
+
+        ctx.fillStyle =
+            frozen
+                ? "#d7c8ff"
+                : "#ff557e";
+
+        ctx.strokeStyle =
+            frozen
+                ? "#fff"
+                : "#ff9ab3";
+
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+
+        const points =
+            h.kind === "seeker"
+                ? 4
+                : 6;
+
+        for(let i=0;i<points;i++){
+
+            const angle =
+                i*TAU/points;
+
+            const radius =
+                h.r *
+                (
+                    i%2
+                        ? .65
+                        : 1.15
+                );
+
+            if(i === 0){
+                ctx.moveTo(
+                    Math.cos(angle)*radius,
+                    Math.sin(angle)*radius
+                );
+            }
+            else{
+                ctx.lineTo(
+                    Math.cos(angle)*radius,
+                    Math.sin(angle)*radius
+                );
+            }
+
+        }
+
+        ctx.closePath();
+
+        ctx.fill();
+        ctx.stroke();
+
+        /*
+           Frozen core.
+        */
+
+        if(frozen){
+
+            ctx.globalAlpha = .75;
+
+            ctx.fillStyle =
+                "#ffffff";
+
+            ctx.beginPath();
+
+            ctx.arc(
+                0,
+                0,
+                h.r*.25,
+                0,
+                TAU
+            );
+
+            ctx.fill();
+
+        }
+
+        ctx.restore();
+
+    }
+
+    /* -----------------------------------------------------
+       PLAYER
+    ----------------------------------------------------- */
+
+    if(player){
+
+        ctx.save();
+
+        ctx.translate(
+            player.x,
+            player.y
+        );
+
+        const pulseRing =
+            10 +
+            Math.sin(
+                performance.now()/150
+            )*2;
+
+        ctx.globalAlpha = .15;
+
+        ctx.fillStyle =
+            "#83e9ff";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            0,
+            0,
+            player.r+9+pulseRing,
+            0,
+            TAU
+        );
+
+        ctx.fill();
+
+        ctx.globalAlpha = 1;
+
+        ctx.shadowBlur =
+            player.inv > 0
+                ? 28
+                : 18;
+
+        ctx.shadowColor =
+            "#8de7ff";
+
+        ctx.fillStyle =
+            "#e9fbff";
+
+        ctx.strokeStyle =
+            "#75dcff";
+
+        ctx.lineWidth = 3;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            0,
+            0,
+            player.r,
+            0,
+            TAU
+        );
+
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle =
+            "#6cdcff";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            0,
+            0,
+            4,
+            0,
+            TAU
+        );
+
+        ctx.fill();
+
+        ctx.restore();
+
+    }
+
+    /* -----------------------------------------------------
+       PARTICLES
+    ----------------------------------------------------- */
+
+    for(const p of particles){
+
+        ctx.globalAlpha =
+            clamp(
+                p.life/p.ttl,
+                0,
+                1
+            );
+
+        ctx.fillStyle =
+            "#bcefff";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            p.x,
+            p.y,
+            p.r,
+            0,
+            TAU
+        );
+
+        ctx.fill();
+
+    }
+
+    ctx.globalAlpha = 1;
+
+    /* -----------------------------------------------------
+       FLOATING TEXT
+    ----------------------------------------------------- */
+
+    for(const t of texts){
+
+        ctx.globalAlpha =
+            clamp(
+                t.life/t.ttl,
+                0,
+                1
+            );
+
+        ctx.fillStyle =
+            "#dff8ff";
+
+        ctx.font =
+            t.big
+                ? "800 30px system-ui"
+                : "800 13px system-ui";
+
+        ctx.textAlign =
+            "center";
+
+        ctx.fillText(
+            t.t,
+            t.x,
+            t.y
+        );
+
+    }
+
+    ctx.globalAlpha = 1;
+
+    /* -----------------------------------------------------
+       PAUSE SCREEN
+    ----------------------------------------------------- */
+
+    if(state === "pause"){
+
+        ctx.fillStyle =
+            "rgba(4,6,12,.52)";
+
+        ctx.fillRect(
+            0,
+            0,
+            W,
+            H
+        );
+
+        ctx.fillStyle =
+            "#eef3ff";
+
+        ctx.textAlign =
+            "center";
+
+        ctx.font =
+            "900 44px system-ui";
+
+        ctx.fillText(
+            "PAUSED",
+            W/2,
+            H/2
+        );
+
+        ctx.font =
+            "500 14px system-ui";
+
+        ctx.fillStyle =
+            "#aebbd3";
+
+        ctx.fillText(
+            "Press P to continue",
+            W/2,
+            H/2+30
+        );
+
+    }
+
+    requestAnimationFrame(
+        draw
+    );
+}
+
+/* =========================================================
+   GAME LOOP
+========================================================= */
+
+let last =
+    performance.now();
+
+function loop(time){
+
+    const dt =
+        (time-last)/1000;
+
+    last = time;
+
+    if(!paused){
+        update(dt);
+    }
+
+    requestAnimationFrame(
+        loop
+    );
+}
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+document
+    .getElementById("startBtn")
+    .addEventListener(
+        "click",
+        start
+    );
+
+document
+    .getElementById("againBtn")
+    .addEventListener(
+        "click",
+        start
+    );
+
+/* =========================================================
+   START RENDERING
+========================================================= */
+
+draw();
+
+requestAnimationFrame(
+    loop
+);
+
+})();
+</script>
+
+</body>
+</html>
