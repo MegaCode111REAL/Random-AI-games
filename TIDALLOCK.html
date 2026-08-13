@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>TIDAL LOCK</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#efe3c3;color:#182b2b;font-family:Georgia,"Times New Roman",serif}
+body{touch-action:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+button{font:inherit}
+.screen{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;background:#efe3c3}
+.hidden{display:none!important}
+.paper{width:min(720px,94vw);max-height:92vh;overflow:auto;background:#f5e9c9;border:2px solid #182b2b;box-shadow:9px 9px 0 #182b2b;padding:32px;position:relative}
+.paper:before{content:"";position:absolute;inset:11px;border:1px solid rgba(24,43,43,.28);pointer-events:none}
+.inner{position:relative;z-index:1}
+.kicker{text-transform:uppercase;letter-spacing:.18em;font:bold 11px Arial,sans-serif;color:#9c472d}
+h1{margin:5px 0 2px;font:900 clamp(62px,14vw,110px)/.78 Georgia,serif;letter-spacing:-.06em;color:#183b3b}
+.subtitle{max-width:620px;margin:25px 0 22px;font-size:15px;line-height:1.6}
+.instructions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:25px}
+.note{border:1px solid #182b2b;padding:13px;background:#e9dcb9}
+.note b{display:block;font:900 10px Arial,sans-serif;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.note span{font-size:12px;line-height:1.4}
+.btn{border:2px solid #182b2b;background:#c85b39;color:#fff3d4;padding:13px 23px;font:bold 12px Arial,sans-serif;text-transform:uppercase;letter-spacing:.12em;cursor:pointer;box-shadow:4px 4px 0 #182b2b}
+.btn:active{transform:translate(4px,4px);box-shadow:none}
+.best{margin-top:15px;font:11px Arial,sans-serif;opacity:.65}
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none}
+.hudTop{position:absolute;top:14px;left:15px;right:15px;display:flex;justify-content:space-between;align-items:flex-start}
+.hudSide{display:flex;gap:7px}
+.hbox{background:#f5e9c9;border:2px solid #182b2b;padding:6px 9px;min-width:78px;box-shadow:3px 3px 0 rgba(24,43,43,.4)}
+.label{font:900 8px Arial,sans-serif;letter-spacing:.12em;opacity:.55}
+.value{font:900 19px Arial,sans-serif}
+#status{position:absolute;left:50%;top:16px;transform:translateX(-50%);background:#183b3b;color:#f5e9c9;padding:6px 11px;font:900 9px Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+#pauseBtn{pointer-events:auto;cursor:pointer;border:2px solid #182b2b;background:#f5e9c9;padding:7px 10px;font:900 9px Arial,sans-serif}
+.tip{position:absolute;left:50%;bottom:15px;transform:translateX(-50%);font:900 10px Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;background:#f5e9c9;border:1px solid #182b2b;padding:7px 10px}
+.smallTitle{margin:4px 0 15px;font:bold 37px Georgia,serif;color:#183b3b}
+@media(max-width:650px){
+.paper{padding:25px}
+.instructions{grid-template-columns:1fr}
+.hudTop{top:8px}
+.hbox{min-width:62px;padding:5px 7px}
+.value{font-size:15px}
+#status{top:67px}
+.tip{bottom:8px;font-size:8px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="menu" class="screen">
+<div class="paper">
+<div class="inner">
+<div class="kicker">Keeper's Log · Coastal Station 17</div>
+<h1>TIDAL<br>LOCK</h1>
+<div class="subtitle">
+The storm has hidden the harbour. Rotate the lighthouse lens and catch vessels,
+buoys and rescue flares with the beam before the tide carries them away.
+Read the waves. Aim ahead. Keep the chain alive.
+</div>
+
+<div class="instructions">
+<div class="note">
+<b>Rotate</b>
+<span>Drag anywhere around the lighthouse to aim the beam.</span>
+</div>
+<div class="note">
+<b>Predict</b>
+<span>Wave crests show where moving targets will be next.</span>
+</div>
+<div class="note">
+<b>Risk</b>
+<span>Long chains raise your score, but missed targets cost visibility.</span>
+</div>
+</div>
+
+<button id="start" class="btn" type="button">Begin Night Watch</button>
+<div class="best">Best rescue score: <strong id="best">0</strong></div>
+</div>
+</div>
+</div>
+
+<div id="pause" class="screen hidden">
+<div class="paper">
+<div class="inner">
+<div class="kicker">Chronometer stopped</div>
+<div class="smallTitle">Night Watch Paused</div>
+<div class="subtitle">The sea is frozen until you return to the lens.</div>
+<button id="resume" class="btn" type="button">Resume Watch</button>
+</div>
+</div>
+</div>
+
+<div id="over" class="screen hidden">
+<div class="paper">
+<div class="inner">
+<div class="kicker">Keeper's Log · End of Watch</div>
+<div class="smallTitle">Visibility Lost</div>
+<div class="subtitle">Too many targets slipped through the storm.</div>
+
+<div class="instructions">
+<div class="note"><b>Score</b><span id="finalScore">0</span></div>
+<div class="note"><b>Night</b><span id="finalNight">1</span></div>
+<div class="note"><b>Best</b><span id="finalBest">0</span></div>
+</div>
+
+<button id="restart" class="btn" type="button">Take Another Watch</button>
+</div>
+</div>
+</div>
+
+<div id="hud" class="hidden">
+<div class="hudTop">
+<div class="hudSide">
+<div class="hbox">
+<div class="label">RESCUED</div>
+<div class="value" id="score">0</div>
+</div>
+<div class="hbox">
+<div class="label">CHAIN</div>
+<div class="value" id="chain">0</div>
+</div>
+<div class="hbox">
+<div class="label">NIGHT</div>
+<div class="value" id="night">1</div>
+</div>
+</div>
+
+<div class="hudSide">
+<div class="hbox">
+<div class="label">VISIBILITY</div>
+<div class="value" id="visibility">100%</div>
+</div>
+<button id="pauseBtn" type="button">PAUSE [P]</button>
+</div>
+</div>
+
+<div id="status">AIM THE LENS</div>
+<div class="tip">DRAG AROUND THE LIGHTHOUSE · CATCH THE MOVING MARKS</div>
+</div>
+
+<script>
+"use strict";
+
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+const menu=document.getElementById("menu");
+const pause=document.getElementById("pause");
+const over=document.getElementById("over");
+const hud=document.getElementById("hud");
+
+const startBtn=document.getElementById("start");
+const resumeBtn=document.getElementById("resume");
+const restartBtn=document.getElementById("restart");
+const pauseBtn=document.getElementById("pauseBtn");
+
+const scoreEl=document.getElementById("score");
+const chainEl=document.getElementById("chain");
+const nightEl=document.getElementById("night");
+const visibilityEl=document.getElementById("visibility");
+const statusEl=document.getElementById("status");
+
+const bestEl=document.getElementById("best");
+const finalScore=document.getElementById("finalScore");
+const finalNight=document.getElementById("finalNight");
+const finalBest=document.getElementById("finalBest");
+
+const C={
+sea:"#587b78",
+seaDark:"#365b5a",
+seaLight:"#8eaaa0",
+paper:"#efe3c3",
+ink:"#182b2b",
+red:"#c85b39",
+orange:"#d28b45",
+cream:"#f5e9c9"
+};
+
+let W=innerWidth;
+let H=innerHeight;
+let dpr=1;
+
+let state="menu";
+
+let score=0;
+let chain=0;
+let night=1;
+let visibility=100;
+let best=0;
+
+let angle=-Math.PI/2;
+let dragging=false;
+
+let targets=[];
+let particles=[];
+let splashes=[];
+let waves=[];
+
+let spawnTimer=0;
+let nightTimer=0;
+let elapsed=0;
+let last=performance.now();
+
+let audio=null;
+
+try{
+best=Number(localStorage.getItem("tidal-lock-best")||0);
+}catch(e){
+best=0;
+}
+
+bestEl.textContent=best.toLocaleString();
+
+function resize(){
+W=innerWidth;
+H=innerHeight;
+dpr=Math.min(2,devicePixelRatio||1);
+
+canvas.width=Math.floor(W*dpr);
+canvas.height=Math.floor(H*dpr);
+
+canvas.style.width=W+"px";
+canvas.style.height=H+"px";
+
+ctx.setTransform(dpr,0,0,dpr,0,0);
+
+makeWaves();
+}
+
+addEventListener("resize",resize);
+
+function audioStart(){
+if(audio){
+if(audio.state==="suspended")audio.resume().catch(()=>{});
+return;
+}
+
+try{
+audio=new (AudioContext||webkitAudioContext)();
+}catch(e){
+audio=null;
+}
+}
+
+function beep(f,d=.07,type="sine",v=.025){
+if(!audio)return;
+
+try{
+const o=audio.createOscillator();
+const g=audio.createGain();
+
+o.type=type;
+o.frequency.value=f;
+
+g.gain.setValueAtTime(.0001,audio.currentTime);
+g.gain.exponentialRampToValueAtTime(v,audio.currentTime+.008);
+g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+d);
+
+o.connect(g);
+g.connect(audio.destination);
+
+o.start();
+o.stop(audio.currentTime+d+.02);
+}catch(e){}
+}
+
+function center(){
+return{
+x:W*.5,
+y:H*.54
+};
+}
+
+function fieldRadius(){
+return Math.min(W,H)*.37;
+}
+
+function normalizeAngle(a){
+while(a>Math.PI)a-=Math.PI*2;
+while(a<-Math.PI)a+=Math.PI*2;
+return a;
+}
+
+function angleDiff(a,b){
+return Math.abs(normalizeAngle(a-b));
+}
+
+function rand(a,b){
+return Math.random()*(b-a)+a;
+}
+
+function choose(a){
+return a[Math.floor(Math.random()*a.length)];
+}
+
+function makeWaves(){
+waves=[];
+
+for(let i=0;i<7;i++){
+waves.push({
+radius:fieldRadius()*(.35+i*.095),
+phase:Math.random()*Math.PI*2,
+speed:rand(.15,.34),
+wobble:rand(4,15)
+});
+}
+}
+
+function targetTypes(){
+return[
+{
+kind:"boat",
+value:100,
+size:12,
+color:C.cream,
+speed:rand(.09,.15)
+},
+{
+kind:"buoy",
+value:150,
+size:9,
+color:C.orange,
+speed:rand(.12,.19)
+},
+{
+kind:"flare",
+value:300,
+size:7,
+color:C.red,
+speed:rand(.15,.23)
+}
+];
+}
+
+function spawnTarget(){
+const c=center();
+const a=Math.random()*Math.PI*2;
+const r=fieldRadius()*rand(.68,.97);
+const t=choose(targetTypes());
+
+targets.push({
+kind:t.kind,
+value:t.value,
+size:t.size,
+color:t.color,
+angle:a,
+radius:r,
+speed:t.speed*(1+night*.035),
+phase:Math.random()*6.28,
+life:0,
+maxLife:rand(12,19),
+caught:false
+});
+}
+
+function targetPosition(t){
+const a=t.angle+t.phase*.012;
+const r=t.radius;
+const c=center();
+
+return{
+x:c.x+Math.cos(a)*r,
+y:c.y+Math.sin(a)*r*.72
+};
+}
+
+function beamWidth(){
+return Math.max(.07,.145-night*.006);
+}
+
+function beamHits(t){
+const p=targetPosition(t);
+const c=center();
+
+const a=Math.atan2(
+p.y-c.y,
+p.x-c.x
+);
+
+return angleDiff(a,angle)<beamWidth()&&t.radius>55;
+}
+
+function catchTarget(t){
+if(t.caught)return;
+
+t.caught=true;
+
+chain++;
+
+const multiplier=1+Math.min(chain*.12,3.5);
+const points=Math.round(t.value*multiplier);
+
+score+=points;
+
+visibility=clamp(
+visibility+1.4,
+0,
+100
+);
+
+beep(
+t.kind==="flare"?760:520,
+.08,
+"triangle",
+.03
+);
+
+burst(
+targetPosition(t),
+t.color,
+t.kind==="flare"?24:13
+);
+
+textBurst(
+targetPosition(t),
+`+${points}`,
+t.color
+);
+}
+
+function missTarget(t){
+if(t.caught)return;
+
+chain=0;
+
+visibility-=t.kind==="flare"?11:7;
+
+visibility=clamp(
+visibility,
+0,
+100
+);
+
+beep(
+120,
+.12,
+"sawtooth",
+.025
+);
+
+burst(
+targetPosition(t),
+C.red,
+9
+);
+}
+
+function burst(p,color,n){
+for(let i=0;i<n;i++){
+const a=Math.random()*Math.PI*2;
+const s=rand(25,100);
+
+particles.push({
+x:p.x,
+y:p.y,
+vx:Math.cos(a)*s,
+vy:Math.sin(a)*s,
+life:rand(.35,.75),
+max:.75,
+size:rand(1.5,4),
+color
+});
+}
+}
+
+function textBurst(p,text,color){
+splashes.push({
+x:p.x,
+y:p.y,
+text,
+color,
+life:1,
+max:1
+});
+}
+
+function update(dt){
+if(state!=="playing")return;
+
+elapsed+=dt;
+nightTimer+=dt;
+spawnTimer-=dt;
+
+const interval=Math.max(
+.42,
+1.65-night*.055
+);
+
+if(spawnTimer<=0){
+
+spawnTarget();
+
+if(night>5&&Math.random()<.18){
+spawnTarget();
+}
+
+spawnTimer=rand(
+interval*.65,
+interval*1.15
+);
+}
+
+for(const w of waves){
+w.phase+=dt*w.speed;
+}
+
+for(const t of targets){
+
+t.life+=dt;
+
+t.angle+=dt*t.speed;
+
+t.radius-=dt*(2.3+night*.11);
+
+if(!t.caught&&beamHits(t)){
+catchTarget(t);
+}
+}
+
+const old=targets;
+targets=[];
+
+for(const t of old){
+
+if(t.caught)continue;
+
+if(t.life>t.maxLife||t.radius<48){
+missTarget(t);
+continue;
+}
+
+targets.push(t);
+}
+
+for(const p of particles){
+
+p.life-=dt;
+
+p.x+=p.vx*dt;
+p.y+=p.vy*dt;
+
+p.vx*=Math.pow(.06,dt);
+p.vy*=Math.pow(.06,dt);
+}
+
+particles=particles.filter(p=>p.life>0);
+
+for(const s of splashes){
+
+s.life-=dt;
+s.y-=20*dt;
+}
+
+splashes=splashes.filter(s=>s.life>0);
+
+if(nightTimer>=28){
+
+night++;
+nightTimer=0;
+
+visibility=clamp(
+visibility+8,
+0,
+100
+);
+
+statusEl.textContent=
+`NIGHT ${night} · STORM RISING`;
+
+beep(
+280,
+.12,
+"square",
+.025
+);
+
+setTimeout(()=>{
+if(state==="playing"){
+statusEl.textContent="AIM THE LENS";
+}
+},3500);
+}
+
+if(visibility<=0){
+endGame();
+}
+
+updateHud();
+}
+
+function updateHud(){
+scoreEl.textContent=score.toLocaleString();
+chainEl.textContent=chain;
+nightEl.textContent=night;
+visibilityEl.textContent=Math.round(visibility)+"%";
+}
+
+function drawSea(){
+
+ctx.fillStyle=C.sea;
+ctx.fillRect(0,0,W,H);
+
+const c=center();
+
+ctx.save();
+
+ctx.globalAlpha=.22;
+
+for(let i=0;i<16;i++){
+
+ctx.beginPath();
+
+const y=(i/15)*H;
+
+ctx.moveTo(0,y);
+
+for(let x=0;x<=W;x+=35){
+
+const yy=
+y+
+Math.sin(
+x*.018+
+i*.7+
+elapsed*.25
+)*5;
+
+ctx.lineTo(x,yy);
+}
+
+ctx.strokeStyle=
+i%2?C.seaLight:C.seaDark;
+
+ctx.lineWidth=1;
+ctx.stroke();
+}
+
+ctx.restore();
+
+ctx.save();
+
+ctx.translate(c.x,c.y);
+
+ctx.strokeStyle="rgba(239,227,195,.18)";
+ctx.lineWidth=1;
+
+for(const w of waves){
+
+ctx.beginPath();
+
+const rr=w.radius;
+
+for(let i=0;i<=80;i++){
+
+const a=i/80*Math.PI*2;
+
+const wob=
+Math.sin(
+a*5+
+w.phase
+)*w.wobble;
+
+const x=
+Math.cos(a)*(rr+wob);
+
+const y=
+Math.sin(a)*(rr+wob)*.72;
+
+if(i===0){
+ctx.moveTo(x,y);
+}else{
+ctx.lineTo(x,y);
+}
+}
+
+ctx.stroke();
+}
+
+ctx.restore();
+}
+
+function drawTargets(){
+
+for(const t of targets){
+
+const p=targetPosition(t);
+
+ctx.save();
+
+ctx.translate(p.x,p.y);
+
+ctx.globalAlpha=
+clamp(
+1-t.life/t.maxLife+.35,
+0,
+1
+);
+
+if(t.kind==="boat"){
+
+ctx.fillStyle=t.color;
+ctx.strokeStyle=C.ink;
+ctx.lineWidth=2;
+
+ctx.beginPath();
+ctx.moveTo(-13,4);
+ctx.lineTo(13,4);
+ctx.lineTo(8,10);
+ctx.lineTo(-9,10);
+ctx.closePath();
+ctx.fill();
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(-2,3);
+ctx.lineTo(-2,-10);
+ctx.lineTo(7,-2);
+ctx.closePath();
+
+ctx.fillStyle=C.paper;
+ctx.fill();
+ctx.stroke();
+
+}else if(t.kind==="buoy"){
+
+ctx.fillStyle=t.color;
+ctx.strokeStyle=C.ink;
+ctx.lineWidth=2;
+
+ctx.beginPath();
+ctx.arc(0,0,8,0,Math.PI*2);
+ctx.fill();
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(-5,-11);
+ctx.lineTo(5,-11);
+ctx.stroke();
+
+}else{
+
+ctx.fillStyle=C.red;
+ctx.strokeStyle=C.cream;
+ctx.lineWidth=2;
+
+ctx.beginPath();
+ctx.arc(0,0,7,0,Math.PI*2);
+ctx.fill();
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(-4,0);
+ctx.lineTo(4,0);
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(0,-4);
+ctx.lineTo(0,4);
+ctx.stroke();
+}
+
+ctx.restore();
+}
+
+ctx.globalAlpha=1;
+}
+
+function drawBeam(){
+
+const c=center();
+const R=fieldRadius()*1.08;
+
+ctx.save();
+
+ctx.translate(c.x,c.y);
+ctx.rotate(angle);
+
+const w=beamWidth();
+
+ctx.beginPath();
+
+ctx.moveTo(0,0);
+
+ctx.arc(
+0,
+0,
+R,
+-w,
+w
+);
+
+ctx.closePath();
+
+ctx.fillStyle="rgba(245,233,201,.17)";
+ctx.fill();
+
+ctx.strokeStyle="rgba(245,233,201,.48)";
+ctx.lineWidth=1;
+ctx.stroke();
+
+ctx.restore();
+}
+
+function drawLighthouse(){
+
+const c=center();
+const R=fieldRadius();
+
+ctx.save();
+
+ctx.translate(c.x,c.y);
+
+ctx.fillStyle="rgba(24,43,43,.22)";
+
+ctx.beginPath();
+ctx.ellipse(
+0,
+23,
+75,
+21,
+0,
+0,
+Math.PI*2
+);
+ctx.fill();
+
+ctx.fillStyle="#e5d5ad";
+ctx.strokeStyle=C.ink;
+ctx.lineWidth=3;
+
+ctx.beginPath();
+
+ctx.moveTo(-38,22);
+ctx.lineTo(-25,-48);
+ctx.lineTo(25,-48);
+ctx.lineTo(38,22);
+ctx.closePath();
+
+ctx.fill();
+ctx.stroke();
+
+ctx.fillStyle=C.red;
+
+ctx.fillRect(
+-26,
+-35,
+52,
+10
+);
+
+ctx.fillRect(
+-30,
+-8,
+60,
+10
+);
+
+ctx.fillStyle=C.ink;
+
+ctx.beginPath();
+ctx.arc(
+0,
+-55,
+21,
+0,
+Math.PI*2
+);
+
+ctx.fill();
+
+ctx.fillStyle=C.paper;
+
+ctx.beginPath();
+ctx.arc(
+0,
+-55,
+13,
+0,
+Math.PI*2
+);
+
+ctx.fill();
+
+ctx.rotate(angle);
+
+ctx.strokeStyle=C.orange;
+ctx.lineWidth=7;
+ctx.lineCap="round";
+
+ctx.beginPath();
+ctx.moveTo(0,-3);
+ctx.lineTo(0,-43);
+ctx.stroke();
+
+ctx.fillStyle=C.red;
+
+ctx.beginPath();
+ctx.arc(
+0,
+-43,
+7,
+0,
+Math.PI*2
+);
+
+ctx.fill();
+
+ctx.restore();
+
+ctx.save();
+
+ctx.strokeStyle="rgba(245,233,201,.5)";
+ctx.lineWidth=2;
+
+ctx.beginPath();
+
+ctx.arc(
+c.x,
+c.y,
+R*.96,
+0,
+Math.PI*2
+);
+
+ctx.stroke();
+
+ctx.restore();
+}
+
+function drawParticles(){
+
+for(const p of particles){
+
+ctx.globalAlpha=
+clamp(
+p.life/p.max,
+0,
+1
+);
+
+ctx.fillStyle=p.color;
+
+ctx.fillRect(
+p.x,
+p.y,
+p.size,
+p.size
+);
+}
+
+ctx.globalAlpha=1;
+}
+
+function drawTexts(){
+
+for(const s of splashes){
+
+ctx.globalAlpha=
+clamp(
+s.life/s.max,
+0,
+1
+);
+
+ctx.fillStyle=s.color;
+
+ctx.font="900 13px Arial";
+ctx.textAlign="center";
+
+ctx.fillText(
+s.text,
+s.x,
+s.y
+);
+}
+
+ctx.globalAlpha=1;
+}
+
+function draw(){
+
+drawSea();
+
+if(state==="playing"||state==="paused"){
+
+drawBeam();
+drawTargets();
+drawLighthouse();
+drawParticles();
+drawTexts();
+
+}else{
+
+drawLighthouse();
+
+}
+}
+
+function getPointer(e){
+
+const r=canvas.getBoundingClientRect();
+
+return{
+x:e.clientX-r.left,
+y:e.clientY-r.top
+};
+}
+
+canvas.addEventListener("pointerdown",e=>{
+
+if(state!=="playing")return;
+
+dragging=true;
+
+canvas.setPointerCapture?.(e.pointerId);
+
+const p=getPointer(e);
+const c=center();
+
+angle=Math.atan2(
+p.y-c.y,
+p.x-c.x
+);
+});
+
+canvas.addEventListener("pointermove",e=>{
+
+if(!dragging||state!=="playing")return;
+
+const p=getPointer(e);
+const c=center();
+
+const next=Math.atan2(
+p.y-c.y,
+p.x-c.x
+);
+
+if(angleDiff(next,angle)>.005){
+beep(
+210,
+.018,
+"sine",
+.006
+);
+}
+
+angle=next;
+});
+
+function stopDrag(){
+dragging=false;
+}
+
+canvas.addEventListener("pointerup",stopDrag);
+canvas.addEventListener("pointercancel",stopDrag);
+
+canvas.addEventListener(
+"pointerleave",
+e=>{
+if(e.buttons===0)stopDrag();
+}
+);
+
+function togglePause(){
+
+if(state==="playing"){
+
+state="paused";
+pause.classList.remove("hidden");
+
+}else if(state==="paused"){
+
+state="playing";
+pause.classList.add("hidden");
+
+}
+}
+
+pauseBtn.addEventListener(
+"click",
+e=>{
+e.preventDefault();
+togglePause();
+}
+);
+
+resumeBtn.addEventListener(
+"click",
+e=>{
+e.preventDefault();
+
+if(state==="paused"){
+togglePause();
+}
+}
+);
+
+window.addEventListener(
+"keydown",
+e=>{
+
+const k=e.key.toLowerCase();
+
+if(k==="p"){
+e.preventDefault();
+togglePause();
+}
+
+if(
+(k==="r"||k==="enter")&&
+state==="gameover"
+){
+startGame();
+}
+
+}
+);
+
+function startGame(){
+
+audioStart();
+
+state="playing";
+
+score=0;
+chain=0;
+night=1;
+visibility=100;
+
+angle=-Math.PI/2;
+
+targets=[];
+particles=[];
+splashes=[];
+
+spawnTimer=.5;
+nightTimer=0;
+elapsed=0;
+
+menu.classList.add("hidden");
+pause.classList.add("hidden");
+over.classList.add("hidden");
+
+hud.classList.remove("hidden");
+
+statusEl.textContent="AIM THE LENS";
+
+updateHud();
+
+beep(
+330,
+.1,
+"triangle",
+.025
+);
+}
+
+function endGame(){
+
+if(state==="gameover")return;
+
+state="gameover";
+
+if(score>best){
+
+best=score;
+
+try{
+localStorage.setItem(
+"tidal-lock-best",
+String(best)
+);
+}catch(e){}
+
+}
+
+finalScore.textContent=
+score.toLocaleString();
+
+finalNight.textContent=night;
+
+finalBest.textContent=
+best.toLocaleString();
+
+bestEl.textContent=
+best.toLocaleString();
+
+hud.classList.add("hidden");
+
+over.classList.remove("hidden");
+
+beep(
+90,
+.3,
+"sawtooth",
+.035
+);
+}
+
+startBtn.addEventListener(
+"click",
+e=>{
+e.preventDefault();
+startGame();
+}
+);
+
+restartBtn.addEventListener(
+"click",
+e=>{
+e.preventDefault();
+startGame();
+}
+);
+
+function loop(now){
+
+const dt=Math.min(
+.045,
+Math.max(
+0,
+(now-last)/1000
+)
+);
+
+last=now;
+
+update(dt);
+draw();
+
+requestAnimationFrame(loop);
+}
+
+resize();
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
