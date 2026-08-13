@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ODD JOB</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{
+  background:#f3ead8;
+  color:#2d2923;
+  font-family:Arial,Helvetica,sans-serif;
+  touch-action:none;
+}
+canvas{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+button{
+  font:inherit;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.overlay{
+  position:fixed;
+  inset:0;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#f3ead8;
+}
+.hidden{display:none!important}
+.panel{
+  width:min(760px,90vw);
+  text-align:center;
+}
+.brand{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:14px;
+  margin-bottom:22px;
+}
+.brandMark{
+  width:54px;
+  height:54px;
+  background:#d85d43;
+  transform:rotate(7deg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#f3ead8;
+  font-size:28px;
+  font-weight:900;
+}
+.brandText{
+  text-align:left;
+}
+.brandText strong{
+  display:block;
+  font-size:35px;
+  line-height:.8;
+  letter-spacing:-.08em;
+}
+.brandText span{
+  font-size:9px;
+  letter-spacing:.25em;
+  color:#817567;
+}
+h1{
+  font-size:clamp(52px,12vw,110px);
+  line-height:.82;
+  margin:0;
+  letter-spacing:-.08em;
+}
+h1 span{
+  color:#d85d43;
+}
+.subtitle{
+  max-width:580px;
+  margin:30px auto;
+  color:#756b5d;
+  line-height:1.7;
+  font-size:14px;
+}
+.main{
+  border:0;
+  background:#2d2923;
+  color:#f3ead8;
+  padding:16px 30px;
+  font-weight:900;
+  font-size:10px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+}
+.main:hover{background:#d85d43}
+.main:active{transform:scale(.97)}
+.hint{
+  margin-top:18px;
+  color:#9b8e7d;
+  font-size:9px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+#hud{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+#topbar{
+  position:absolute;
+  top:18px;
+  left:20px;
+  right:20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+}
+.stat label{
+  display:block;
+  color:#948675;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+}
+.stat b{
+  display:block;
+  margin-top:3px;
+  font-size:27px;
+}
+#pause{
+  pointer-events:auto;
+  border:2px solid #2d2923;
+  background:#f3ead8;
+  color:#2d2923;
+  padding:8px 12px;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.15em;
+}
+#task{
+  position:absolute;
+  top:86px;
+  left:50%;
+  transform:translateX(-50%);
+  text-align:center;
+  width:min(620px,88vw);
+}
+#taskLabel{
+  font-size:8px;
+  letter-spacing:.25em;
+  color:#948675;
+  font-weight:900;
+}
+#taskName{
+  font-size:21px;
+  font-weight:900;
+  margin-top:4px;
+}
+#timer{
+  height:5px;
+  width:180px;
+  margin:9px auto 0;
+  background:#ddd0bb;
+}
+#timerFill{
+  height:100%;
+  width:100%;
+  background:#d85d43;
+}
+#toast{
+  position:absolute;
+  left:50%;
+  top:145px;
+  transform:translateX(-50%) translateY(-8px);
+  opacity:0;
+  color:#d85d43;
+  font-size:12px;
+  font-weight:900;
+  transition:.18s;
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="hud">
+  <div id="topbar">
+    <div class="stat">
+      <label>Pay</label>
+      <b id="score">0</b>
+    </div>
+
+    <div class="stat" style="text-align:center">
+      <label>Day</label>
+      <b id="day">1</b>
+    </div>
+
+    <div class="stat" style="text-align:right">
+      <label>Combo</label>
+      <b id="combo">x1</b>
+    </div>
+
+    <button id="pause" type="button">PAUSE</button>
+  </div>
+
+  <div id="task">
+    <div id="taskLabel">CURRENT JOB</div>
+    <div id="taskName">Loading...</div>
+    <div id="timer"><div id="timerFill"></div></div>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="panel">
+    <div class="brand">
+      <div class="brandMark">?</div>
+      <div class="brandText">
+        <strong>ODD JOB</strong>
+        <span>THE STRANGEST SHIFT IN TOWN</span>
+      </div>
+    </div>
+
+    <h1>DO THE<br><span>WRONG THING.</span></h1>
+
+    <div class="subtitle">
+      Every job gives you a simple instruction. The trick is that the room
+      changes around it. Pick up, drag, rotate, stack, avoid, and react before
+      the clock runs out. Nobody said honest work was easy.
+    </div>
+
+    <button class="main" id="start" type="button">CLOCK IN</button>
+    <div class="hint">Mouse / Touch · Drag objects · Keyboard where shown</div>
+  </div>
+</div>
+
+<div id="pauseScreen" class="overlay hidden">
+  <div class="panel">
+    <div class="brand">
+      <div class="brandMark">II</div>
+      <div class="brandText">
+        <strong>BREAK</strong>
+        <span>THE BOSS ISN'T LOOKING</span>
+      </div>
+    </div>
+
+    <div class="subtitle">Everything is frozen exactly where you left it.</div>
+
+    <button class="main" id="resume" type="button">BACK TO WORK</button>
+  </div>
+</div>
+
+<div id="gameover" class="overlay hidden">
+  <div class="panel">
+    <div class="brand">
+      <div class="brandMark">✓</div>
+      <div class="brandText">
+        <strong>SHIFT OVER</strong>
+        <span>TIME SHEET COMPLETE</span>
+      </div>
+    </div>
+
+    <div class="subtitle" id="result"></div>
+
+    <div style="font-size:72px;font-weight:900;color:#d85d43" id="finalScore">0</div>
+
+    <button class="main" id="again" type="button">WORK ANOTHER DAY</button>
+
+    <div class="hint">
+      Lifetime best: <span id="best">0</span>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+
+const menu=document.getElementById("menu");
+const pauseScreen=document.getElementById("pauseScreen");
+const gameover=document.getElementById("gameover");
+
+const startButton=document.getElementById("start");
+const resumeButton=document.getElementById("resume");
+const againButton=document.getElementById("again");
+const pauseButton=document.getElementById("pause");
+
+const scoreEl=document.getElementById("score");
+const dayEl=document.getElementById("day");
+const comboEl=document.getElementById("combo");
+const taskNameEl=document.getElementById("taskName");
+const timerFillEl=document.getElementById("timerFill");
+const toastEl=document.getElementById("toast");
+const finalScoreEl=document.getElementById("finalScore");
+const resultEl=document.getElementById("result");
+const bestEl=document.getElementById("best");
+
+let W=innerWidth;
+let H=innerHeight;
+let DPR=1;
+
+let state="menu";
+let score=0;
+let day=1;
+let combo=1;
+let best=0;
+
+let task=null;
+let taskTime=0;
+let taskDuration=0;
+
+let objects=[];
+let particles=[];
+let textParticles=[];
+
+let held=null;
+let pointerX=0;
+let pointerY=0;
+
+let shake=0;
+
+const COLORS={
+  paper:"#eee2c9",
+  paper2:"#e2d1b2",
+  ink:"#2d2923",
+  muted:"#9d907d",
+  red:"#d85d43",
+  green:"#5d765c",
+  yellow:"#c49b55",
+  purple:"#76627b",
+  blue:"#66788a"
+};
+
+const jobNames=[
+  "PUT THE RED THING IN THE BOX",
+  "MAKE THE BIGGEST ONE SMALLER",
+  "SORT THE ROUND ONES",
+  "GET EVERYTHING OFF THE TABLE",
+  "PUT THE HEAVY THINGS LEFT",
+  "MAKE A PERFECT LINE",
+  "FIND THE LONELY OBJECT",
+  "KEEP THE RED THING ALONE",
+  "STACK THREE OBJECTS",
+  "PUT THE TINY THINGS TOGETHER",
+  "MOVE THE WRONG THING",
+  "CLEAR THE CORNERS"
+];
+
+function clamp(v,a,b){
+  return Math.max(a,Math.min(b,v));
+}
+
+function rand(a,b){
+  return Math.random()*(b-a)+a;
+}
+
+function dist(a,b,c,d){
+  return Math.hypot(a-c,b-d);
+}
+
+function resize(){
+  W=innerWidth;
+  H=innerHeight;
+
+  DPR=Math.min(2,devicePixelRatio||1);
+
+  canvas.width=Math.floor(W*DPR);
+  canvas.height=Math.floor(H*DPR);
+
+  canvas.style.width=W+"px";
+  canvas.style.height=H+"px";
+
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+
+  for(const o of objects){
+    o.x=clamp(o.x,45,W-45);
+    o.y=clamp(o.y,155,H-60);
+  }
+}
+
+addEventListener("resize",resize);
+
+try{
+  best=Number(localStorage.getItem("odd-job-best")||0);
+}catch(e){
+  best=0;
+}
+
+bestEl.textContent=best.toLocaleString();
+
+function sound(freq,duration=.06,type="sine"){
+  try{
+    if(!sound.audio){
+      sound.audio=new(window.AudioContext||window.webkitAudioContext)();
+    }
+
+    if(sound.audio.state==="suspended"){
+      sound.audio.resume().catch(()=>{});
+    }
+
+    const o=sound.audio.createOscillator();
+    const g=sound.audio.createGain();
+
+    o.type=type;
+    o.frequency.value=freq;
+
+    g.gain.setValueAtTime(.0001,sound.audio.currentTime);
+    g.gain.exponentialRampToValueAtTime(.025,sound.audio.currentTime+.008);
+    g.gain.exponentialRampToValueAtTime(.0001,sound.audio.currentTime+duration);
+
+    o.connect(g);
+    g.connect(sound.audio.destination);
+
+    o.start();
+    o.stop(sound.audio.currentTime+duration+.02);
+  }catch(e){}
+}
+
+function updateHUD(){
+  scoreEl.textContent=Math.floor(score).toLocaleString();
+  dayEl.textContent=day;
+  comboEl.textContent="x"+combo;
+}
+
+function makeObject(type,x,y,size,color){
+  return {
+    id:Math.random(),
+    type,
+    x,
+    y,
+    homeX:x,
+    homeY:y,
+    size,
+    color,
+    rotation:rand(0,Math.PI*2),
+    targetRotation:0,
+    vx:0,
+    vy:0,
+    grabbed:false,
+    marked:false,
+    wobble:rand(0,Math.PI*2)
+  };
+}
+
+function clearObjects(){
+  objects=[];
+  held=null;
+}
+
+function randomColor(){
+  const list=[
+    COLORS.red,
+    COLORS.green,
+    COLORS.yellow,
+    COLORS.purple,
+    COLORS.blue,
+    COLORS.ink
+  ];
+
+  return list[Math.floor(Math.random()*list.length)];
+}
+
+function createObjects(){
+  clearObjects();
+
+  const count=7+Math.min(day,7);
+
+  const types=[
+    "circle",
+    "square",
+    "triangle",
+    "long",
+    "star"
+  ];
+
+  for(let i=0;i<count;i++){
+    const type=types[
+      Math.floor(Math.random()*types.length)
+    ];
+
+    objects.push(
+      makeObject(
+        type,
+        rand(70,W-70),
+        rand(185,H-100),
+        rand(18,31),
+        randomColor()
+      )
+    );
+  }
+}
+
+function chooseTask(){
+  const index=Math.floor(
+    Math.random()*jobNames.length
+  );
+
+  const name=jobNames[index];
+
+  task={
+    name,
+    index,
+    target:null,
+    progress:0
+  };
+
+  taskDuration=Math.max(
+    5.5,
+    9.5-day*.18
+  );
+
+  taskTime=taskDuration;
+
+  setupTask();
+
+  taskNameEl.textContent=name;
+  timerFillEl.style.width="100%";
+}
+
+function setupTask(){
+  for(const o of objects){
+    o.marked=false;
+  }
+
+  if(task.index===0){
+    const reds=objects.filter(o=>o.color===COLORS.red);
+
+    if(!reds.length){
+      objects[0].color=COLORS.red;
+    }
+  }
+
+  if(task.index===1){
+    task.target=objects.reduce(
+      (a,b)=>a.size>b.size?a:b
+    );
+  }
+
+  if(task.index===2){
+    const shape=objects[
+      Math.floor(Math.random()*objects.length)
+    ].type;
+
+    task.target=shape;
+  }
+
+  if(task.index===3){
+    task.target=objects.length;
+  }
+
+  if(task.index===4){
+    task.target="heavy";
+  }
+
+  if(task.index===5){
+    task.target="line";
+  }
+
+  if(task.index===6){
+    const counts={};
+
+    for(const o of objects){
+      counts[o.type]=(counts[o.type]||0)+1;
+    }
+
+    let lonely=null;
+
+    for(const o of objects){
+      if(counts[o.type]===1){
+        lonely=o;
+        break;
+      }
+    }
+
+    if(!lonely){
+      lonely=objects[0];
+    }
+
+    task.target=lonely;
+  }
+
+  if(task.index===7){
+    task.target=objects.find(
+      o=>o.color===COLORS.red
+    );
+
+    if(!task.target){
+      objects[0].color=COLORS.red;
+      task.target=objects[0];
+    }
+  }
+
+  if(task.index===8){
+    task.target=[];
+  }
+
+  if(task.index===9){
+    task.target="tiny";
+  }
+
+  if(task.index===10){
+    task.target=objects[
+      Math.floor(Math.random()*objects.length)
+    ];
+  }
+
+  if(task.index===11){
+    task.target="corners";
+  }
+}
+
+function resetGame(){
+  score=0;
+  day=1;
+  combo=1;
+  task=null;
+  taskTime=0;
+  particles=[];
+  textParticles=[];
+  createObjects();
+  chooseTask();
+  updateHUD();
+}
+
+function startGame(){
+  resetGame();
+
+  state="playing";
+
+  menu.classList.add("hidden");
+  pauseScreen.classList.add("hidden");
+  gameover.classList.add("hidden");
+
+  sound(240,.1,"triangle");
+}
+
+function pauseGame(){
+  if(state!=="playing")return;
+
+  state="paused";
+  pauseScreen.classList.remove("hidden");
+}
+
+function resumeGame(){
+  if(state!=="paused")return;
+
+  state="playing";
+  pauseScreen.classList.add("hidden");
+  last=performance.now();
+}
+
+function endGame(){
+  if(state!=="playing")return;
+
+  state="gameover";
+
+  if(score>best){
+    best=score;
+
+    try{
+      localStorage.setItem(
+        "odd-job-best",
+        String(best)
+      );
+    }catch(e){}
+  }
+
+  finalScoreEl.textContent=
+    Math.floor(score).toLocaleString();
+
+  bestEl.textContent=
+    best.toLocaleString();
+
+  resultEl.textContent=
+    "You survived "+day+
+    " day"+(day===1?"":"s")+
+    " of increasingly ridiculous work. "+
+    (combo>=6
+      ?"The boss is impressed. Probably."
+      :"The boss has asked you to reconsider your career.");
+
+  gameover.classList.remove("hidden");
+
+  sound(110,.25,"sawtooth");
+}
+
+function success(){
+  const reward=
+    Math.round(
+      100+
+      day*30+
+      combo*20+
+      taskDuration*5
+    );
+
+  score+=reward;
+  combo++;
+
+  textParticles.push({
+    x:W/2,
+    y:170,
+    text:"JOB DONE  +"+reward,
+    color:COLORS.green,
+    life:1
+  });
+
+  for(let i=0;i<22;i++){
+    particles.push({
+      x:W/2,
+      y:175,
+      vx:rand(-170,170),
+      vy:rand(-130,80),
+      life:rand(.3,.8),
+      size:rand(2,5),
+      color:COLORS.green
+    });
+  }
+
+  sound(
+    330+Math.min(combo,10)*35,
+    .08,
+    "triangle"
+  );
+
+  day++;
+
+  createObjects();
+  chooseTask();
+  updateHUD();
+}
+
+function fail(){
+  combo=1;
+
+  textParticles.push({
+    x:W/2,
+    y:170,
+    text:"JOB FAILED",
+    color:COLORS.red,
+    life:1
+  });
+
+  shake=8;
+
+  sound(80,.12,"sawtooth");
+
+  createObjects();
+  chooseTask();
+
+  updateHUD();
+}
+
+function showToast(text){
+  toastEl.textContent=text;
+  toastEl.style.opacity="1";
+  toastEl.style.transform=
+    "translateX(-50%) translateY(0)";
+
+  clearTimeout(showToast.timer);
+
+  showToast.timer=setTimeout(()=>{
+    toastEl.style.opacity="0";
+    toastEl.style.transform=
+      "translateX(-50%) translateY(-8px)";
+  },800);
+}
+
+function pointerPosition(e){
+  const rect=canvas.getBoundingClientRect();
+
+  pointerX=e.clientX-rect.left;
+  pointerY=e.clientY-rect.top;
+}
+
+function objectAt(x,y){
+  for(let i=objects.length-1;i>=0;i--){
+    const o=objects[i];
+
+    if(
+      dist(
+        x,y,
+        o.x,o.y
+      )<o.size+10
+    ){
+      return o;
+    }
+  }
+
+  return null;
+}
+
+function dropHeld(){
+  if(!held)return;
+
+  held.grabbed=false;
+  held.vx=0;
+  held.vy=0;
+
+  evaluateAction(held);
+
+  held=null;
+}
+
+function evaluateAction(o){
+  if(!task)return;
+
+  let done=false;
+
+  if(task.index===0){
+    if(
+      o.color===COLORS.red &&
+      o.x>W*.68 &&
+      o.y>H*.62
+    ){
+      done=true;
+    }
+  }
+
+  if(task.index===1){
+    if(
+      o===task.target &&
+      o.size<14
+    ){
+      done=true;
+    }
+  }
+
+  if(task.index===2){
+    const target=task.target;
+
+    if(
+      o.type===target &&
+      o.x>W*.72
+    ){
+      done=true;
+    }
+  }
+
+  if(task.index===3){
+    if(
+      objects.every(
+        a=>a.y>H-95
+      )
+    ){
+      done=true;
+    }
+  }
+
+  if(task.index===4){
+    if(
+      o.size>28 &&
+      o.x<W*.33
+    ){
+      done=true;
+    }
+  }
+
+  if(task.index===5){
+    const sorted=objects
+      .slice()
+      .sort((a,b)=>a.x-b.x);
+
+    let good=true;
+
+    for(let i=1;i<sorted.length;i++){
+      if(
+        Math.abs(
+          sorted[i].y-
+          sorted[i-1].y
+        )>30
+      ){
+        good=false;
+      }
+    }
+
+    if(good)done=true;
+  }
+
+  if(task.index===6){
+    if(
+      o===task.target &&
+      o.x>W*.4 &&
+      o.x<W*.6
+    ){
+      done=true;
+    }
+  }
+
+  if(task.index===7){
+    if(
+      o===task.target &&
+      o.x<W*.25
+    ){
+      done=true;
+    }
+  }
+
+  if(task.index===8){
+    task.target.push(o);
+
+    if(task.target.length>=3){
+      const selected=task.target.slice(-3);
+
+      const y0=selected[0].y;
+
+      if(
+        selected.every(
+          a=>Math.abs(a.y-y0)<45
+        )
+      ){
+        done=true;
+      }
+    }
+  }
+
+  if(task.index===9){
+    if(
+      o.size<22 &&
+      o.x>W*.68
+    ){
+      done=true;
+    }
+  }
+
+  if(task.index===10){
+    if(
+      o===task.target &&
+      o.color!==COLORS.red &&
+      o.x<W*.3
+    ){
+      done=true;
+    }
+  }
+
+  if(task.index===11){
+    if(
+      (
+        o.x<100||
+        o.x>W-100
+      )&&(
+        o.y<190||
+        o.y>H-100
+      )
+    ){
+      done=true;
+    }
+  }
+
+  if(done){
+    success();
+  }
+}
+
+function update(dt){
+  if(state!=="playing")return;
+
+  taskTime-=dt;
+
+  timerFillEl.style.width=
+    clamp(
+      taskTime/taskDuration*100,
+      0,
+      100
+    )+"%";
+
+  if(taskTime<=0){
+    fail();
+    return;
+  }
+
+  for(const o of objects){
+    o.wobble+=dt;
+
+    if(!o.grabbed){
+      o.x+=o.vx*dt;
+      o.y+=o.vy*dt;
+
+      o.vx*=Math.pow(.001,dt);
+      o.vy*=Math.pow(.001,dt);
+
+      o.vy+=35*dt;
+
+      if(
+        o.x<o.size||
+        o.x>W-o.size
+      ){
+        o.vx*=-.7;
+        o.x=clamp(
+          o.x,
+          o.size,
+          W-o.size
+        );
+      }
+
+      if(
+        o.y<155||
+        o.y>H-58
+      ){
+        o.vy*=-.55;
+        o.y=clamp(
+          o.y,
+          155,
+          H-58
+        );
+      }
+    }else{
+      o.x+=(pointerX-o.x)*Math.min(1,dt*18);
+      o.y+=(pointerY-o.y)*Math.min(1,dt*18);
+      o.rotation+=dt*4;
+    }
+  }
+
+  for(const p of particles){
+    p.life-=dt;
+    p.x+=p.vx*dt;
+    p.y+=p.vy*dt;
+    p.vy+=180*dt;
+  }
+
+  particles=particles.filter(
+    p=>p.life>0
+  );
+
+  for(const t of textParticles){
+    t.life-=dt;
+    t.y-=28*dt;
+  }
+
+  textParticles=textParticles.filter(
+    t=>t.life>0
+  );
+
+  shake*=Math.pow(.0001,dt);
+}
+
+function drawBackground(){
+  ctx.fillStyle=COLORS.paper;
+  ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle="#e5d8c1";
+  ctx.lineWidth=1;
+
+  for(let y=0;y<H;y+=28){
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(W,y);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle="#cfc1aa";
+  ctx.fillRect(0,H-45,W,3);
+
+  ctx.fillStyle="#e8dcc7";
+
+  for(let x=0;x<W;x+=48){
+    ctx.fillRect(
+      x,
+      H-42,
+      24,
+      42
+    );
+  }
+
+  ctx.fillStyle="#c9baa3";
+  ctx.fillRect(0,H-3,W,3);
+}
+
+function drawTargetHints(){
+  if(!task)return;
+
+  ctx.save();
+
+  ctx.setLineDash([5,7]);
+  ctx.lineWidth=2;
+  ctx.strokeStyle="rgba(216,93,67,.45)";
+
+  if(task.index===0){
+    ctx.strokeRect(
+      W*.68,
+      H*.62,
+      W*.22,
+      H*.22
+    );
+  }
+
+  if(task.index===2){
+    ctx.strokeRect(
+      W*.72,
+      H*.62,
+      W*.22,
+      H*.22
+    );
+  }
+
+  if(task.index===4){
+    ctx.strokeRect(
+      20,
+      H*.62,
+      W*.30,
+      H*.22
+    );
+  }
+
+  if(task.index===6){
+    ctx.beginPath();
+    ctx.arc(
+      W*.5,
+      H*.45,
+      55,
+      0,
+      Math.PI*2
+    );
+    ctx.stroke();
+  }
+
+  if(task.index===7){
+    ctx.strokeRect(
+      20,
+      H*.62,
+      W*.23,
+      H*.22
+    );
+  }
+
+  if(task.index===9){
+    ctx.strokeRect(
+      W*.68,
+      H*.62,
+      W*.22,
+      H*.22
+    );
+  }
+
+  if(task.index===10){
+    ctx.strokeRect(
+      20,
+      H*.62,
+      W*.28,
+      H*.22
+    );
+  }
+
+  ctx.restore();
+}
+
+function drawObject(o){
+  ctx.save();
+
+  ctx.translate(o.x,o.y);
+  ctx.rotate(o.rotation);
+
+  const s=o.size;
+
+  ctx.fillStyle=o.color;
+  ctx.strokeStyle=COLORS.ink;
+  ctx.lineWidth=3;
+
+  if(o.type==="circle"){
+    ctx.beginPath();
+    ctx.arc(0,0,s,0,Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  if(o.type==="square"){
+    ctx.fillRect(-s,-s,s*2,s*2);
+    ctx.strokeRect(-s,-s,s*2,s*2);
+  }
+
+  if(o.type==="triangle"){
+    ctx.beginPath();
+    ctx.moveTo(0,-s);
+    ctx.lineTo(s,s);
+    ctx.lineTo(-s,s);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  if(o.type==="long"){
+    ctx.fillRect(-s*1.8,-s*.55,s*3.6,s*1.1);
+    ctx.strokeRect(-s*1.8,-s*.55,s*3.6,s*1.1);
+  }
+
+  if(o.type==="star"){
+    ctx.beginPath();
+
+    for(let i=0;i<10;i++){
+      const a=-Math.PI/2+i*Math.PI/5;
+      const r=i%2===0?s:s*.45;
+      const x=Math.cos(a)*r;
+      const y=Math.sin(a)*r;
+
+      if(i===0)ctx.moveTo(x,y);
+      else ctx.lineTo(x,y);
+    }
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  if(
+    task &&
+    task.index===6 &&
+    o===task.target
+  ){
+    ctx.strokeStyle=COLORS.red;
+    ctx.lineWidth=2;
+
+    ctx.beginPath();
+    ctx.arc(
+      o.x,
+      o.y,
+      o.size+7+
+      Math.sin(performance.now()/120)*2,
+      0,
+      Math.PI*2
+    );
+    ctx.stroke();
+  }
+}
+
+function drawParticles(){
+  for(const p of particles){
+    ctx.globalAlpha=
+      clamp(p.life/.8,0,1);
+
+    ctx.fillStyle=p.color;
+
+    ctx.fillRect(
+      p.x,
+      p.y,
+      p.size,
+      p.size
+    );
+  }
+
+  ctx.globalAlpha=1;
+}
+
+function drawTextParticles(){
+  ctx.textAlign="center";
+  ctx.font="900 13px Arial";
+
+  for(const t of textParticles){
+    ctx.globalAlpha=
+      clamp(t.life,0,1);
+
+    ctx.fillStyle=t.color;
+
+    ctx.fillText(
+      t.text,
+      t.x,
+      t.y
+    );
+  }
+
+  ctx.globalAlpha=1;
+}
+
+function draw(){
+  ctx.save();
+
+  if(shake>0){
+    ctx.translate(
+      rand(-shake,shake),
+      rand(-shake,shake)
+    );
+  }
+
+  drawBackground();
+
+  if(
+    state==="playing"||
+    state==="paused"
+  ){
+    drawTargetHints();
+
+    for(const o of objects){
+      drawObject(o);
+    }
+
+    drawParticles();
+    drawTextParticles();
+  }
+
+  ctx.restore();
+}
+
+canvas.addEventListener("pointerdown",e=>{
+  if(state!=="playing")return;
+
+  pointerPosition(e);
+
+  const o=objectAt(
+    pointerX,
+    pointerY
+  );
+
+  if(o){
+    held=o;
+    o.grabbed=true;
+    sound(170,.025,"square");
+  }
+});
+
+canvas.addEventListener("pointermove",e=>{
+  if(state!=="playing")return;
+
+  pointerPosition(e);
+});
+
+canvas.addEventListener("pointerup",()=>{
+  if(state!=="playing")return;
+  dropHeld();
+});
+
+canvas.addEventListener("pointercancel",()=>{
+  if(state!=="playing")return;
+  dropHeld();
+});
+
+addEventListener("keydown",e=>{
+  if(e.key.toLowerCase()==="p"){
+    if(state==="playing")pauseGame();
+    else if(state==="paused")resumeGame();
+  }
+
+  if(e.key.toLowerCase()==="r"&&state==="gameover"){
+    startGame();
+  }
+
+  if(e.key==="Enter"&&state==="menu"){
+    startGame();
+  }
+
+  if(e.key.toLowerCase()===" "){
+    if(state==="playing"&&held){
+      dropHeld();
+      e.preventDefault();
+    }
+  }
+});
+
+startButton.addEventListener("click",e=>{
+  e.preventDefault();
+  startGame();
+});
+
+resumeButton.addEventListener("click",e=>{
+  e.preventDefault();
+  resumeGame();
+});
+
+againButton.addEventListener("click",e=>{
+  e.preventDefault();
+  startGame();
+});
+
+pauseButton.addEventListener("click",e=>{
+  e.preventDefault();
+
+  if(state==="playing"){
+    pauseGame();
+  }else if(state==="paused"){
+    resumeGame();
+  }
+});
+
+let last=performance.now();
+
+function loop(now){
+  const dt=Math.min(
+    .05,
+    Math.max(0,(now-last)/1000)
+  );
+
+  last=now;
+
+  update(dt);
+  draw();
+
+  requestAnimationFrame(loop);
+}
+
+resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
