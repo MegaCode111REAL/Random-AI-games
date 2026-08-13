@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>STOLEN SHADOW</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{
+  background:#1c1714;
+  color:#e9dfcf;
+  font-family:Georgia,"Times New Roman",serif;
+  touch-action:none;
+}
+canvas{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+#hud{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+#scoreBox{
+  position:absolute;
+  top:22px;
+  left:25px;
+}
+#scoreLabel{
+  font-size:10px;
+  letter-spacing:.28em;
+  text-transform:uppercase;
+  color:#8f8172;
+}
+#score{
+  font-size:40px;
+  font-weight:bold;
+  line-height:1;
+  margin-top:5px;
+}
+#streak{
+  position:absolute;
+  top:25px;
+  right:25px;
+  text-align:right;
+  color:#c8a66b;
+  font-size:13px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+#pause{
+  position:absolute;
+  right:25px;
+  top:58px;
+  pointer-events:auto;
+  border:1px solid #746555;
+  background:transparent;
+  color:#b9aa97;
+  padding:7px 11px;
+  font:10px Georgia,serif;
+  letter-spacing:.15em;
+  cursor:pointer;
+}
+.overlay{
+  position:fixed;
+  inset:0;
+  z-index:10;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#1c1714;
+}
+.hidden{display:none!important}
+.panel{
+  width:min(680px,88vw);
+  text-align:center;
+}
+.eyebrow{
+  color:#a48c69;
+  font-size:10px;
+  letter-spacing:.35em;
+  text-transform:uppercase;
+  margin-bottom:20px;
+}
+h1{
+  margin:0;
+  font-size:clamp(64px,14vw,145px);
+  line-height:.78;
+  font-weight:normal;
+  letter-spacing:-.08em;
+}
+h1 i{
+  display:block;
+  color:#c8a66b;
+  font-style:normal;
+}
+.description{
+  max-width:520px;
+  margin:35px auto;
+  color:#a99d8e;
+  font-size:15px;
+  line-height:1.8;
+}
+.mainButton{
+  border:1px solid #c8a66b;
+  background:#c8a66b;
+  color:#1c1714;
+  padding:15px 28px;
+  font:11px Georgia,serif;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  cursor:pointer;
+}
+.mainButton:hover{
+  background:#e0c18b;
+}
+.mainButton:active{
+  transform:scale(.97);
+}
+.tip{
+  margin-top:20px;
+  color:#6f6459;
+  font-size:10px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.finalScore{
+  font-size:70px;
+  color:#c8a66b;
+  margin:20px 0;
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="hud">
+  <div id="scoreBox">
+    <div id="scoreLabel">Stolen</div>
+    <div id="score">0</div>
+  </div>
+  <div id="streak">Shadow x<span id="multiplier">1</span></div>
+  <button id="pause" type="button">PAUSE</button>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="panel">
+    <div class="eyebrow">The lights are watching</div>
+    <h1>STOLEN<i>SHADOW</i></h1>
+    <div class="description">
+      You are a shadow thief. The room contains moving lanterns and valuable
+      objects. You cannot touch the objects yourself — only your shadow can.
+      Position yourself so your shadow reaches the target while avoiding the
+      light.
+    </div>
+    <button class="mainButton" id="start" type="button">Enter The Room</button>
+    <div class="tip">Move with mouse, touch or WASD</div>
+  </div>
+</div>
+
+<div id="pauseScreen" class="overlay hidden">
+  <div class="panel">
+    <div class="eyebrow">The room waits</div>
+    <h1>STILL</h1>
+    <div class="description">Nothing moves while you are gone.</div>
+    <button class="mainButton" id="resume" type="button">Continue</button>
+  </div>
+</div>
+
+<div id="gameover" class="overlay hidden">
+  <div class="panel">
+    <div class="eyebrow">The light found you</div>
+    <h1>CAUGHT</h1>
+    <div class="finalScore" id="finalScore">0</div>
+    <div class="description" id="result"></div>
+    <button class="mainButton" id="again" type="button">Try Again</button>
+    <div class="tip">Best theft: <span id="best">0</span></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+
+const menu=document.getElementById("menu");
+const pauseScreen=document.getElementById("pauseScreen");
+const gameover=document.getElementById("gameover");
+
+const startButton=document.getElementById("start");
+const resumeButton=document.getElementById("resume");
+const againButton=document.getElementById("again");
+const pauseButton=document.getElementById("pause");
+
+const scoreEl=document.getElementById("score");
+const multiplierEl=document.getElementById("multiplier");
+const finalScoreEl=document.getElementById("finalScore");
+const resultEl=document.getElementById("result");
+const bestEl=document.getElementById("best");
+
+let W=innerWidth;
+let H=innerHeight;
+let DPR=1;
+
+let state="menu";
+let score=0;
+let combo=0;
+let multiplier=1;
+let best=0;
+
+let elapsed=0;
+let spawnTimer=0;
+let level=1;
+
+let player={
+  x:W/2,
+  y:H*.72,
+  targetX:W/2,
+  targetY:H*.72,
+  vx:0,
+  vy:0
+};
+
+let lantern={
+  x:W*.5,
+  y:H*.35,
+  angle:0,
+  speed:.45,
+  radius:170,
+  targetRadius:170
+};
+
+let treasures=[];
+let sparks=[];
+let texts=[];
+let ghosts=[];
+
+let keys={
+  left:false,
+  right:false,
+  up:false,
+  down:false
+};
+
+const treasureColors=[
+  "#b58a4a",
+  "#a76b54",
+  "#6f806a",
+  "#8a7190",
+  "#c3a96e"
+];
+
+function clamp(v,a,b){
+  return Math.max(a,Math.min(b,v));
+}
+
+function rand(a,b){
+  return Math.random()*(b-a)+a;
+}
+
+function resize(){
+  W=innerWidth;
+  H=innerHeight;
+
+  DPR=Math.min(2,devicePixelRatio||1);
+
+  canvas.width=Math.floor(W*DPR);
+  canvas.height=Math.floor(H*DPR);
+
+  canvas.style.width=W+"px";
+  canvas.style.height=H+"px";
+
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+
+  player.x=clamp(player.x,35,W-35);
+  player.y=clamp(player.y,100,H-45);
+}
+
+addEventListener("resize",resize);
+
+function loadBest(){
+  try{
+    best=Number(localStorage.getItem("stolen-shadow-best")||0);
+  }catch(e){
+    best=0;
+  }
+  bestEl.textContent=best.toLocaleString();
+}
+
+loadBest();
+
+function beep(freq,duration=.08,type="sine"){
+  try{
+    if(!beep.ctx){
+      beep.ctx=new(window.AudioContext||window.webkitAudioContext)();
+    }
+
+    if(beep.ctx.state==="suspended"){
+      beep.ctx.resume().catch(()=>{});
+    }
+
+    const o=beep.ctx.createOscillator();
+    const g=beep.ctx.createGain();
+
+    o.type=type;
+    o.frequency.value=freq;
+
+    g.gain.setValueAtTime(.0001,beep.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.025,beep.ctx.currentTime+.01);
+    g.gain.exponentialRampToValueAtTime(.0001,beep.ctx.currentTime+duration);
+
+    o.connect(g);
+    g.connect(beep.ctx.destination);
+
+    o.start();
+    o.stop(beep.ctx.currentTime+duration+.02);
+  }catch(e){}
+}
+
+function resetGame(){
+  score=0;
+  combo=0;
+  multiplier=1;
+
+  elapsed=0;
+  spawnTimer=.4;
+  level=1;
+
+  player={
+    x:W/2,
+    y:H*.72,
+    targetX:W/2,
+    targetY:H*.72,
+    vx:0,
+    vy:0
+  };
+
+  lantern={
+    x:W*.5,
+    y:H*.34,
+    angle:0,
+    speed:.45,
+    radius:170,
+    targetRadius:170
+  };
+
+  treasures=[];
+  sparks=[];
+  texts=[];
+  ghosts=[];
+
+  updateHUD();
+}
+
+function startGame(){
+  resetGame();
+
+  state="playing";
+
+  menu.classList.add("hidden");
+  pauseScreen.classList.add("hidden");
+  gameover.classList.add("hidden");
+
+  beep(220,.1,"triangle");
+}
+
+function pauseGame(){
+  if(state!=="playing")return;
+
+  state="paused";
+  pauseScreen.classList.remove("hidden");
+}
+
+function resumeGame(){
+  if(state!=="paused")return;
+
+  state="playing";
+  pauseScreen.classList.add("hidden");
+  last=performance.now();
+}
+
+function endGame(){
+  if(state!=="playing")return;
+
+  state="gameover";
+
+  if(score>best){
+    best=score;
+
+    try{
+      localStorage.setItem("stolen-shadow-best",String(best));
+    }catch(e){}
+  }
+
+  finalScoreEl.textContent=Math.floor(score).toLocaleString();
+  bestEl.textContent=best.toLocaleString();
+
+  resultEl.textContent=
+    combo>=10
+      ?"You moved like you belonged here. Almost."
+      :"The lantern caught your silhouette.";
+
+  gameover.classList.remove("hidden");
+
+  beep(80,.3,"sawtooth");
+}
+
+function updateHUD(){
+  scoreEl.textContent=Math.floor(score).toLocaleString();
+  multiplierEl.textContent=multiplier;
+}
+
+function spawnTreasure(){
+  const size=rand(11,19);
+
+  treasures.push({
+    x:rand(45,W-45),
+    y:rand(125,H*.72),
+    size,
+    value:Math.round(rand(70,150)*(1+level*.1)),
+    color:treasureColors[
+      Math.floor(Math.random()*treasureColors.length)
+    ],
+    phase:rand(0,Math.PI*2),
+    rotation:rand(0,Math.PI*2),
+    stolen:false,
+    pulse:rand(0,Math.PI*2)
+  });
+}
+
+function shadowPoint(){
+  const dx=player.x-lantern.x;
+  const dy=player.y-lantern.y;
+  const distance=Math.hypot(dx,dy);
+
+  if(distance<1){
+    return{
+      x:player.x,
+      y:player.y
+    };
+  }
+
+  const shadowLength=clamp(
+    180+distance*.55,
+    170,
+    430+level*25
+  );
+
+  return{
+    x:player.x+(dx/distance)*shadowLength,
+    y:player.y+(dy/distance)*shadowLength
+  };
+}
+
+function pointHitsTreasure(point,t){
+  return Math.hypot(
+    point.x-t.x,
+    point.y-t.y
+  )<t.size+24;
+}
+
+function update(dt){
+  if(state!=="playing")return;
+
+  elapsed+=dt;
+
+  if(elapsed>20*level){
+    level++;
+    lantern.speed+=.08;
+    lantern.targetRadius+=15;
+    beep(320,.12,"triangle");
+  }
+
+  let dx=0;
+  let dy=0;
+
+  if(keys.left)dx--;
+  if(keys.right)dx++;
+  if(keys.up)dy--;
+  if(keys.down)dy++;
+
+  if(dx||dy){
+    const length=Math.hypot(dx,dy);
+    dx/=length;
+    dy/=length;
+
+    player.targetX+=dx*340*dt;
+    player.targetY+=dy*340*dt;
+  }
+
+  player.targetX=clamp(
+    player.targetX,
+    35,
+    W-35
+  );
+
+  player.targetY=clamp(
+    player.targetY,
+    110,
+    H-40
+  );
+
+  player.vx+=(player.targetX-player.x)*18*dt;
+  player.vy+=(player.targetY-player.y)*18*dt;
+
+  player.vx*=Math.pow(.002,dt);
+  player.vy*=Math.pow(.002,dt);
+
+  player.x+=player.vx*dt;
+  player.y+=player.vy*dt;
+
+  lantern.angle+=lantern.speed*dt;
+
+  lantern.x=
+    W*.5+
+    Math.cos(lantern.angle)*W*.28;
+
+  lantern.y=
+    H*.36+
+    Math.sin(lantern.angle*1.37)*H*.13;
+
+  lantern.radius+=
+    (lantern.targetRadius-lantern.radius)*dt;
+
+  spawnTimer-=dt;
+
+  const interval=Math.max(
+    .7,
+    1.5-level*.08
+  );
+
+  if(spawnTimer<=0){
+    spawnTreasure();
+
+    if(level>5&&Math.random()<.2){
+      spawnTreasure();
+    }
+
+    spawnTimer=rand(
+      interval*.6,
+      interval*1.25
+    );
+  }
+
+  const shadow=shadowPoint();
+
+  for(const t of treasures){
+
+    t.phase+=dt;
+    t.pulse+=dt*2;
+    t.rotation+=dt*.4;
+
+    t.x+=Math.sin(t.phase)*8*dt;
+
+    if(
+      !t.stolen&&
+      pointHitsTreasure(shadow,t)
+    ){
+      steal(t);
+    }
+  }
+
+  treasures=treasures.filter(t=>!t.stolen);
+
+  ghosts.push({
+    x:shadow.x,
+    y:shadow.y,
+    life:.25
+  });
+
+  if(ghosts.length>18){
+    ghosts.shift();
+  }
+
+  for(const g of ghosts){
+    g.life-=dt;
+  }
+
+  ghosts=ghosts.filter(g=>g.life>0);
+
+  for(const s of sparks){
+    s.life-=dt;
+    s.x+=s.vx*dt;
+    s.y+=s.vy*dt;
+    s.vx*=Math.pow(.03,dt);
+    s.vy*=Math.pow(.03,dt);
+  }
+
+  sparks=sparks.filter(s=>s.life>0);
+
+  for(const t of texts){
+    t.life-=dt;
+    t.y-=28*dt;
+  }
+
+  texts=texts.filter(t=>t.life>0);
+
+  const lightDistance=Math.hypot(
+    player.x-lantern.x,
+    player.y-lantern.y
+  );
+
+  if(lightDistance<lantern.radius*.38){
+    endGame();
+  }
+}
+
+function steal(t){
+  t.stolen=true;
+
+  combo++;
+
+  multiplier=
+    1+
+    Math.floor(combo/4);
+
+  const points=Math.round(
+    t.value*multiplier
+  );
+
+  score+=points;
+
+  texts.push({
+    x:t.x,
+    y:t.y,
+    text:"+"+points,
+    color:t.color,
+    life:1
+  });
+
+  for(let i=0;i<18;i++){
+    createSpark(
+      t.x,
+      t.y,
+      t.color,
+      rand(50,180)
+    );
+  }
+
+  beep(
+    280+Math.min(combo,20)*28,
+    .06,
+    "triangle"
+  );
+
+  updateHUD();
+}
+
+function createSpark(x,y,color,speed){
+  const a=Math.random()*Math.PI*2;
+
+  sparks.push({
+    x,
+    y,
+    vx:Math.cos(a)*speed,
+    vy:Math.sin(a)*speed,
+    life:rand(.25,.7),
+    size:rand(1,4),
+    color
+  });
+}
+
+function drawBackground(){
+  ctx.fillStyle="#1c1714";
+  ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle="#28211d";
+  ctx.lineWidth=1;
+
+  for(let x=0;x<W;x+=60){
+    ctx.beginPath();
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,H);
+    ctx.stroke();
+  }
+
+  for(let y=0;y<H;y+=60){
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(W,y);
+    ctx.stroke();
+  }
+}
+
+function drawLantern(){
+  ctx.save();
+
+  ctx.translate(
+    lantern.x,
+    lantern.y
+  );
+
+  ctx.fillStyle="#30271f";
+
+  ctx.beginPath();
+  ctx.arc(
+    0,
+    0,
+    24,
+    0,
+    Math.PI*2
+  );
+  ctx.fill();
+
+  ctx.fillStyle="#e0b35f";
+
+  ctx.beginPath();
+  ctx.arc(
+    0,
+    0,
+    10,
+    0,
+    Math.PI*2
+  );
+  ctx.fill();
+
+  ctx.restore();
+
+  const gradient=ctx.createRadialGradient(
+    lantern.x,
+    lantern.y,
+    10,
+    lantern.x,
+    lantern.y,
+    lantern.radius
+  );
+
+  gradient.addColorStop(0,"rgba(222,184,112,.28)");
+  gradient.addColorStop(.45,"rgba(222,184,112,.09)");
+  gradient.addColorStop(1,"rgba(222,184,112,0)");
+
+  ctx.fillStyle=gradient;
+
+  ctx.beginPath();
+  ctx.arc(
+    lantern.x,
+    lantern.y,
+    lantern.radius,
+    0,
+    Math.PI*2
+  );
+  ctx.fill();
+}
+
+function drawTreasure(){
+  for(const t of treasures){
+
+    ctx.save();
+
+    ctx.translate(t.x,t.y);
+    ctx.rotate(t.rotation);
+
+    const scale=
+      1+
+      Math.sin(t.pulse)*.05;
+
+    ctx.scale(scale,scale);
+
+    ctx.fillStyle=t.color;
+
+    ctx.beginPath();
+    ctx.moveTo(0,-t.size);
+    ctx.lineTo(t.size*.8,0);
+    ctx.lineTo(0,t.size);
+    ctx.lineTo(-t.size*.8,0);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle="#d6c09a";
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+}
+
+function drawPlayer(){
+  ctx.save();
+
+  ctx.translate(
+    player.x,
+    player.y
+  );
+
+  ctx.fillStyle="#e9dfcf";
+
+  ctx.beginPath();
+  ctx.arc(
+    0,
+    0,
+    14,
+    0,
+    Math.PI*2
+  );
+  ctx.fill();
+
+  ctx.strokeStyle="#c8a66b";
+  ctx.lineWidth=2;
+
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawShadow(){
+  const s=shadowPoint();
+
+  ctx.save();
+
+  ctx.strokeStyle="rgba(0,0,0,.45)";
+  ctx.lineWidth=28;
+  ctx.lineCap="round";
+
+  ctx.beginPath();
+  ctx.moveTo(
+    player.x,
+    player.y
+  );
+  ctx.lineTo(
+    s.x,
+    s.y
+  );
+  ctx.stroke();
+
+  ctx.fillStyle="rgba(0,0,0,.55)";
+
+  ctx.beginPath();
+  ctx.arc(
+    s.x,
+    s.y,
+    20,
+    0,
+    Math.PI*2
+  );
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawGhosts(){
+  for(const g of ghosts){
+
+    ctx.globalAlpha=
+      g.life/.25*.12;
+
+    ctx.fillStyle="#000";
+
+    ctx.beginPath();
+
+    ctx.arc(
+      g.x,
+      g.y,
+      13,
+      0,
+      Math.PI*2
+    );
+
+    ctx.fill();
+  }
+
+  ctx.globalAlpha=1;
+}
+
+function drawSparks(){
+  for(const s of sparks){
+
+    ctx.globalAlpha=
+      clamp(s.life/.7,0,1);
+
+    ctx.fillStyle=s.color;
+
+    ctx.fillRect(
+      s.x,
+      s.y,
+      s.size,
+      s.size
+    );
+  }
+
+  ctx.globalAlpha=1;
+}
+
+function drawTexts(){
+  ctx.textAlign="center";
+  ctx.font="bold 14px Georgia";
+
+  for(const t of texts){
+
+    ctx.globalAlpha=
+      clamp(t.life,0,1);
+
+    ctx.fillStyle=t.color;
+
+    ctx.fillText(
+      t.text,
+      t.x,
+      t.y
+    );
+  }
+
+  ctx.globalAlpha=1;
+}
+
+function draw(){
+  drawBackground();
+
+  if(
+    state==="playing"||
+    state==="paused"
+  ){
+    drawTreasure();
+    drawLantern();
+    drawShadow();
+    drawGhosts();
+    drawPlayer();
+    drawSparks();
+    drawTexts();
+  }
+}
+
+canvas.addEventListener(
+  "pointerdown",
+  e=>{
+    if(state!=="playing")return;
+
+    const rect=canvas.getBoundingClientRect();
+
+    player.targetX=
+      e.clientX-rect.left;
+
+    player.targetY=
+      e.clientY-rect.top;
+
+    try{
+      canvas.setPointerCapture(e.pointerId);
+    }catch(_){}
+  }
+);
+
+canvas.addEventListener(
+  "pointermove",
+  e=>{
+    if(state!=="playing")return;
+
+    const rect=canvas.getBoundingClientRect();
+
+    player.targetX=
+      e.clientX-rect.left;
+
+    player.targetY=
+      e.clientY-rect.top;
+  }
+);
+
+window.addEventListener(
+  "keydown",
+  e=>{
+    const k=e.key.toLowerCase();
+
+    if(k==="a"||k==="arrowleft"){
+      keys.left=true;
+      e.preventDefault();
+    }
+
+    if(k==="d"||k==="arrowright"){
+      keys.right=true;
+      e.preventDefault();
+    }
+
+    if(k==="w"||k==="arrowup"){
+      keys.up=true;
+      e.preventDefault();
+    }
+
+    if(k==="s"||k==="arrowdown"){
+      keys.down=true;
+      e.preventDefault();
+    }
+
+    if(k==="p"){
+      if(state==="playing")pauseGame();
+      else if(state==="paused")resumeGame();
+    }
+
+    if(k==="enter"&&state==="menu"){
+      startGame();
+    }
+
+    if(k==="r"&&state==="gameover"){
+      startGame();
+    }
+  }
+);
+
+window.addEventListener(
+  "keyup",
+  e=>{
+    const k=e.key.toLowerCase();
+
+    if(k==="a"||k==="arrowleft")keys.left=false;
+    if(k==="d"||k==="arrowright")keys.right=false;
+    if(k==="w"||k==="arrowup")keys.up=false;
+    if(k==="s"||k==="arrowdown")keys.down=false;
+  }
+);
+
+startButton.addEventListener(
+  "click",
+  e=>{
+    e.preventDefault();
+    startGame();
+  }
+);
+
+resumeButton.addEventListener(
+  "click",
+  e=>{
+    e.preventDefault();
+    resumeGame();
+  }
+);
+
+againButton.addEventListener(
+  "click",
+  e=>{
+    e.preventDefault();
+    startGame();
+  }
+);
+
+pauseButton.addEventListener(
+  "click",
+  e=>{
+    e.preventDefault();
+
+    if(state==="playing"){
+      pauseGame();
+    }else if(state==="paused"){
+      resumeGame();
+    }
+  }
+);
+
+let last=performance.now();
+
+function loop(now){
+  const dt=Math.min(
+    .05,
+    Math.max(
+      0,
+      (now-last)/1000
+    )
+  );
+
+  last=now;
+
+  update(dt);
+  draw();
+
+  requestAnimationFrame(loop);
+}
+
+resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
