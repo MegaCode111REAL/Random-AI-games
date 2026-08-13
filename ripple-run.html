@@ -900,6 +900,7 @@ let danger = 0;
 let bloom = 0;
 
 let player;
+let lives = 0;
 let orbs = [];
 let hazards = [];
 let particles = [];
@@ -963,6 +964,8 @@ function resetWorld(){
     soft = false;
     danger = 0;
     bloom = 0;
+
+    lives = 3;
 }
 
 /* =========================================================
@@ -1855,7 +1858,11 @@ function update(dt){
                 .7
             );
 
-            h.dead = true;
+            lives--;
+            score -= 100;
+            if (lives = 0) {
+                endRun();
+            }
 
             player.vx *= -.8;
             player.vy *= -.8;
