@@ -136,6 +136,7 @@
             // Default title while loading
             link.textContent = file.name;
             link.href = file.name;
+            link.target = "_blank";
 
             try {
                 const pageURL = new URL(file.name, location.href);
