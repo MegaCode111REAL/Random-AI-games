@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2795,25 +2794,41 @@ function endGame(){
    BUTTONS
 ========================================================= */
 
-document
-    .getElementById("start")
-    .addEventListener(
-        "click",
-        startGame
-    );
+const startButton =
+    document.getElementById("start");
 
-document
-    .getElementById("restart")
-    .addEventListener(
-        "click",
-        startGame
-    );
+const restartButton =
+    document.getElementById("restart");
 
-emergencyBtn.addEventListener(
-    "click",
-    emergencyReroute
-);
+const resumeButton =
+    document.getElementById("resume");
 
+startButton.onclick = function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    startGame();
+};
+
+restartButton.onclick = function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    startGame();
+};
+
+resumeButton.onclick = function(e){
+    e.preventDefault();
+    e.stopPropagation();
+
+    paused = false;
+
+    pause.classList.add("hidden");
+};
+
+emergencyBtn.onclick = function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    emergencyReroute();
+};
 /* =========================================================
    GAME LOOP
 ========================================================= */
@@ -2862,4 +2877,3 @@ requestAnimationFrame(
 
 </body>
 </html>
-```
