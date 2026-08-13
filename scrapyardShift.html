@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>SCRAPYARD SHIFT</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{
+  background:#d8d1c2;
+  color:#292b27;
+  font-family:"Trebuchet MS",Arial,sans-serif;
+  touch-action:none;
+}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#hud{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+#top{
+  position:absolute;
+  top:18px;
+  left:20px;
+  right:20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+}
+.label{
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:#686b61;
+}
+.value{
+  font-size:28px;
+  line-height:1;
+  font-weight:900;
+}
+#pause{
+  pointer-events:auto;
+  border:2px solid #292b27;
+  background:#d8d1c2;
+  color:#292b27;
+  padding:8px 12px;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.15em;
+}
+#pause:active{transform:translateY(2px)}
+.overlay{
+  position:fixed;
+  inset:0;
+  z-index:20;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#d8d1c2;
+}
+.hidden{display:none!important}
+.card{
+  width:min(680px,90vw);
+  text-align:center;
+}
+.logo{
+  display:inline-block;
+  border:6px solid #292b27;
+  padding:12px 18px;
+  transform:rotate(-2deg);
+  margin-bottom:25px;
+}
+.logo b{
+  font-size:clamp(42px,10vw,90px);
+  line-height:.8;
+  letter-spacing:-.08em;
+}
+.logo span{
+  display:block;
+  font-size:11px;
+  letter-spacing:.35em;
+  margin-top:10px;
+}
+h2{
+  font-size:42px;
+  margin:0;
+}
+p{
+  max-width:560px;
+  margin:24px auto;
+  line-height:1.65;
+  color:#5d6057;
+  font-size:14px;
+}
+button.main{
+  border:0;
+  background:#4d6650;
+  color:#f1eee4;
+  padding:16px 26px;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.18em;
+}
+button.main:active{transform:scale(.96)}
+.small{
+  margin-top:16px;
+  color:#777a70;
+  font-size:9px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+#message{
+  position:absolute;
+  left:50%;
+  top:76px;
+  transform:translateX(-50%);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.08em;
+  opacity:0;
+  transition:opacity .15s;
+}
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div id="top">
+    <div>
+      <div class="label">Scrap</div>
+      <div class="value" id="score">0</div>
+    </div>
+    <div style="text-align:center">
+      <div class="label">Shift</div>
+      <div class="value" id="shift">1</div>
+    </div>
+    <div style="text-align:right">
+      <div class="label">Streak</div>
+      <div class="value" id="streak">0</div>
+    </div>
+  </div>
+  <button id="pause" type="button">PAUSE</button>
+  <div id="message"></div>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="card">
+    <div class="logo">
+      <b>SCRAP</b>
+      <span>YARD SHIFT</span>
+    </div>
+    <p>
+      The conveyor is broken. Instead of fixing it, sort everything yourself.
+      Grab falling machine parts and throw them into the correct bins.
+      Valuable parts are worth more, but some objects are deliberately wrong.
+    </p>
+    <button class="main" id="start" type="button">START SHIFT</button>
+    <div class="small">Drag the magnet · Mouse · Touch · A/D</div>
+  </div>
+</div>
+
+<div id="pauseScreen" class="overlay hidden">
+  <div class="card">
+    <h2>SHIFT PAUSED</h2>
+    <p>The yard has stopped moving.</p>
+    <button class="main" id="resume" type="button">CONTINUE</button>
+  </div>
+</div>
+
+<div id="over" class="overlay hidden">
+  <div class="card">
+    <div class="label">Shift Complete</div>
+    <h2 id="reason">THE YARD WON</h2>
+    <div style="font-size:64px;font-weight:900;margin:15px 0" id="final">0</div>
+    <p id="result"></p>
+    <button class="main" id="again" type="button">NEXT SHIFT</button>
+    <div class="small">Best scrap: <span id="best">0</span></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+const menu=document.getElementById("menu");
+const pauseScreen=document.getElementById("pauseScreen");
+const over=document.getElementById("over");
+
+const start=document.getElementById("start");
+const resume=document.getElementById("resume");
+const again=document.getElementById("again");
+const pause=document.getElementById("pause");
+
+const scoreEl=document.getElementById("score");
+const shiftEl=document.getElementById("shift");
+const streakEl=document.getElementById("streak");
+const finalEl=document.getElementById("final");
+const bestEl=document.getElementById("best");
+const resultEl=document.getElementById("result");
+const messageEl=document.getElementById("message");
+
+let W=innerWidth;
+let H=innerHeight;
+let dpr=1;
+
+let state="menu";
+let score=0;
+let streak=0;
+let shift=1;
+let shiftTime=0;
+let spawnTimer=0;
+
+let best=0;
+
+let magnet={
+  x:W/2,
+  targetX:W/2,
+  y:H-100,
+  width:150,
+  strength:0
+};
+
+let pieces=[];
+let sparks=[];
+let floating=[];
+
+let left=false;
+let right=false;
+
+const bins=[
+  {x:.22,label:"METAL",color:"#4d6650",type:"metal"},
+  {x:.50,label:"MIXED",color:"#856b45",type:"mixed"},
+  {x:.78,label:"ELECTRIC",color:"#695d75",type:"electric"}
+];
+
+const types=[
+  {type:"metal",color:"#73786f",value:20,shape:"bolt"},
+  {type:"metal",color:"#8b8c82",value:30,shape:"gear"},
+  {type:"metal",color:"#626a66",value:45,shape:"plate"},
+  {type:"mixed",color:"#9a7850",value:25,shape:"box"},
+  {type:"mixed",color:"#82684e",value:40,shape:"barrel"},
+  {type:"mixed",color:"#a07d4f",value:55,shape:"spring"},
+  {type:"electric",color:"#685e72",value:35,shape:"coil"},
+  {type:"electric",color:"#75687c",value:60,shape:"chip"},
+  {type:"electric",color:"#51495e",value:90,shape:"battery"}
+];
+
+function clamp(v,a,b){
+  return Math.max(a,Math.min(b,v));
+}
+
+function rand(a,b){
+  return Math.random()*(b-a)+a;
+}
+
+function resize(){
+  W=innerWidth;
+  H=innerHeight;
+  dpr=Math.min(2,devicePixelRatio||1);
+
+  canvas.width=Math.floor(W*dpr);
+  canvas.height=Math.floor(H*dpr);
+
+  canvas.style.width=W+"px";
+  canvas.style.height=H+"px";
+
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  magnet.y=H-100;
+  magnet.x=clamp(magnet.x,60,W-60);
+  magnet.targetX=magnet.x;
+}
+
+addEventListener("resize",resize);
+
+try{
+  best=Number(localStorage.getItem("scrapyard-best")||0);
+}catch(e){
+  best=0;
+}
+
+bestEl.textContent=best.toLocaleString();
+
+function sound(freq,d=.05,type="square"){
+  try{
+    if(!sound.audio){
+      sound.audio=new(window.AudioContext||window.webkitAudioContext)();
+    }
+
+    if(sound.audio.state==="suspended"){
+      sound.audio.resume().catch(()=>{});
+    }
+
+    const o=sound.audio.createOscillator();
+    const g=sound.audio.createGain();
+
+    o.type=type;
+    o.frequency.value=freq;
+
+    g.gain.setValueAtTime(.0001,sound.audio.currentTime);
+    g.gain.exponentialRampToValueAtTime(.025,sound.audio.currentTime+.005);
+    g.gain.exponentialRampToValueAtTime(.0001,sound.audio.currentTime+d);
+
+    o.connect(g);
+    g.connect(sound.audio.destination);
+
+    o.start();
+    o.stop(sound.audio.currentTime+d+.02);
+  }catch(e){}
+}
+
+function updateHud(){
+  scoreEl.textContent=Math.floor(score).toLocaleString();
+  shiftEl.textContent=shift;
+  streakEl.textContent=streak;
+}
+
+function reset(){
+  score=0;
+  streak=0;
+  shift=1;
+  shiftTime=0;
+  spawnTimer=.3;
+
+  magnet={
+    x:W/2,
+    targetX:W/2,
+    y:H-100,
+    width:150,
+    strength:0
+  };
+
+  pieces=[];
+  sparks=[];
+  floating=[];
+
+  updateHud();
+}
+
+function startGame(){
+  reset();
+  state="playing";
+
+  menu.classList.add("hidden");
+  pauseScreen.classList.add("hidden");
+  over.classList.add("hidden");
+
+  sound(220,.1,"triangle");
+}
+
+function pauseGame(){
+  if(state!=="playing")return;
+  state="paused";
+  pauseScreen.classList.remove("hidden");
+}
+
+function resumeGame(){
+  if(state!=="paused")return;
+  state="playing";
+  pauseScreen.classList.add("hidden");
+  last=performance.now();
+}
+
+function finish(){
+  if(state!=="playing")return;
+
+  state="gameover";
+
+  if(score>best){
+    best=score;
+    try{
+      localStorage.setItem("scrapyard-best",String(best));
+    }catch(e){}
+  }
+
+  finalEl.textContent=Math.floor(score).toLocaleString();
+  bestEl.textContent=best.toLocaleString();
+
+  resultEl.textContent=
+    streak>=12
+    ?"The foreman has stopped asking questions."
+    :"Too many parts hit the floor.";
+
+  over.classList.remove("hidden");
+
+  sound(90,.3,"sawtooth");
+}
+
+function spawnPiece(){
+  const data=types[
+    Math.floor(Math.random()*types.length)
+  ];
+
+  pieces.push({
+    x:rand(35,W-35),
+    y:-35,
+    vx:rand(-25,25),
+    vy:rand(90,140)+shift*7,
+    rotation:rand(0,Math.PI*2),
+    spin:rand(-3,3),
+    size:rand(13,21),
+    data:data,
+    grabbed:false,
+    settled:false
+  });
+}
+
+function getBin(piece){
+  let closest=null;
+  let distance=Infinity;
+
+  for(const b of bins){
+    const x=b.x*W;
+    const d=Math.abs(piece.x-x);
+
+    if(d<distance){
+      distance=d;
+      closest=b;
+    }
+  }
+
+  return closest;
+}
+
+function createSpark(x,y,color){
+  const a=Math.random()*Math.PI*2;
+  const speed=rand(50,190);
+
+  sparks.push({
+    x,
+    y,
+    vx:Math.cos(a)*speed,
+    vy:Math.sin(a)*speed,
+    life:rand(.25,.7),
+    size:rand(2,5),
+    color
+  });
+}
+
+function dropPiece(piece){
+  const bin=getBin(piece);
+
+  const correct=bin.type===piece.data.type;
+
+  if(correct){
+    const points=
+      piece.data.value+
+      streak*4+
+      shift*5;
+
+    score+=points;
+    streak++;
+
+    if(streak%5===0){
+      magnet.width=clamp(
+        magnet.width+10,
+        100,
+        240
+      );
+      showMessage("MAGNET UPGRADED");
+    }
+
+    floating.push({
+      x:piece.x,
+      y:H-170,
+      text:"+"+points,
+      color:bin.color,
+      life:1
+    });
+
+    for(let i=0;i<16;i++){
+      createSpark(
+        bin.x*W,
+        H-75,
+        bin.color
+      );
+    }
+
+    sound(
+      280+Math.min(streak,20)*18,
+      .05,
+      "triangle"
+    );
+  }else{
+    score=Math.max(0,score-Math.round(piece.data.value*.6));
+    streak=0;
+
+    floating.push({
+      x:piece.x,
+      y:H-170,
+      text:"WRONG BIN",
+      color:"#8b5147",
+      life:1
+    });
+
+    for(let i=0;i<8;i++){
+      createSpark(
+        bin.x*W,
+        H-75,
+        "#8b5147"
+      );
+    }
+
+    sound(90,.1,"sawtooth");
+  }
+
+  updateHud();
+}
+
+function showMessage(text){
+  messageEl.textContent=text;
+  messageEl.style.opacity="1";
+
+  clearTimeout(showMessage.timer);
+
+  showMessage.timer=setTimeout(()=>{
+    messageEl.style.opacity="0";
+  },900);
+}
+
+function update(dt){
+  if(state!=="playing")return;
+
+  shiftTime+=dt;
+
+  if(shiftTime>=25){
+    shift++;
+    shiftTime=0;
+
+    magnet.width=clamp(
+      magnet.width-4,
+      90,
+      240
+    );
+
+    showMessage("SHIFT "+shift);
+    sound(420,.12,"triangle");
+  }
+
+  let move=0;
+  if(left)move--;
+  if(right)move++;
+
+  if(move){
+    magnet.targetX+=move*600*dt;
+  }
+
+  magnet.targetX=clamp(
+    magnet.targetX,
+    magnet.width/2+10,
+    W-magnet.width/2-10
+  );
+
+  magnet.x+=(magnet.targetX-magnet.x)*
+    Math.min(1,dt*14);
+
+  spawnTimer-=dt;
+
+  const interval=Math.max(
+    .32,
+    .9-shift*.045
+  );
+
+  if(spawnTimer<=0){
+    spawnPiece();
+
+    if(shift>=4&&Math.random()<.18){
+      spawnPiece();
+    }
+
+    spawnTimer=rand(
+      interval*.6,
+      interval*1.2
+    );
+  }
+
+  for(const p of pieces){
+    p.rotation+=p.spin*dt;
+
+    const distance=Math.abs(
+      p.x-magnet.x
+    );
+
+    const magneticRange=magnet.width*.55;
+
+    if(
+      distance<magneticRange &&
+      p.y>H-260
+    ){
+      p.vx+=(magnet.x-p.x)*3.8*dt;
+      p.vy+=Math.abs(magnet.x-p.x)*.01;
+      p.vy-=45*dt;
+    }
+
+    p.vy+=90*dt;
+    p.x+=p.vx*dt;
+    p.y+=p.vy*dt;
+
+    if(p.x<p.size){
+      p.x=p.size;
+      p.vx=Math.abs(p.vx);
+    }
+
+    if(p.x>W-p.size){
+      p.x=W-p.size;
+      p.vx=-Math.abs(p.vx);
+    }
+
+    if(
+      p.y+magnet.height<
+      magnet.y+12 &&
+      p.y+p.size>
+      magnet.y-18 &&
+      Math.abs(p.x-magnet.x)<
+      magnet.width/2+p.size
+    ){
+      p.grabbed=true;
+    }
+
+    if(
+      p.grabbed &&
+      p.y>=magnet.y-12
+    ){
+      dropPiece(p);
+      p.settled=true;
+    }
+  }
+
+  pieces=pieces.filter(p=>{
+    if(p.settled)return false;
+
+    if(p.y>H+60){
+      streak=0;
+      updateHud();
+      return false;
+    }
+
+    return true;
+  });
+
+  for(const s of sparks){
+    s.life-=dt;
+    s.x+=s.vx*dt;
+    s.y+=s.vy*dt;
+    s.vy+=120*dt;
+  }
+
+  sparks=sparks.filter(s=>s.life>0);
+
+  for(const f of floating){
+    f.life-=dt;
+    f.y-=30*dt;
+  }
+
+  floating=floating.filter(f=>f.life>0);
+}
+
+function drawBackground(){
+  ctx.fillStyle="#d8d1c2";
+  ctx.fillRect(0,0,W,H);
+
+  ctx.fillStyle="#c6bdad";
+
+  for(let y=0;y<H;y+=70){
+    ctx.fillRect(0,y,W,2);
+  }
+
+  ctx.fillStyle="#b4aa99";
+
+  for(let x=20;x<W;x+=95){
+    ctx.fillRect(x,0,3,H);
+  }
+
+  ctx.fillStyle="#9b9588";
+
+  ctx.fillRect(
+    0,
+    H-48,
+    W,
+    10
+  );
+
+  ctx.fillStyle="#6f7168";
+
+  ctx.fillRect(
+    0,
+    H-38,
+    W,
+    38
+  );
+
+  for(let i=0;i<W;i+=55){
+    ctx.fillStyle=i%110===0?"#85857b":"#62655d";
+    ctx.fillRect(i,H-38,28,38);
+  }
+}
+
+function drawBins(){
+  for(const b of bins){
+    const x=b.x*W;
+
+    ctx.save();
+
+    ctx.translate(x,H-64);
+
+    ctx.fillStyle=b.color;
+
+    ctx.beginPath();
+    ctx.moveTo(-55,-10);
+    ctx.lineTo(-47,12);
+    ctx.lineTo(47,12);
+    ctx.lineTo(55,-10);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle="#292b27";
+    ctx.lineWidth=3;
+    ctx.stroke();
+
+    ctx.fillStyle="#e7e1d4";
+    ctx.textAlign="center";
+    ctx.font="900 10px Trebuchet MS";
+    ctx.fillText(
+      b.label,
+      0,
+      4
+    );
+
+    ctx.restore();
+  }
+}
+
+function drawMagnet(){
+  ctx.save();
+
+  ctx.translate(
+    magnet.x,
+    magnet.y
+  );
+
+  ctx.fillStyle="#343832";
+
+  ctx.fillRect(
+    -magnet.width/2,
+    -10,
+    magnet.width,
+    22
+  );
+
+  ctx.fillStyle="#4d6650";
+
+  ctx.fillRect(
+    -magnet.width/2,
+    -10,
+    12,
+    22
+  );
+
+  ctx.fillStyle="#856b45";
+
+  ctx.fillRect(
+    magnet.width/2-12,
+    -10,
+    12,
+    22
+  );
+
+  ctx.fillStyle="#d8d1c2";
+
+  ctx.fillRect(
+    -magnet.width/2+12,
+    -5,
+    magnet.width-24,
+    12
+  );
+
+  ctx.restore();
+}
+
+function drawPiece(p){
+  ctx.save();
+
+  ctx.translate(p.x,p.y);
+  ctx.rotate(p.rotation);
+
+  const s=p.size;
+  const d=p.data;
+
+  ctx.fillStyle=d.color;
+  ctx.strokeStyle="#292b27";
+  ctx.lineWidth=2;
+
+  if(d.shape==="bolt"){
+    ctx.beginPath();
+    ctx.moveTo(-s*.35,-s);
+    ctx.lineTo(s*.25,-s*.2);
+    ctx.lineTo(-s*.05,-s*.05);
+    ctx.lineTo(s*.35,s);
+    ctx.lineTo(-s*.2,s*.15);
+    ctx.lineTo(s*.02,s*.05);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  if(d.shape==="gear"){
+    ctx.beginPath();
+
+    for(let i=0;i<16;i++){
+      const a=i*Math.PI/8;
+      const r=i%2===0?s:s*.75;
+
+      const x=Math.cos(a)*r;
+      const y=Math.sin(a)*r;
+
+      if(i===0)ctx.moveTo(x,y);
+      else ctx.lineTo(x,y);
+    }
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle="#d8d1c2";
+    ctx.beginPath();
+    ctx.arc(0,0,s*.25,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  if(d.shape==="plate"){
+    ctx.beginPath();
+    ctx.roundRect(-s*1.2,-s*.55,s*2.4,s*1.1,4);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  if(d.shape==="box"){
+    ctx.fillRect(-s,-s,s*2,s*2);
+    ctx.strokeRect(-s,-s,s*2,s*2);
+    ctx.beginPath();
+    ctx.moveTo(-s,-s);
+    ctx.lineTo(s,s);
+    ctx.moveTo(s,-s);
+    ctx.lineTo(-s,s);
+    ctx.stroke();
+  }
+
+  if(d.shape==="barrel"){
+    ctx.beginPath();
+    ctx.ellipse(0,0,s,s*.7,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-s*.8,-s*.35);
+    ctx.lineTo(s*.8,-s*.35);
+    ctx.moveTo(-s*.8,s*.35);
+    ctx.lineTo(s*.8,s*.35);
+    ctx.stroke();
+  }
+
+  if(d.shape==="spring"){
+    ctx.beginPath();
+
+    for(let i=0;i<5;i++){
+      const a=i*Math.PI*2.5;
+      const x=Math.cos(a)*s*.8;
+      const y=Math.sin(a)*s*.8;
+
+      if(i===0)ctx.moveTo(x,y);
+      else ctx.lineTo(x,y);
+    }
+
+    ctx.stroke();
+  }
+
+  if(d.shape==="coil"){
+    ctx.beginPath();
+
+    for(let i=0;i<20;i++){
+      const x=-s+i*s*2/19;
+      const y=Math.sin(i/19*Math.PI*4)*s*.65;
+
+      if(i===0)ctx.moveTo(x,y);
+      else ctx.lineTo(x,y);
+    }
+
+    ctx.stroke();
+  }
+
+  if(d.shape==="chip"){
+    ctx.fillRect(-s,s*-1,s*2,s*2);
+    ctx.strokeRect(-s,s*-1,s*2,s*2);
+
+    ctx.beginPath();
+
+    for(let i=-.6;i<=.6;i+=.3){
+      ctx.moveTo(-s,i*s);
+      ctx.lineTo(-s*1.3,i*s);
+      ctx.moveTo(s,i*s);
+      ctx.lineTo(s*1.3,i*s);
+    }
+
+    ctx.stroke();
+  }
+
+  if(d.shape==="battery"){
+    ctx.fillRect(-s*.7,-s,s*1.4,s*2);
+    ctx.strokeRect(-s*.7,-s,s*1.4,s*2);
+
+    ctx.fillRect(-s*.25,-s*1.25,s*.5,s*.25);
+
+    ctx.fillStyle="#d8d1c2";
+    ctx.fillRect(-s*.45,-s*.2,s*.9,s*.25);
+    ctx.fillRect(-s*.45,s*.2,s*.9,s*.25);
+  }
+
+  ctx.restore();
+}
+
+function drawSparks(){
+  for(const s of sparks){
+    ctx.globalAlpha=clamp(s.life/.7,0,1);
+    ctx.fillStyle=s.color;
+    ctx.fillRect(s.x,s.y,s.size,s.size);
+  }
+  ctx.globalAlpha=1;
+}
+
+function drawFloating(){
+  ctx.textAlign="center";
+  ctx.font="900 13px Trebuchet MS";
+
+  for(const f of floating){
+    ctx.globalAlpha=clamp(f.life,0,1);
+    ctx.fillStyle=f.color;
+    ctx.fillText(f.text,f.x,f.y);
+  }
+
+  ctx.globalAlpha=1;
+}
+
+function draw(){
+  drawBackground();
+
+  if(state==="playing"||state==="paused"){
+    drawBins();
+    drawMagnet();
+
+    for(const p of pieces){
+      drawPiece(p);
+    }
+
+    drawSparks();
+    drawFloating();
+  }
+}
+
+canvas.addEventListener("pointerdown",e=>{
+  if(state!=="playing")return;
+
+  const rect=canvas.getBoundingClientRect();
+
+  magnet.targetX=e.clientX-rect.left;
+
+  try{
+    canvas.setPointerCapture(e.pointerId);
+  }catch(_){}
+});
+
+canvas.addEventListener("pointermove",e=>{
+  if(state!=="playing")return;
+
+  const rect=canvas.getBoundingClientRect();
+
+  magnet.targetX=e.clientX-rect.left;
+});
+
+addEventListener("keydown",e=>{
+  const k=e.key.toLowerCase();
+
+  if(k==="a"||k==="arrowleft"){
+    left=true;
+    e.preventDefault();
+  }
+
+  if(k==="d"||k==="arrowright"){
+    right=true;
+    e.preventDefault();
+  }
+
+  if(k==="p"){
+    if(state==="playing")pauseGame();
+    else if(state==="paused")resumeGame();
+  }
+
+  if(k==="enter"&&state==="menu"){
+    startGame();
+  }
+
+  if(k==="r"&&state==="gameover"){
+    startGame();
+  }
+});
+
+addEventListener("keyup",e=>{
+  const k=e.key.toLowerCase();
+
+  if(k==="a"||k==="arrowleft")left=false;
+  if(k==="d"||k==="arrowright")right=false;
+});
+
+start.addEventListener("click",startGame);
+resume.addEventListener("click",resumeGame);
+again.addEventListener("click",startGame);
+
+pause.addEventListener("click",()=>{
+  if(state==="playing")pauseGame();
+  else if(state==="paused")resumeGame();
+});
+
+let last=performance.now();
+
+function loop(now){
+  const dt=Math.min(
+    .05,
+    Math.max(0,(now-last)/1000)
+  );
+
+  last=now;
+
+  update(dt);
+  draw();
+
+  requestAnimationFrame(loop);
+}
+
+resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
