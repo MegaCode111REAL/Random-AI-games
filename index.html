@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pages</title>
+
+<style>
+    body {
+        font-family: system-ui, sans-serif;
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    h1 {
+        margin-bottom: 20px;
+    }
+
+    #pages {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    a {
+        display: block;
+        padding: 12px 16px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        text-decoration: none;
+        color: inherit;
+        transition: background 0.15s;
+    }
+
+    a:hover {
+        background: #f0f0f0;
+    }
+
+    .error {
+        color: #c00;
+    }
+
+    .loading {
+        color: #666;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>Pages</h1>
+
+<div id="pages">
+    <div class="loading">Loading pages...</div>
+</div>
+
+<script>
+(async () => {
+    const container = document.getElementById("pages");
+
+    // Get the current folder path
+    const currentPath = location.pathname.substring(
+        0,
+        location.pathname.lastIndexOf("/") + 1
+    );
+
+    // GitHub Pages detection
+    const host = location.hostname;
+
+    if (!host.endsWith(".github.io")) {
+        container.innerHTML = `
+            <div class="error">
+                This automatic file discovery currently requires GitHub Pages.
+            </div>
+        `;
+        return;
+    }
+
+    try {
+        // Extract GitHub username/repository
+        const owner = host.split(".")[0];
+
+        const pathParts = currentPath
+            .split("/")
+            .filter(Boolean);
+
+        const repo = pathParts[0] || owner;
+
+        // Everything after the repository is the folder
+        const folderPath = pathParts.slice(1).join("/");
+
+        // Determine branch
+        const branches = ["main", "master"];
+
+        let files = null;
+        let branch = null;
+
+        for (const possibleBranch of branches) {
+            const apiURL =
+                `https://api.github.com/repos/${owner}/${repo}/contents/` +
+                (folderPath ? encodeURIComponent(folderPath).replace(/%2F/g, "/") : "") +
+                `?ref=${possibleBranch}`;
+
+            const response = await fetch(apiURL);
+
+            if (response.ok) {
+                files = await response.json();
+                branch = possibleBranch;
+                break;
+            }
+        }
+
+        if (!files) {
+            throw new Error("Could not access the GitHub repository.");
+        }
+
+        // Find HTML files, excluding this index.html
+        const htmlFiles = files.filter(file =>
+            file.type === "file" &&
+            file.name.toLowerCase().endsWith(".html") &&
+            file.name.toLowerCase() !== "index.html"
+        );
+
+        if (htmlFiles.length === 0) {
+            container.innerHTML = "<div>No other HTML pages found.</div>";
+            return;
+        }
+
+        container.innerHTML = "";
+
+        // Load titles from every HTML file
+        for (const file of htmlFiles) {
+            const link = document.createElement("a");
+
+            // Default title while loading
+            link.textContent = file.name;
+            link.href = file.name;
+
+            try {
+                const pageURL = new URL(file.name, location.href);
+
+                const response = await fetch(pageURL);
+
+                if (response.ok) {
+                    const html = await response.text();
+
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, "text/html");
+
+                    const title = doc.querySelector("title");
+
+                    if (title && title.textContent.trim()) {
+                        link.textContent = title.textContent.trim();
+                    }
+                }
+            } catch (error) {
+                console.warn(
+                    `Couldn't read title from ${file.name}:`,
+                    error
+                );
+            }
+
+            container.appendChild(link);
+        }
+
+    } catch (error) {
+        console.error(error);
+
+        container.innerHTML = `
+            <div class="error">
+                Failed to find pages.<br>
+                <small>${error.message}</small>
+            </div>
+        `;
+    }
+})();
+</script>
+
+</body>
+</html>
