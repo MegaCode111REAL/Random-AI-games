@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>GRAVITY HEIST</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{
+  background:#d8d0c2;
+  color:#171717;
+  font-family:Arial,Helvetica,sans-serif;
+  touch-action:none;
+}
+canvas{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+}
+#hud{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+#stats{
+  position:absolute;
+  top:18px;
+  left:20px;
+  display:flex;
+  gap:4px;
+}
+.stat{
+  background:#171717;
+  color:#f1eadc;
+  padding:9px 14px 8px;
+}
+.stat small{
+  display:block;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.15em;
+  opacity:.55;
+}
+.stat b{
+  display:block;
+  font-size:20px;
+  line-height:1;
+  margin-top:3px;
+}
+#pause{
+  position:absolute;
+  right:20px;
+  top:18px;
+  pointer-events:auto;
+  border:0;
+  background:#f1eadc;
+  color:#171717;
+  padding:10px 13px;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.14em;
+  cursor:pointer;
+}
+.overlay{
+  position:fixed;
+  inset:0;
+  z-index:10;
+  background:#d8d0c2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.hidden{display:none!important}
+.menu{
+  width:min(760px,90vw);
+}
+.kicker{
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.25em;
+  text-transform:uppercase;
+  margin-bottom:18px;
+}
+h1{
+  font-size:clamp(65px,15vw,155px);
+  line-height:.72;
+  letter-spacing:-.1em;
+  margin:0;
+  font-weight:1000;
+}
+h1 em{
+  display:block;
+  color:#c15b32;
+  font-style:normal;
+}
+.desc{
+  max-width:560px;
+  margin:35px 0;
+  font-size:14px;
+  line-height:1.65;
+  color:#514b45;
+}
+.action{
+  border:0;
+  background:#c15b32;
+  color:#fff4e1;
+  padding:16px 27px;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  cursor:pointer;
+}
+.action:hover{background:#171717}
+.action:active{transform:translateY(2px)}
+.tip{
+  margin-top:18px;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.12em;
+  color:#6c655e;
+  text-transform:uppercase;
+}
+.big{
+  font-size:60px;
+  font-weight:1000;
+  letter-spacing:-.07em;
+  margin:12px 0 20px;
+}
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div id="stats">
+    <div class="stat">
+      <small>LOOT</small>
+      <b id="score">0</b>
+    </div>
+    <div class="stat">
+      <small>HEAT</small>
+      <b id="heat">0%</b>
+    </div>
+    <div class="stat">
+      <small>VAULT</small>
+      <b id="level">1</b>
+    </div>
+  </div>
+  <button id="pause" type="button">PAUSE</button>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="menu">
+    <div class="kicker">A completely irresponsible physics experiment</div>
+    <h1>GRAVITY<em>HEIST</em></h1>
+    <div class="desc">
+      You are a tiny magnetic thief inside a rotating vault.
+      Steal the valuable objects without letting them touch the walls.
+      Change gravity at exactly the right moment and make the whole room
+      work for you.
+    </div>
+    <button class="action" id="start" type="button">Break In</button>
+    <div class="tip">A / D or ← / → to rotate gravity · Touch left/right side to steer</div>
+  </div>
+</div>
+
+<div id="pauseScreen" class="overlay hidden">
+  <div class="menu">
+    <div class="kicker">Everything has stopped</div>
+    <h1>PAUSED</h1>
+    <div class="desc">The vault is waiting.</div>
+    <button class="action" id="resume" type="button">Continue</button>
+  </div>
+</div>
+
+<div id="gameover" class="overlay hidden">
+  <div class="menu">
+    <div class="kicker">The security system won</div>
+    <h1>CAUGHT</h1>
+    <div class="big" id="finalScore">0</div>
+    <div class="desc" id="result">The loot hit the wrong wall.</div>
+    <button class="action" id="again" type="button">Rob Another Vault</button>
+    <div class="tip">Best haul: <span id="best">0</span></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+const menu=document.getElementById("menu");
+const pauseScreen=document.getElementById("pauseScreen");
+const gameover=document.getElementById("gameover");
+
+const startBtn=document.getElementById("start");
+const resumeBtn=document.getElementById("resume");
+const againBtn=document.getElementById("again");
+const pauseBtn=document.getElementById("pause");
+
+const scoreEl=document.getElementById("score");
+const heatEl=document.getElementById("heat");
+const levelEl=document.getElementById("level");
+const finalScoreEl=document.getElementById("finalScore");
+const bestEl=document.getElementById("best");
+const resultEl=document.getElementById("result");
+
+let W=innerWidth;
+let H=innerHeight;
+let DPR=1;
+
+let state="menu";
+
+let score=0;
+let heat=0;
+let level=1;
+let best=0;
+
+let gravityAngle=Math.PI/2;
+let targetGravity=gravityAngle;
+
+let room={
+  x:0,
+  y:0,
+  w:0,
+  h:0
+};
+
+let thief={
+  x:0,
+  y:0,
+  vx:0,
+  vy:0,
+  radius:13
+};
+
+let loot=[];
+let particles=[];
+let floating=[];
+
+let spawnTimer=0;
+let levelTimer=0;
+let elapsed=0;
+let last=performance.now();
+
+let keys={
+  left:false,
+  right:false
+};
+
+const palette=[
+  "#d0a43b",
+  "#4b6d72",
+  "#a44c35",
+  "#68734b",
+  "#754d6c"
+];
+
+function clamp(v,a,b){
+  return Math.max(a,Math.min(b,v));
+}
+
+function rand(a,b){
+  return Math.random()*(b-a)+a;
+}
+
+function resize(){
+  W=innerWidth;
+  H=innerHeight;
+  DPR=Math.min(2,devicePixelRatio||1);
+
+  canvas.width=Math.floor(W*DPR);
+  canvas.height=Math.floor(H*DPR);
+
+  canvas.style.width=W+"px";
+  canvas.style.height=H+"px";
+
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+
+  updateRoom();
+}
+
+function updateRoom(){
+  room.w=Math.min(W*.72,900);
+  room.h=Math.min(H*.68,650);
+  room.x=(W-room.w)/2;
+  room.y=(H-room.h)/2+20;
+
+  thief.x=clamp(thief.x,room.x+25,room.x+room.w-25);
+  thief.y=clamp(thief.y,room.y+25,room.y+room.h-25);
+}
+
+addEventListener("resize",resize);
+
+function sound(freq,duration=.08,type="sine"){
+  try{
+    if(!sound.ctx){
+      sound.ctx=new(window.AudioContext||window.webkitAudioContext)();
+    }
+
+    if(sound.ctx.state==="suspended"){
+      sound.ctx.resume().catch(()=>{});
+    }
+
+    const o=sound.ctx.createOscillator();
+    const g=sound.ctx.createGain();
+
+    o.type=type;
+    o.frequency.value=freq;
+
+    g.gain.setValueAtTime(.0001,sound.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.025,sound.ctx.currentTime+.01);
+    g.gain.exponentialRampToValueAtTime(.0001,sound.ctx.currentTime+duration);
+
+    o.connect(g);
+    g.connect(sound.ctx.destination);
+
+    o.start();
+    o.stop(sound.ctx.currentTime+duration+.02);
+  }catch(e){}
+}
+
+function resetGame(){
+  score=0;
+  heat=0;
+  level=1;
+
+  gravityAngle=Math.PI/2;
+  targetGravity=gravityAngle;
+
+  thief={
+    x:W/2,
+    y:H*.5,
+    vx:0,
+    vy:0,
+    radius:13
+  };
+
+  loot=[];
+  particles=[];
+  floating=[];
+
+  spawnTimer=.4;
+  levelTimer=0;
+  elapsed=0;
+
+  updateRoom();
+  updateHud();
+}
+
+function startGame(){
+  resetGame();
+
+  state="playing";
+
+  menu.classList.add("hidden");
+  pauseScreen.classList.add("hidden");
+  gameover.classList.add("hidden");
+
+  sound(180,.12,"triangle");
+}
+
+function pauseGame(){
+  if(state!=="playing")return;
+
+  state="paused";
+  pauseScreen.classList.remove("hidden");
+}
+
+function resumeGame(){
+  if(state!=="paused")return;
+
+  state="playing";
+  pauseScreen.classList.add("hidden");
+  last=performance.now();
+}
+
+function endGame(){
+  if(state!=="playing")return;
+
+  state="gameover";
+
+  if(score>best){
+    best=score;
+
+    try{
+      localStorage.setItem("gravity-heist-best",String(best));
+    }catch(e){}
+  }
+
+  finalScoreEl.textContent=Math.floor(score).toLocaleString();
+  bestEl.textContent=best.toLocaleString();
+
+  resultEl.textContent=
+    heat>=100
+      ?"The vault became a little too suspicious."
+      :"Something expensive hit the wall.";
+
+  gameover.classList.remove("hidden");
+
+  sound(70,.3,"sawtooth");
+}
+
+function updateHud(){
+  scoreEl.textContent=Math.floor(score).toLocaleString();
+  heatEl.textContent=Math.round(heat)+"%";
+  levelEl.textContent=level;
+}
+
+function spawnLoot(){
+  const r=rand(9,17);
+
+  loot.push({
+    x:rand(room.x+45,room.x+room.w-45),
+    y:rand(room.y+45,room.y+room.h-45),
+    vx:rand(-35,35),
+    vy:rand(-35,35),
+    radius:r,
+    value:Math.round(rand(50,120)*(1+level*.12)),
+    color:palette[Math.floor(Math.random()*palette.length)],
+    rotation:rand(0,Math.PI*2),
+    spin:rand(-3,3),
+    type:Math.random()<.13?"diamond":"coin",
+    stolen:false
+  });
+}
+
+function gravityVector(){
+  return{
+    x:Math.cos(gravityAngle),
+    y:Math.sin(gravityAngle)
+  };
+}
+
+function rotateGravity(dir){
+  targetGravity+=dir*.72;
+}
+
+function update(dt){
+  if(state!=="playing")return;
+
+  elapsed+=dt;
+  levelTimer+=dt;
+
+  if(levelTimer>=20){
+    level++;
+    levelTimer=0;
+    heat=clamp(heat-12,0,100);
+    sound(300,.12,"triangle");
+  }
+
+  if(keys.left)rotateGravity(-dt);
+  if(keys.right)rotateGravity(dt);
+
+  let delta=targetGravity-gravityAngle;
+
+  while(delta>Math.PI)delta-=Math.PI*2;
+  while(delta<-Math.PI)delta+=Math.PI*2;
+
+  gravityAngle+=delta*dt*5;
+
+  const g=gravityVector();
+  const gravityStrength=70+level*7;
+
+  thief.vx+=g.x*gravityStrength*dt;
+  thief.vy+=g.y*gravityStrength*dt;
+
+  thief.vx*=Math.pow(.035,dt);
+  thief.vy*=Math.pow(.035,dt);
+
+  thief.x+=thief.vx*dt;
+  thief.y+=thief.vy*dt;
+
+  const margin=22;
+
+  if(thief.x<room.x+margin){
+    thief.x=room.x+margin;
+    thief.vx=Math.abs(thief.vx)*.4;
+  }
+
+  if(thief.x>room.x+room.w-margin){
+    thief.x=room.x+room.w-margin;
+    thief.vx=-Math.abs(thief.vx)*.4;
+  }
+
+  if(thief.y<room.y+margin){
+    thief.y=room.y+margin;
+    thief.vy=Math.abs(thief.vy)*.4;
+  }
+
+  if(thief.y>room.y+room.h-margin){
+    thief.y=room.y+room.h-margin;
+    thief.vy=-Math.abs(thief.vy)*.4;
+  }
+
+  spawnTimer-=dt;
+
+  const interval=Math.max(.45,1.35-level*.06);
+
+  if(spawnTimer<=0){
+    spawnLoot();
+
+    if(level>4&&Math.random()<.2){
+      spawnLoot();
+    }
+
+    spawnTimer=rand(interval*.7,interval*1.25);
+  }
+
+  for(const item of loot){
+
+    item.vx+=g.x*gravityStrength*.7*dt;
+    item.vy+=g.y*gravityStrength*.7*dt;
+
+    item.vx*=Math.pow(.25,dt);
+    item.vy*=Math.pow(.25,dt);
+
+    item.x+=item.vx*dt;
+    item.y+=item.vy*dt;
+    item.rotation+=item.spin*dt;
+
+    const l=room.x+13;
+    const r=room.x+room.w-13;
+    const t=room.y+13;
+    const b=room.y+room.h-13;
+
+    let bounced=false;
+
+    if(item.x-item.radius<l){
+      item.x=l+item.radius;
+      item.vx=Math.abs(item.vx)*.72;
+      bounced=true;
+    }
+
+    if(item.x+item.radius>r){
+      item.x=r-item.radius;
+      item.vx=-Math.abs(item.vx)*.72;
+      bounced=true;
+    }
+
+    if(item.y-item.radius<t){
+      item.y=t+item.radius;
+      item.vy=Math.abs(item.vy)*.72;
+      bounced=true;
+    }
+
+    if(item.y+item.radius>b){
+      item.y=b-item.radius;
+      item.vy=-Math.abs(item.vy)*.72;
+      bounced=true;
+    }
+
+    if(bounced){
+      heat+=.7+level*.05;
+
+      for(let i=0;i<3;i++){
+        particle(item.x,item.y,"#171717",35);
+      }
+    }
+
+    const dx=item.x-thief.x;
+    const dy=item.y-thief.y;
+    const dist=Math.hypot(dx,dy);
+
+    if(dist<item.radius+thief.radius){
+
+      item.stolen=true;
+
+      const points=Math.round(
+        item.value*(1+Math.min(heat,80)/100)
+      );
+
+      score+=points;
+      heat=clamp(heat+3,0,100);
+
+      floating.push({
+        x:item.x,
+        y:item.y,
+        text:"+"+points,
+        life:1
+      });
+
+      for(let i=0;i<15;i++){
+        particle(
+          item.x,
+          item.y,
+          item.color,
+          rand(40,160)
+        );
+      }
+
+      sound(
+        item.type==="diamond"?760:430,
+        .07,
+        "triangle"
+      );
+    }
+  }
+
+  loot=loot.filter(item=>!item.stolen);
+
+  heat-=dt*(.9+level*.025);
+  heat=clamp(heat,0,100);
+
+  if(heat>=100){
+    endGame();
+  }
+
+  for(const p of particles){
+    p.life-=dt;
+    p.x+=p.vx*dt;
+    p.y+=p.vy*dt;
+    p.vx*=Math.pow(.04,dt);
+    p.vy*=Math.pow(.04,dt);
+  }
+
+  particles=particles.filter(p=>p.life>0);
+
+  for(const f of floating){
+    f.life-=dt;
+    f.y-=30*dt;
+  }
+
+  floating=floating.filter(f=>f.life>0);
+
+  updateHud();
+}
+
+function particle(x,y,color,speed){
+  const a=Math.random()*Math.PI*2;
+
+  particles.push({
+    x,
+    y,
+    vx:Math.cos(a)*speed,
+    vy:Math.sin(a)*speed,
+    life:rand(.3,.8),
+    size:rand(1,4),
+    color
+  });
+}
+
+function drawBackground(){
+  ctx.fillStyle="#d8d0c2";
+  ctx.fillRect(0,0,W,H);
+
+  ctx.fillStyle="#c9c0b1";
+
+  for(let y=0;y<H;y+=42){
+    ctx.fillRect(0,y,W,1);
+  }
+
+  for(let x=0;x<W;x+=42){
+    ctx.fillRect(x,0,1,H);
+  }
+}
+
+function drawRoom(){
+  ctx.fillStyle="#ebe4d8";
+
+  ctx.fillRect(
+    room.x,
+    room.y,
+    room.w,
+    room.h
+  );
+
+  ctx.strokeStyle="#171717";
+  ctx.lineWidth=5;
+
+  ctx.strokeRect(
+    room.x,
+    room.y,
+    room.w,
+    room.h
+  );
+
+  ctx.strokeStyle="#aaa195";
+  ctx.lineWidth=1;
+
+  ctx.strokeRect(
+    room.x+12,
+    room.y+12,
+    room.w-24,
+    room.h-24
+  );
+
+  ctx.save();
+
+  ctx.globalAlpha=.16;
+
+  const g=gravityVector();
+
+  const cx=room.x+room.w/2;
+  const cy=room.y+room.h/2;
+
+  ctx.translate(cx,cy);
+  ctx.rotate(gravityAngle);
+
+  for(let i=-6;i<=6;i++){
+    ctx.beginPath();
+    ctx.moveTo(i*75,-room.h);
+    ctx.lineTo(i*75,room.h);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawLoot(){
+  for(const item of loot){
+
+    ctx.save();
+
+    ctx.translate(item.x,item.y);
+    ctx.rotate(item.rotation);
+
+    ctx.fillStyle=item.color;
+
+    if(item.type==="diamond"){
+
+      ctx.beginPath();
+      ctx.moveTo(0,-item.radius*1.4);
+      ctx.lineTo(item.radius,0);
+      ctx.lineTo(0,item.radius*1.4);
+      ctx.lineTo(-item.radius,0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle="#171717";
+      ctx.lineWidth=2;
+      ctx.stroke();
+
+    }else{
+
+      ctx.beginPath();
+      ctx.arc(
+        0,
+        0,
+        item.radius,
+        0,
+        Math.PI*2
+      );
+
+      ctx.fill();
+
+      ctx.strokeStyle="#171717";
+      ctx.lineWidth=2;
+      ctx.stroke();
+
+      ctx.fillStyle="rgba(255,255,255,.3)";
+
+      ctx.beginPath();
+      ctx.arc(
+        -item.radius*.3,
+        -item.radius*.3,
+        item.radius*.22,
+        0,
+        Math.PI*2
+      );
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+}
+
+function drawThief(){
+  ctx.save();
+
+  ctx.translate(thief.x,thief.y);
+
+  const g=gravityVector();
+
+  ctx.rotate(
+    Math.atan2(g.y,g.x)
+  );
+
+  ctx.fillStyle="#171717";
+
+  ctx.beginPath();
+
+  ctx.moveTo(18,0);
+  ctx.lineTo(-10,-12);
+  ctx.lineTo(-5,0);
+  ctx.lineTo(-10,12);
+  ctx.closePath();
+
+  ctx.fill();
+
+  ctx.fillStyle="#c15b32";
+
+  ctx.beginPath();
+  ctx.arc(
+    5,
+    0,
+    3,
+    0,
+    Math.PI*2
+  );
+
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawParticles(){
+  for(const p of particles){
+
+    ctx.globalAlpha=clamp(
+      p.life/.8,
+      0,
+      1
+    );
+
+    ctx.fillStyle=p.color;
+
+    ctx.fillRect(
+      p.x,
+      p.y,
+      p.size,
+      p.size
+    );
+  }
+
+  ctx.globalAlpha=1;
+}
+
+function drawFloating(){
+  ctx.textAlign="center";
+  ctx.font="900 13px Arial";
+
+  for(const f of floating){
+
+    ctx.globalAlpha=clamp(
+      f.life,
+      0,
+      1
+    );
+
+    ctx.fillStyle="#171717";
+
+    ctx.fillText(
+      f.text,
+      f.x,
+      f.y
+    );
+  }
+
+  ctx.globalAlpha=1;
+}
+
+function draw(){
+  drawBackground();
+
+  if(
+    state==="playing"||
+    state==="paused"
+  ){
+    drawRoom();
+    drawLoot();
+    drawThief();
+    drawParticles();
+    drawFloating();
+  }
+}
+
+canvas.addEventListener(
+  "pointerdown",
+  e=>{
+    if(state!=="playing")return;
+
+    const rect=canvas.getBoundingClientRect();
+    const x=e.clientX-rect.left;
+
+    if(x<W/2){
+      keys.left=true;
+    }else{
+      keys.right=true;
+    }
+
+    try{
+      canvas.setPointerCapture(e.pointerId);
+    }catch(_){}
+  }
+);
+
+canvas.addEventListener(
+  "pointerup",
+  e=>{
+    keys.left=false;
+    keys.right=false;
+  }
+);
+
+canvas.addEventListener(
+  "pointercancel",
+  e=>{
+    keys.left=false;
+    keys.right=false;
+  }
+);
+
+window.addEventListener(
+  "keydown",
+  e=>{
+    const k=e.key.toLowerCase();
+
+    if(k==="a"||k==="arrowleft"){
+      keys.left=true;
+      e.preventDefault();
+    }
+
+    if(k==="d"||k==="arrowright"){
+      keys.right=true;
+      e.preventDefault();
+    }
+
+    if(k==="p"){
+      if(state==="playing")pauseGame();
+      else if(state==="paused")resumeGame();
+    }
+
+    if(k==="enter"&&state==="menu"){
+      startGame();
+    }
+
+    if(k==="r"&&state==="gameover"){
+      startGame();
+    }
+  }
+);
+
+window.addEventListener(
+  "keyup",
+  e=>{
+    const k=e.key.toLowerCase();
+
+    if(k==="a"||k==="arrowleft"){
+      keys.left=false;
+    }
+
+    if(k==="d"||k==="arrowright"){
+      keys.right=false;
+    }
+  }
+);
+
+startBtn.addEventListener(
+  "click",
+  e=>{
+    e.preventDefault();
+    startGame();
+  }
+);
+
+resumeBtn.addEventListener(
+  "click",
+  e=>{
+    e.preventDefault();
+    resumeGame();
+  }
+);
+
+againBtn.addEventListener(
+  "click",
+  e=>{
+    e.preventDefault();
+    startGame();
+  }
+);
+
+pauseBtn.addEventListener(
+  "click",
+  e=>{
+    e.preventDefault();
+
+    if(state==="playing"){
+      pauseGame();
+    }else if(state==="paused"){
+      resumeGame();
+    }
+  }
+);
+
+function loop(now){
+  const dt=Math.min(
+    .05,
+    Math.max(
+      0,
+      (now-last)/1000
+    )
+  );
+
+  last=now;
+
+  update(dt);
+  draw();
+
+  requestAnimationFrame(loop);
+}
+
+resize();
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>
