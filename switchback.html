@@ -8,25 +8,26 @@
 <style>
 *{
     box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
 }
 
-html,body{
+html,
+body{
     margin:0;
     width:100%;
     height:100%;
     overflow:hidden;
-    background:#e8dfcc;
-    color:#25231f;
-    font-family:
-        system-ui,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
+    background:#ded2ba;
+    color:#27251f;
+    font-family:Arial,Helvetica,sans-serif;
 }
 
 body{
     touch-action:none;
+}
+
+button{
+    font:inherit;
 }
 
 canvas{
@@ -38,258 +39,261 @@ canvas{
     touch-action:none;
 }
 
-.overlay{
+.screen{
     position:fixed;
     inset:0;
-    z-index:10;
+    z-index:20;
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:20px;
-    background:rgba(232,223,204,.78);
+    padding:18px;
+    background:rgba(222,210,186,.94);
 }
 
-.paper{
+.screen.hidden{
+    display:none;
+}
+
+.card{
     width:min(720px,94vw);
-    max-height:92vh;
+    max-height:94vh;
     overflow:auto;
-    background:#f5efdf;
-    border:3px solid #25231f;
-    box-shadow:
-        8px 8px 0 #25231f,
-        14px 14px 0 rgba(37,35,31,.13);
-    padding:34px;
     position:relative;
+    background:#f4edda;
+    border:3px solid #27251f;
+    box-shadow:
+        8px 8px 0 #27251f,
+        14px 14px 0 rgba(39,37,31,.15);
+    padding:34px;
 }
 
-.paper:before{
+.card:after{
     content:"";
     position:absolute;
     inset:10px;
-    border:1px dashed rgba(37,35,31,.2);
+    border:1px dashed rgba(39,37,31,.22);
     pointer-events:none;
 }
 
-.content{
+.cardContent{
     position:relative;
-    z-index:1;
+    z-index:2;
 }
 
-.kicker{
-    text-transform:uppercase;
-    letter-spacing:.2em;
+.eyebrow{
     font-size:11px;
     font-weight:900;
-    color:#8e2c25;
+    text-transform:uppercase;
+    letter-spacing:.18em;
+    color:#8e3028;
 }
 
-h1{
-    margin:4px 0 0;
-    font-family:
-        Impact,
-        Haettenschweiler,
-        "Arial Narrow Bold",
-        sans-serif;
-    font-size:clamp(62px,12vw,110px);
-    line-height:.82;
+.title{
+    margin:5px 0 0;
+    font-family:Impact,Haettenschweiler,"Arial Narrow Bold",sans-serif;
+    font-size:clamp(64px,13vw,112px);
+    line-height:.78;
     letter-spacing:-.025em;
-    color:#25231f;
     transform:rotate(-1deg);
 }
 
-h2{
-    font-size:34px;
-    margin:4px 0 8px;
-}
-
 .subtitle{
-    max-width:600px;
+    max-width:610px;
+    margin:25px 0 22px;
     font-size:15px;
     line-height:1.6;
-    margin:20px 0;
 }
 
-.instructions{
+.rules{
     display:grid;
     grid-template-columns:repeat(3,1fr);
     gap:10px;
-    margin:22px 0;
+    margin-bottom:24px;
 }
 
-.instruction{
-    border:2px solid #25231f;
+.rule{
     padding:13px;
-    background:#eee5d1;
+    border:2px solid #27251f;
+    background:#e8dfc9;
 }
 
-.instruction b{
+.rule strong{
     display:block;
-    margin-bottom:5px;
+    margin-bottom:6px;
+    font-size:11px;
     text-transform:uppercase;
+    letter-spacing:.08em;
+}
+
+.rule span{
+    display:block;
     font-size:12px;
+    line-height:1.45;
 }
 
-.instruction span{
-    font-size:12px;
-    line-height:1.4;
-}
-
-button{
-    font:inherit;
-}
-
-.mainButton{
-    border:3px solid #25231f;
-    background:#c83b2e;
-    color:#fff8e8;
+.primary{
+    appearance:none;
+    border:3px solid #27251f;
+    background:#b6382d;
+    color:#fff5df;
     padding:13px 24px;
     font-weight:900;
     text-transform:uppercase;
-    letter-spacing:.08em;
+    letter-spacing:.09em;
     cursor:pointer;
-    box-shadow:5px 5px 0 #25231f;
-    transition:
-        transform .08s,
-        box-shadow .08s;
+    box-shadow:5px 5px 0 #27251f;
+    user-select:none;
+    touch-action:manipulation;
 }
 
-.mainButton:hover{
-    transform:translate(-2px,-2px);
-    box-shadow:7px 7px 0 #25231f;
+.primary:hover{
+    background:#c54337;
 }
 
-.mainButton:active{
+.primary:active{
     transform:translate(4px,4px);
-    box-shadow:1px 1px 0 #25231f;
+    box-shadow:1px 1px 0 #27251f;
 }
 
 .best{
     margin-top:15px;
     font-size:12px;
-    opacity:.6;
-}
-
-.hidden{
-    display:none!important;
+    opacity:.62;
 }
 
 #hud{
     position:fixed;
     inset:0;
-    z-index:3;
+    z-index:10;
     pointer-events:none;
 }
 
-.hudTop{
+#hud.hidden{
+    display:none;
+}
+
+.hud{
     position:absolute;
     top:14px;
-    left:16px;
-    right:16px;
+    left:14px;
+    right:14px;
     display:flex;
     justify-content:space-between;
     align-items:flex-start;
 }
 
-.hudBlock{
-    background:#f5efdf;
-    border:2px solid #25231f;
-    box-shadow:3px 3px 0 rgba(37,35,31,.7);
-    padding:7px 11px;
-    min-width:100px;
-}
-
-.hudLabel{
-    text-transform:uppercase;
-    letter-spacing:.12em;
-    font-size:9px;
-    font-weight:900;
-    opacity:.55;
-}
-
-.hudValue{
-    font-size:21px;
-    font-weight:950;
-    line-height:1;
-}
-
-.hudRight{
+.hudGroup{
     display:flex;
     gap:7px;
 }
 
-#status{
+.hudBox{
+    min-width:84px;
+    padding:7px 10px;
+    background:#f4edda;
+    border:2px solid #27251f;
+    box-shadow:3px 3px 0 rgba(39,37,31,.65);
+}
+
+.hudLabel{
+    font-size:8px;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.13em;
+    opacity:.55;
+}
+
+.hudValue{
+    font-size:20px;
+    line-height:1.1;
+    font-weight:950;
+}
+
+#message{
     position:absolute;
     left:50%;
     top:15px;
     transform:translateX(-50%);
-    background:#25231f;
-    color:#f5efdf;
     padding:7px 13px;
+    background:#27251f;
+    color:#f4edda;
+    font-size:10px;
     font-weight:900;
     text-transform:uppercase;
-    font-size:11px;
-    letter-spacing:.1em;
+    letter-spacing:.11em;
 }
 
-#emergency{
+#panic{
     position:absolute;
-    bottom:18px;
+    bottom:16px;
     left:50%;
     transform:translateX(-50%);
     pointer-events:auto;
-    border:2px solid #25231f;
-    background:#e2b52e;
-    color:#25231f;
+    border:2px solid #27251f;
+    background:#d4a932;
+    color:#27251f;
     padding:9px 15px;
-    font-weight:900;
+    font-size:11px;
+    font-weight:950;
     text-transform:uppercase;
     cursor:pointer;
-    box-shadow:3px 3px 0 #25231f;
+    box-shadow:3px 3px 0 #27251f;
 }
 
-#emergency:active{
-    transform:translate(calc(-50% + 3px),3px);
+#panic:active{
+    transform:translate(-50%,3px);
     box-shadow:none;
 }
 
-#emergency.disabled{
+#panic.used{
     opacity:.35;
     pointer-events:none;
 }
 
 .stamp{
     position:absolute;
-    top:90px;
     right:22px;
-    transform:rotate(8deg);
-    border:3px solid #8e2c25;
-    color:#8e2c25;
-    padding:7px 12px;
-    font-size:13px;
+    top:84px;
+    padding:6px 9px;
+    border:3px solid #8e3028;
+    color:#8e3028;
+    font-size:11px;
+    font-weight:950;
+    transform:rotate(7deg);
+    opacity:.8;
+}
+
+.smallTitle{
+    margin:3px 0 15px;
+    font-size:35px;
     font-weight:950;
     text-transform:uppercase;
-    opacity:.85;
 }
 
 @media(max-width:650px){
-    .paper{
+
+    .card{
         padding:25px;
     }
 
-    .instructions{
+    .rules{
         grid-template-columns:1fr;
     }
 
-    .hudBlock{
-        min-width:78px;
+    .hudBox{
+        min-width:70px;
     }
 
     .hudValue{
-        font-size:17px;
+        font-size:16px;
     }
 
-    #status{
-        top:72px;
+    #message{
+        top:67px;
+    }
+
+    .stamp{
+        display:none;
     }
 }
 </style>
@@ -297,109 +301,69 @@ button{
 
 <body>
 
-<canvas id="canvas"></canvas>
+<canvas id="game"></canvas>
 
-<div id="hud" class="hidden">
+<!-- =====================================================
+     MAIN MENU
+===================================================== -->
 
-    <div class="hudTop">
+<div id="menu" class="screen">
 
-        <div class="hudBlock">
-            <div class="hudLabel">Delivered</div>
-            <div class="hudValue" id="score">0</div>
-        </div>
+    <div class="card">
 
-        <div class="hudRight">
+        <div class="cardContent">
 
-            <div class="hudBlock">
-                <div class="hudLabel">Day</div>
-                <div class="hudValue" id="day">1</div>
+            <div class="eyebrow">
+                Metropolitan Parcel Authority
             </div>
 
-            <div class="hudBlock">
-                <div class="hudLabel">Mistakes</div>
-                <div class="hudValue" id="mistakes">3</div>
+            <div class="title">
+                SWITCHBACK
             </div>
-
-        </div>
-
-    </div>
-
-    <div id="status">
-        ROUTE THE MAIL
-    </div>
-
-    <div class="stamp">
-        EXPRESS
-    </div>
-
-    <button id="emergency">
-        Emergency Reroute [SPACE]
-    </button>
-
-</div>
-
-<div id="menu" class="overlay">
-
-    <div class="paper">
-
-        <div class="content">
-
-            <div class="kicker">
-                Department of Unnecessarily Difficult Mail
-            </div>
-
-            <h1>SWITCHBACK</h1>
 
             <div class="subtitle">
-                The parcels are moving. The machines are moving.
-                The deadline is moving. Unfortunately, your switches
-                are the only things that aren't smart enough to do
-                their jobs themselves.
-                <br><br>
-                Route every parcel into the correct processing station.
-                Flip switches at exactly the right moment.
+                You have one shift, a room full of unreliable
+                machinery, and far too many parcels.
+                Flip the junctions and send every parcel to
+                the correct depot before the conveyor becomes
+                completely unmanageable.
             </div>
 
-            <div class="instructions">
+            <div class="rules">
 
-                <div class="instruction">
-                    <b>01 — Flip</b>
+                <div class="rule">
+                    <strong>Flip the switches</strong>
                     <span>
-                        Click or tap a black switch to change
-                        where the track sends parcels.
+                        Click a junction to change its track.
+                        The numbered keys work too.
                     </span>
                 </div>
 
-                <div class="instruction">
-                    <b>02 — Match</b>
+                <div class="rule">
+                    <strong>Read the stamps</strong>
                     <span>
                         Every parcel has a destination mark.
-                        Get it to the matching station.
+                        Different colours mean different depots.
                     </span>
                 </div>
 
-                <div class="instruction">
-                    <b>03 — Risk</b>
+                <div class="rule">
+                    <strong>Don't panic</strong>
                     <span>
-                        Golden parcels are worth much more,
-                        but their routes are harder.
+                        You have one emergency reroute each shift.
+                        Save it for a real disaster.
                     </span>
                 </div>
 
             </div>
 
-            <button
-    type="button"
-    class="mainButton"
-    id="start"
-    onclick="window.__switchbackStart && window.__switchbackStart()"
->
-    Open The Depot
-</button>
+            <button id="startButton" class="primary" type="button">
+                Start Shift
+            </button>
 
             <div class="best">
                 Best delivery count:
-                <strong id="menuBest">0</strong>
+                <strong id="bestMenu">0</strong>
             </div>
 
         </div>
@@ -408,53 +372,88 @@ button{
 
 </div>
 
-<div id="gameover" class="overlay hidden">
+<!-- =====================================================
+     PAUSE
+===================================================== -->
 
-    <div class="paper">
+<div id="pauseScreen" class="screen hidden">
 
-        <div class="content">
+    <div class="card">
 
-            <div class="kicker">
+        <div class="cardContent">
+
+            <div class="eyebrow">
+                Machinery stopped
+            </div>
+
+            <div class="smallTitle">
+                Shift Paused
+            </div>
+
+            <div class="subtitle">
+                The parcels are waiting patiently.
+                The supervisor is not.
+            </div>
+
+            <button id="resumeButton" class="primary" type="button">
+                Resume Shift
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =====================================================
+     GAME OVER
+===================================================== -->
+
+<div id="gameOverScreen" class="screen hidden">
+
+    <div class="card">
+
+        <div class="cardContent">
+
+            <div class="eyebrow">
                 End of shift
             </div>
 
-            <h2>THE DEPOT HAS CLOSED</h2>
-
-            <div class="subtitle">
-                Too many parcels went to the wrong place.
-                The supervisor has confiscated the switches.
+            <div class="smallTitle">
+                Depot Closed
             </div>
 
-            <div class="instructions">
+            <div class="subtitle">
+                Too many parcels were delivered to the wrong
+                destination. The supervisor has taken away
+                your switchboard privileges.
+            </div>
 
-                <div class="instruction">
-                    <b>Delivered</b>
+            <div class="rules">
+
+                <div class="rule">
+                    <strong>Delivered</strong>
                     <span id="finalScore">0</span>
                 </div>
 
-                <div class="instruction">
-                    <b>Day</b>
-                    <span id="finalDay">1</span>
+                <div class="rule">
+                    <strong>Shift</strong>
+                    <span id="finalShift">1</span>
                 </div>
 
-                <div class="instruction">
-                    <b>Best</b>
+                <div class="rule">
+                    <strong>Best</strong>
                     <span id="finalBest">0</span>
                 </div>
 
             </div>
 
-            <button
-    type="button"
-    class="mainButton"
-    id="restart"
-    onclick="window.__switchbackStart && window.__switchbackStart()"
->
-    Reopen Depot
-</button>
+            <button id="restartButton" class="primary" type="button">
+                Start Another Shift
+            </button>
 
             <div class="best">
-                Press R or ENTER to restart.
+                Press R or Enter to restart.
             </div>
 
         </div>
@@ -463,740 +462,582 @@ button{
 
 </div>
 
-<div id="pause" class="overlay hidden">
+<!-- =====================================================
+     HUD
+===================================================== -->
 
-    <div class="paper">
+<div id="hud" class="hidden">
 
-        <div class="content">
+    <div class="hud">
 
-            <div class="kicker">
-                Everything has stopped
+        <div class="hudGroup">
+
+            <div class="hudBox">
+                <div class="hudLabel">Delivered</div>
+                <div class="hudValue" id="scoreValue">0</div>
             </div>
 
-            <h2>SHIFT PAUSED</h2>
-
-            <div class="subtitle">
-                The parcels are patiently waiting.
-                They are surprisingly understanding.
+            <div class="hudBox">
+                <div class="hudLabel">Shift</div>
+                <div class="hudValue" id="shiftValue">1</div>
             </div>
 
-            <button
-    type="button"
-    class="mainButton"
-    id="resume"
-    onclick="window.__switchbackResume && window.__switchbackResume()"
->
-    Resume Shift
-</button>
+        </div>
+
+        <div class="hudGroup">
+
+            <div class="hudBox">
+                <div class="hudLabel">Errors</div>
+                <div class="hudValue" id="errorsValue">3</div>
+            </div>
+
+            <div class="hudBox">
+                <div class="hudLabel">Combo</div>
+                <div class="hudValue" id="comboValue">0</div>
+            </div>
 
         </div>
 
     </div>
+
+    <div id="message">
+        ROUTE THE PARCELS
+    </div>
+
+    <div class="stamp">
+        PRIORITY
+    </div>
+
+    <button id="panic" type="button">
+        Emergency Reroute [SPACE]
+    </button>
 
 </div>
 
 <script>
 "use strict";
 
-/* =========================================================
-   GUARANTEED MENU CONTROLS
-========================================================= */
+/*
+    SWITCHBACK
+    --------------------------------------------------------
+    Everything is contained in this document.
 
-window.__switchbackStart = function(){
-
-    try{
-
-        if(typeof initAudio === "function"){
-            try{
-                initAudio();
-            }
-            catch(e){}
-        }
-
-        if(typeof startGame === "function"){
-            startGame();
-            return;
-        }
-
-        /*
-           Fallback in case the main game initialization
-           hasn't completed yet.
-        */
-
-        const menu =
-            document.getElementById("menu");
-
-        const hud =
-            document.getElementById("hud");
-
-        if(menu){
-            menu.classList.add("hidden");
-        }
-
-        if(hud){
-            hud.classList.remove("hidden");
-        }
-
-    }
-    catch(error){
-
-        console.error(
-            "SWITCHBACK startup error:",
-            error
-        );
-
-        /*
-           Even if another optional system fails,
-           remove the menu so the player isn't trapped.
-        */
-
-        const menu =
-            document.getElementById("menu");
-
-        const hud =
-            document.getElementById("hud");
-
-        if(menu){
-            menu.classList.add("hidden");
-        }
-
-        if(hud){
-            hud.classList.remove("hidden");
-        }
-
-    }
-
-};
-
-window.__switchbackResume = function(){
-
-    paused = false;
-
-    const pauseScreen =
-        document.getElementById("pause");
-
-    if(pauseScreen){
-        pauseScreen.classList.add("hidden");
-    }
-
-};
-
-/* =========================================================
-   CANVAS SETUP
-========================================================= */
-
-const canvas =
-    document.getElementById("canvas");
-
-const ctx =
-    canvas.getContext("2d");
-
-let W = innerWidth;
-let H = innerHeight;
-let DPR = 1;
-
-function resize(){
-
-    W = innerWidth;
-    H = innerHeight;
-
-    DPR =
-        Math.min(
-            2,
-            window.devicePixelRatio || 1
-        );
-
-    canvas.width =
-        Math.floor(W * DPR);
-
-    canvas.height =
-        Math.floor(H * DPR);
-
-    canvas.style.width =
-        W + "px";
-
-    canvas.style.height =
-        H + "px";
-
-    ctx.setTransform(
-        DPR,
-        0,
-        0,
-        DPR,
-        0,
-        0
-    );
-
-    if(gameRunning){
-        buildLayout();
-    }
-}
-
-addEventListener(
-    "resize",
-    resize
-);
+    The menu controls are ordinary DOM buttons and are
+    initialized independently from the canvas. This means
+    a canvas/gameplay problem cannot make the Start button
+    disappear or become non-functional.
+*/
 
 /* =========================================================
    DOM
 ========================================================= */
 
-const hud =
-    document.getElementById("hud");
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-const menu =
-    document.getElementById("menu");
+const menu = document.getElementById("menu");
+const pauseScreen = document.getElementById("pauseScreen");
+const gameOverScreen = document.getElementById("gameOverScreen");
+const hud = document.getElementById("hud");
 
-const gameover =
-    document.getElementById("gameover");
+const startButton = document.getElementById("startButton");
+const resumeButton = document.getElementById("resumeButton");
+const restartButton = document.getElementById("restartButton");
+const panicButton = document.getElementById("panic");
 
-const pause =
-    document.getElementById("pause");
+const scoreValue = document.getElementById("scoreValue");
+const shiftValue = document.getElementById("shiftValue");
+const errorsValue = document.getElementById("errorsValue");
+const comboValue = document.getElementById("comboValue");
+const message = document.getElementById("message");
 
-const scoreEl =
-    document.getElementById("score");
+const bestMenu = document.getElementById("bestMenu");
 
-const dayEl =
-    document.getElementById("day");
+const finalScore = document.getElementById("finalScore");
+const finalShift = document.getElementById("finalShift");
+const finalBest = document.getElementById("finalBest");
 
-const mistakesEl =
-    document.getElementById("mistakes");
+/* =========================================================
+   CANVAS
+========================================================= */
 
-const statusEl =
-    document.getElementById("status");
+let width = 0;
+let height = 0;
+let dpr = 1;
 
-const emergencyBtn =
-    document.getElementById("emergency");
+function resizeCanvas(){
 
-const menuBest =
-    document.getElementById("menuBest");
+    width = window.innerWidth;
+    height = window.innerHeight;
 
-const finalScore =
-    document.getElementById("finalScore");
+    dpr = Math.min(
+        2,
+        window.devicePixelRatio || 1
+    );
 
-const finalDay =
-    document.getElementById("finalDay");
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
 
-const finalBest =
-    document.getElementById("finalBest");
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
+
+    createBoard();
+}
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
 
 /* =========================================================
    AUDIO
 ========================================================= */
 
-let audio = null;
+let audioContext = null;
 
-function initAudio(){
+function startAudio(){
 
-    if(audio) return;
+    if(audioContext){
+        if(audioContext.state === "suspended"){
+            audioContext.resume().catch(() => {});
+        }
+        return;
+    }
 
     try{
 
-        audio =
+        audioContext =
             new (
                 window.AudioContext ||
                 window.webkitAudioContext
             )();
 
     }
-    catch(e){}
+    catch(error){
+
+        audioContext = null;
+
+    }
 
 }
 
-function beep(
+function tone(
     frequency,
     duration,
-    type="square",
-    volume=.035
+    type,
+    volume
 ){
 
-    if(!audio) return;
+    if(!audioContext){
+        return;
+    }
 
     try{
 
-        const osc =
-            audio.createOscillator();
+        const oscillator =
+            audioContext.createOscillator();
 
         const gain =
-            audio.createGain();
+            audioContext.createGain();
 
-        osc.type = type;
+        oscillator.type =
+            type || "square";
 
-        osc.frequency.setValueAtTime(
+        oscillator.frequency.setValueAtTime(
             frequency,
-            audio.currentTime
+            audioContext.currentTime
         );
 
         gain.gain.setValueAtTime(
-            .0001,
-            audio.currentTime
+            0.0001,
+            audioContext.currentTime
         );
 
         gain.gain.exponentialRampToValueAtTime(
-            volume,
-            audio.currentTime+.008
+            volume || .025,
+            audioContext.currentTime + .008
         );
 
         gain.gain.exponentialRampToValueAtTime(
             .0001,
-            audio.currentTime+duration
+            audioContext.currentTime + duration
         );
 
-        osc.connect(gain);
-        gain.connect(audio.destination);
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
 
-        osc.start();
+        oscillator.start();
 
-        osc.stop(
-            audio.currentTime+duration+.02
+        oscillator.stop(
+            audioContext.currentTime +
+            duration +
+            .02
         );
 
     }
-    catch(e){}
+    catch(error){}
 }
 
-function successSound(){
+function switchSound(){
+    tone(245,.055,"square",.025);
+}
 
-    beep(420,.08,"square",.035);
+function deliverySound(){
+
+    tone(430,.07,"square",.025);
 
     setTimeout(
-        () => beep(620,.11,"square",.035),
+        () => tone(620,.09,"square",.025),
         55
     );
 
 }
 
-function failureSound(){
-
-    beep(170,.18,"sawtooth",.045);
-
+function mistakeSound(){
+    tone(135,.17,"sawtooth",.035);
 }
 
-function switchSound(){
+function shiftSound(){
+    tone(260,.12,"square",.03);
 
-    beep(260,.045,"square",.025);
-
+    setTimeout(
+        () => tone(390,.12,"square",.03),
+        80
+    );
 }
 
 /* =========================================================
-   GAME DATA
+   CONSTANTS
 ========================================================= */
 
-let gameRunning = false;
-let paused = false;
+const COLORS = {
+    paper:"#f4edda",
+    paperDark:"#ded2ba",
+    ink:"#27251f",
+    rail:"#706858",
+    railLight:"#9e927b",
+    red:"#b6382d",
+    yellow:"#d4a932",
+    green:"#5f794f",
+    plum:"#76586d",
+    white:"#fff7e5"
+};
+
+const destinations = [
+    {
+        id:"red",
+        letter:"R",
+        color:COLORS.red
+    },
+    {
+        id:"yellow",
+        letter:"Y",
+        color:COLORS.yellow
+    },
+    {
+        id:"green",
+        letter:"G",
+        color:COLORS.green
+    }
+];
+
+/* =========================================================
+   GAME STATE
+========================================================= */
+
+let state = "menu";
 
 let score = 0;
-let day = 1;
-let mistakes = 3;
-
-let best =
-    Number(
-        localStorage.getItem(
-            "switchbackBest"
-        ) || 0
-    );
-
+let shift = 1;
+let errors = 3;
 let combo = 0;
 
-let switchers = [];
-let parcels = [];
-let particles = [];
-let floating = [];
+let best = 0;
 
-let layout = null;
-
-let spawnTimer = 0;
-let dayTimer = 0;
-let dayLength = 24;
-
-let emergency = 1;
-
-let mouseX = 0;
-let mouseY = 0;
-
-/* =========================================================
-   COLORS / VISUAL LANGUAGE
-========================================================= */
-
-const PAPER = "#f5efdf";
-const PAPER_DARK = "#e8dfcc";
-const INK = "#25231f";
-const RED = "#c83b2e";
-const YELLOW = "#e2b52e";
-const GREEN = "#617c4c";
-const PURPLE = "#72556f";
-
-/* =========================================================
-   RANDOM
-========================================================= */
-
-function rand(a,b){
-    return Math.random()*(b-a)+a;
+try{
+    best = Number(
+        localStorage.getItem(
+            "switchback-best"
+        ) || 0
+    );
+}
+catch(error){
+    best = 0;
 }
 
-function clamp(v,a,b){
-    return Math.max(
-        a,
-        Math.min(
-            b,
-            v
+bestMenu.textContent =
+    best.toLocaleString();
+
+let board = null;
+
+let switches = [];
+let parcels = [];
+let particles = [];
+let texts = [];
+
+let spawnTimer = 0;
+let shiftTimer = 0;
+
+let emergencyAvailable = true;
+
+/* =========================================================
+   UTILITY
+========================================================= */
+
+function random(min,max){
+    return Math.random()*(max-min)+min;
+}
+
+function randomInt(min,max){
+    return Math.floor(
+        random(
+            min,
+            max+1
         )
     );
 }
 
-function distance(
-    a,b,c,d
+function clamp(value,min,max){
+    return Math.max(
+        min,
+        Math.min(
+            max,
+            value
+        )
+    );
+}
+
+function choose(array){
+    return array[
+        Math.floor(
+            Math.random()*array.length
+        )
+    ];
+}
+
+function dist(
+    x1,
+    y1,
+    x2,
+    y2
 ){
     return Math.hypot(
-        a-c,
-        b-d
+        x1-x2,
+        y1-y2
     );
 }
 
 /* =========================================================
-   LAYOUT
+   BOARD CREATION
 ========================================================= */
 
-function buildLayout(){
+function createBoard(){
 
-    const margin =
+    const top =
         Math.max(
-            60,
-            Math.min(
-                110,
-                W*.1
+            130,
+            height*.18
+        );
+
+    const bottom =
+        height -
+        Math.max(
+            95,
+            height*.14
+        );
+
+    const left =
+        Math.max(
+            65,
+            width*.09
+        );
+
+    const right =
+        width -
+        Math.max(
+            65,
+            width*.09
+        );
+
+    const rows =
+        width < 650
+            ? 4
+            : 5;
+
+    const columns =
+        width < 650
+            ? 4
+            : 6;
+
+    const rowGap =
+        (bottom-top)/
+        (rows-1);
+
+    const colGap =
+        (right-left)/
+        (columns-1);
+
+    board = {
+        left,
+        right,
+        top,
+        bottom,
+        rows,
+        columns,
+        rowGap,
+        colGap
+    };
+
+    createSwitches();
+
+}
+
+/* =========================================================
+   SWITCH CREATION
+========================================================= */
+
+function createSwitches(){
+
+    switches = [];
+
+    if(!board){
+        return;
+    }
+
+    /*
+        The number of junctions grows with the shift.
+    */
+
+    const desired =
+        Math.min(
+            board.columns-1,
+            2 +
+            Math.floor(
+                shift*.55
             )
         );
 
-    const left = margin;
-    const right = W-margin;
-    const top = 125;
-    const bottom = H-85;
+    const possible = [];
 
-    const width =
-        right-left;
+    for(
+        let row=0;
+        row<board.rows;
+        row++
+    ){
 
-    const height =
-        bottom-top;
+        for(
+            let col=1;
+            col<board.columns-1;
+            col++
+        ){
 
-    const cols =
-        W < 650 ? 3 : 5;
-
-    const rows =
-        W < 650 ? 4 : 4;
-
-    const sx =
-        width/(cols-1);
-
-    const sy =
-        height/(rows-1);
-
-    const nodes = [];
-
-    for(let y=0;y<rows;y++){
-
-        for(let x=0;x<cols;x++){
-
-            nodes.push({
-                x:left+x*sx,
-                y:top+y*sy
+            possible.push({
+                row,
+                col
             });
 
         }
 
     }
 
-    /*
-       Each node is a junction.
-       Some are switches.
-    */
+    possible.sort(
+        () => Math.random()-.5
+    );
 
-    switchers = [];
-
-    const candidates =
-        nodes.filter(
-            (_,i) =>
-                i % cols !== cols-1 &&
-                i >= cols
+    for(
+        let i=0;
+        i<Math.min(
+            desired,
+            possible.length
         );
+        i++
+    ){
 
-    /*
-       Pick a different number of switches
-       depending on day.
-    */
+        const position =
+            possible[i];
 
-    const count =
-        Math.min(
-            candidates.length,
-            4 +
-            Math.floor(
-                day*.7
-            )
-        );
+        switches.push({
 
-    const shuffled =
-        [...candidates]
-            .sort(
-                () => Math.random()-.5
-            );
+            row:position.row,
+            col:position.col,
 
-    for(let i=0;i<count;i++){
+            x:
+                board.left +
+                position.col*
+                board.colGap,
 
-        const n =
-            shuffled[i];
-
-        switchers.push({
-
-            x:n.x,
-            y:n.y,
+            y:
+                board.top +
+                position.row*
+                board.rowGap,
 
             state:
                 Math.random()<.5
                     ? 0
                     : 1,
 
-            index:i,
-
             flash:0,
 
             /*
-               Memory mechanic:
-               every switch tracks which
-               side was used most recently.
+                Each switch has a "preferred" direction.
+                This changes during play, making identical
+                patterns less reliable.
             */
 
-            lastInput:
+            bias:
                 Math.random()<.5
-                    ? 0
+                    ? -1
                     : 1
 
         });
 
     }
 
-    layout = {
-        left,
-        right,
-        top,
-        bottom,
-        cols,
-        rows,
-        sx,
-        sy,
-        nodes
-    };
-
 }
 
 /* =========================================================
-   DESTINATIONS
+   NEW SHIFT
 ========================================================= */
 
-const destinations = [
-    {
-        name:"RED",
-        color:RED,
-        letter:"R"
-    },
-    {
-        name:"GOLD",
-        color:YELLOW,
-        letter:"G"
-    },
-    {
-        name:"GREEN",
-        color:GREEN,
-        letter:"N"
-    }
-];
+function beginShift(){
 
-function randomDestination(){
+    createSwitches();
 
-    return destinations[
-        Math.floor(
-            Math.random()*
-            destinations.length
-        )
-    ];
+    shiftTimer = 0;
 
-}
+    for(const sw of switches){
 
-/* =========================================================
-   PARCEL ROUTING
-========================================================= */
+        sw.state =
+            Math.random()<.5
+                ? 0
+                : 1;
 
-/*
-   Instead of simulating a complicated physical
-   rail network, the board is represented as
-   horizontal/vertical segments between junctions.
-
-   A parcel has a current node and a target.
-   At a switch, its route is selected by the
-   switch's current state.
-
-   The visual path is still completely deterministic.
-*/
-
-function routeForParcel(parcel){
-
-    const target =
-        parcel.destination;
-
-    /*
-       Pick a lane based on destination.
-       The switches determine whether the parcel
-       continues toward that lane or crosses.
-    */
-
-    let row =
-        parcel.row;
-
-    let col =
-        parcel.col;
-
-    const targetRow =
-        target === destinations[0]
-            ? 1
-            : target === destinations[1]
-                ? 2
-                : 3;
-
-    if(
-        col >= layout.cols-1
-    ){
-
-        return null;
+        sw.bias =
+            Math.random()<.5
+                ? -1
+                : 1;
 
     }
 
-    let nextCol =
-        col+1;
-
-    let nextRow =
-        row;
-
-    const sw =
-        findSwitchAt(
-            nextCol,
-            nextRow
-        );
-
-    if(sw){
-
-        /*
-           Memory mechanic:
-           if a parcel enters from the
-           same side as the previous parcel,
-           the switch reverses its effective
-           choice.
-
-           This means blindly clicking the
-           same switch repeatedly is unreliable.
-        */
-
-        let choice =
-            sw.state;
-
-        if(
-            sw.lastInput ===
-            parcel.entrySide
-        ){
-
-            choice =
-                1-choice;
-
-        }
-
-        sw.lastInput =
-            parcel.entrySide;
-
-        if(choice === 1){
-
-            if(
-                row < targetRow
-            ){
-                nextRow++;
-            }
-            else if(
-                row > targetRow
-            ){
-                nextRow--;
-            }
-            else{
-
-                /*
-                   Already on the right row:
-                   switch sideways into a bonus
-                   lane if possible.
-                */
-
-                if(
-                    row > 0 &&
-                    Math.random()<.35
-                ){
-                    nextRow--;
-                }
-
-            }
-
-            nextRow =
-                clamp(
-                    nextRow,
-                    0,
-                    layout.rows-1
-                );
-
-        }
-
-    }
-    else{
-
-        /*
-           Non-switch nodes naturally drift toward
-           the destination lane.
-        */
-
-        if(
-            row < targetRow &&
-            Math.random()<.45
-        ){
-            nextRow++;
-        }
-        else if(
-            row > targetRow &&
-            Math.random()<.45
-        ){
-            nextRow--;
-        }
-
-    }
-
-    return {
-        col:nextCol,
-        row:nextRow
-    };
-
-}
-
-function findSwitchAt(
-    col,
-    row
-){
-
-    if(!layout) return null;
-
-    const node =
-        layout.nodes[
-            row*layout.cols+col
-        ];
-
-    if(!node) return null;
-
-    return switchers.find(
-        s =>
-            Math.abs(s.x-node.x)<2 &&
-            Math.abs(s.y-node.y)<2
+    addFloatingText(
+        width/2,
+        board.top-28,
+        "SHIFT "+shift,
+        COLORS.ink,
+        1.2,
+        true
     );
+
+    shiftSound();
 
 }
 
@@ -1204,132 +1045,149 @@ function findSwitchAt(
    PARCEL CREATION
 ========================================================= */
 
-function spawnParcel(){
+function createParcel(){
+
+    const lane =
+        randomInt(
+            0,
+            board.rows-1
+        );
 
     const destination =
-        randomDestination();
+        choose(destinations);
 
-    const rare =
+    const special =
         Math.random() <
         Math.min(
-            .08+day*.006,
-            .25
+            .06 + shift*.008,
+            .22
         );
-
-    const row =
-        Math.floor(
-            Math.random()*
-            layout.rows
-        );
-
-    const speed =
-        75 +
-        day*4 +
-        rand(-5,15);
 
     parcels.push({
 
-        x:layout.left-30,
+        x:
+            board.left-45,
 
         y:
-            layout.top+
-            row*layout.sy,
+            board.top+
+            lane*
+            board.rowGap,
 
-        row,
-        col:-1,
+        lane,
 
-        targetRow:
+        destination,
+
+        special,
+
+        speed:
+            72 +
+            shift*3 +
+            random(
+                -7,
+                13
+            ),
+
+        width:26,
+        height:16,
+
+        progress:0,
+
+        /*
+            A parcel may have a temporary desired lane.
+            Switches can change this.
+        */
+
+        desiredLane:
             destination === destinations[0]
                 ? 1
                 : destination === destinations[1]
                     ? 2
                     : 3,
 
-        destination,
+        alive:true,
 
-        speed,
-
-        progress:0,
-
-        entrySide:
-            Math.random()<.5
-                ? 0
-                : 1,
-
-        rare,
-
-        value:
-            rare
-                ? 400
-                : 100,
-
-        life:0,
-
-        dead:false,
-
-        path:[],
-
-        currentNode:null
+        passedSwitches:new Set()
 
     });
 
 }
 
 /* =========================================================
-   SWITCH INTERACTION
+   DESTINATION LANE
+========================================================= */
+
+function destinationLane(parcel){
+
+    /*
+        If the board has fewer rows than the desired
+        destination index, wrap it safely.
+    */
+
+    const preferred =
+        parcel.destination === destinations[0]
+            ? 1
+            : parcel.destination === destinations[1]
+                ? 2
+                : 3;
+
+    return clamp(
+        preferred,
+        0,
+        board.rows-1
+    );
+
+}
+
+/* =========================================================
+   SWITCH TOGGLE
 ========================================================= */
 
 function toggleSwitch(sw){
 
-    if(!gameRunning || paused){
+    if(state !== "playing"){
         return;
     }
 
     sw.state =
-        1-sw.state;
+        sw.state === 0
+            ? 1
+            : 0;
 
-    sw.flash =
-        .35;
+    sw.flash = .3;
 
     switchSound();
 
-    /*
-       Small reward for actually interacting.
-    */
-
-    floating.push({
-        x:sw.x,
-        y:sw.y-24,
-        text:
-            sw.state
-                ? "DIVERGE"
-                : "STRAIGHT",
-        color:
-            sw.state
-                ? RED
-                : INK,
-        life:.7,
-        ttl:.7
-    });
+    addFloatingText(
+        sw.x,
+        sw.y-26,
+        sw.state
+            ? "CROSS"
+            : "STRAIGHT",
+        sw.state
+            ? COLORS.red
+            : COLORS.ink,
+        .65,
+        false
+    );
 
 }
 
 /* =========================================================
-   MOUSE / TOUCH
+   POINTER INPUT
 ========================================================= */
 
-function getPointer(e){
+function pointerPosition(event){
 
     const rect =
         canvas.getBoundingClientRect();
 
     return {
         x:
-            e.clientX-
+            event.clientX-
             rect.left,
 
         y:
-            e.clientY-
+            event.clientY-
             rect.top
     };
 
@@ -1337,30 +1195,24 @@ function getPointer(e){
 
 canvas.addEventListener(
     "pointerdown",
-    e => {
+    function(event){
 
-        const p =
-            getPointer(e);
-
-        mouseX = p.x;
-        mouseY = p.y;
-
-        if(
-            !gameRunning ||
-            paused
-        ){
+        if(state !== "playing"){
             return;
         }
 
-        for(const sw of switchers){
+        const point =
+            pointerPosition(event);
+
+        for(const sw of switches){
 
             if(
-                distance(
-                    p.x,
-                    p.y,
+                dist(
+                    point.x,
+                    point.y,
                     sw.x,
                     sw.y
-                ) < 32
+                ) <= 34
             ){
 
                 toggleSwitch(sw);
@@ -1374,89 +1226,84 @@ canvas.addEventListener(
 );
 
 /* =========================================================
-   KEYBOARD
+   KEYBOARD INPUT
 ========================================================= */
 
-const keys = new Set();
-
-addEventListener(
+window.addEventListener(
     "keydown",
-    e => {
+    function(event){
 
         const key =
-            e.key.toLowerCase();
-
-        keys.add(key);
+            event.key.toLowerCase();
 
         if(
-            [
-                " ",
-                "arrowup",
-                "arrowdown",
-                "arrowleft",
-                "arrowright"
-            ].includes(key)
+            key === " " ||
+            key === "arrowup" ||
+            key === "arrowdown" ||
+            key === "arrowleft" ||
+            key === "arrowright"
         ){
-            e.preventDefault();
+
+            event.preventDefault();
+
         }
 
         if(key === "p"){
+
             togglePause();
+
+            return;
+
+        }
+
+        if(key === " "){
+
+            useEmergency();
+
+            return;
+
         }
 
         if(
             key === "r" &&
-            !gameRunning
+            state === "gameover"
         ){
+
             startGame();
+
+            return;
+
         }
 
         if(
             key === "enter" &&
-            !gameRunning
+            state === "gameover"
         ){
-            startGame();
-        }
 
-        /*
-           Number keys select switches.
-        */
+            startGame();
+
+            return;
+
+        }
 
         if(
             key >= "1" &&
-            key <= "9"
+            key <= "9" &&
+            state === "playing"
         ){
 
             const index =
                 Number(key)-1;
 
-            if(
-                switchers[index]
-            ){
+            if(switches[index]){
 
                 toggleSwitch(
-                    switchers[index]
+                    switches[index]
                 );
 
             }
 
         }
-
-        if(key === " "){
-            emergencyReroute();
-        }
-
-    },
-    {passive:false}
-);
-
-addEventListener(
-    "keyup",
-    e => {
-
-        keys.delete(
-            e.key.toLowerCase()
-        );
 
     }
 );
@@ -1465,63 +1312,68 @@ addEventListener(
    EMERGENCY REROUTE
 ========================================================= */
 
-function emergencyReroute(){
+function useEmergency(){
 
     if(
-        !gameRunning ||
-        paused ||
-        emergency <= 0
+        state !== "playing" ||
+        !emergencyAvailable
     ){
+
         return;
+
     }
 
-    emergency--;
+    emergencyAvailable = false;
 
-    emergencyBtn.classList.add(
-        "disabled"
-    );
+    panicButton.classList.add("used");
 
     /*
-       Every active parcel gets a brief
-       speed reduction and is shifted toward
-       its target lane.
+        Emergency reroute sends every parcel toward
+        the correct lane immediately, but slows them
+        down temporarily so the player has time to
+        recover.
     */
 
-    for(const p of parcels){
+    for(const parcel of parcels){
 
-        if(p.dead) continue;
-
-        const targetY =
-            layout.top+
-            p.targetRow*
-            layout.sy;
-
-        p.y +=
-            clamp(
-                targetY-p.y,
-                -55,
-                55
+        const target =
+            destinationLane(
+                parcel
             );
 
-        p.speed *= .55;
+        parcel.lane =
+            target;
+
+        parcel.y =
+            board.top+
+            target*
+            board.rowGap;
+
+        parcel.speed *= .55;
 
     }
 
-    floating.push({
-        x:W/2,
-        y:H/2,
-        text:"ROUTE CLEARED",
-        color:RED,
-        life:1,
-        ttl:1,
-        big:true
-    });
+    for(const sw of switches){
 
-    beep(
-        110,
+        sw.state = 0;
+        sw.flash = .5;
+
+    }
+
+    addFloatingText(
+        width/2,
+        height*.45,
+        "EMERGENCY REROUTE",
+        COLORS.red,
+        1.4,
+        true
+    );
+
+    tone(
+        105,
         .3,
         "sawtooth",
-        .045
+        .035
     );
 
 }
@@ -1532,22 +1384,29 @@ function emergencyReroute(){
 
 function togglePause(){
 
-    if(!gameRunning){
+    if(
+        state !== "playing" &&
+        state !== "paused"
+    ){
+
         return;
+
     }
 
-    paused = !paused;
+    if(state === "playing"){
 
-    if(paused){
+        state = "paused";
 
-        pause.classList.remove(
+        pauseScreen.classList.remove(
             "hidden"
         );
 
     }
     else{
 
-        pause.classList.add(
+        state = "playing";
+
+        pauseScreen.classList.add(
             "hidden"
         );
 
@@ -1555,163 +1414,189 @@ function togglePause(){
 
 }
 
-document
-    .getElementById("resume")
-    .onclick =
-    () => {
+/* =========================================================
+   PARCEL ROUTING
+========================================================= */
 
-        paused = false;
+function routeParcel(parcel){
 
-        pause.classList.add(
-            "hidden"
-        );
+    /*
+        Find switches very close to the parcel's current
+        x-position.
 
-    };
+        Only trigger each switch once per parcel so a parcel
+        doesn't oscillate while sitting on a junction.
+    */
+
+    for(
+        let i=0;
+        i<switches.length;
+        i++
+    ){
+
+        const sw =
+            switches[i];
+
+        if(
+            Math.abs(
+                parcel.x-sw.x
+            ) < 8 &&
+            !parcel.passedSwitches.has(i)
+        ){
+
+            parcel.passedSwitches.add(i);
+
+            if(sw.state === 1){
+
+                /*
+                    Cross toward the desired destination.
+                */
+
+                const target =
+                    destinationLane(
+                        parcel
+                    );
+
+                if(parcel.lane < target){
+
+                    parcel.lane++;
+
+                }
+                else if(
+                    parcel.lane > target
+                ){
+
+                    parcel.lane--;
+
+                }
+                else{
+
+                    /*
+                        Already correct: switch to a
+                        neighbouring lane occasionally.
+                        This prevents switches from being
+                        mathematically trivial.
+                    */
+
+                    const direction =
+                        Math.random()<.5
+                            ? -1
+                            : 1;
+
+                    parcel.lane =
+                        clamp(
+                            parcel.lane+
+                            direction,
+                            0,
+                            board.rows-1
+                        );
+
+                }
+
+            }
+
+            parcel.y =
+                board.top+
+                parcel.lane*
+                board.rowGap;
+
+        }
+
+    }
+
+}
 
 /* =========================================================
-   PARCEL UPDATE
+   UPDATE PARCEL
 ========================================================= */
 
 function updateParcel(
-    p,
+    parcel,
     dt
 ){
 
-    p.life += dt;
+    parcel.x +=
+        parcel.speed*dt;
 
-    /*
-       Before entering the board, parcel moves
-       horizontally.
-    */
-
-    if(p.col < 0){
-
-        p.x +=
-            p.speed*dt;
-
-        const firstX =
-            layout.left;
-
-        if(p.x >= firstX){
-
-            p.x = firstX;
-
-            p.col = 0;
-
-        }
-
-        return;
-
-    }
-
-    /*
-       Determine target node.
-    */
+    routeParcel(parcel);
 
     const targetY =
-        layout.top+
-        p.targetRow*
-        layout.sy;
+        board.top+
+        destinationLane(parcel)*
+        board.rowGap;
 
     /*
-       The parcel moves along its current lane.
+        After the final switch, parcels gently settle
+        toward their intended destination lane.
     */
-
-    p.x +=
-        p.speed*dt;
-
-    /*
-       Slowly bend toward destination lane.
-    */
-
-    const verticalStrength =
-        .9+
-        day*.025;
-
-    p.y +=
-        clamp(
-            targetY-p.y,
-            -p.speed*verticalStrength*dt,
-            p.speed*verticalStrength*dt
-        );
-
-    /*
-       If it passes a junction, evaluate its switch.
-    */
-
-    const currentCol =
-        clamp(
-            Math.floor(
-                (
-                    p.x-
-                    layout.left
-                ) /
-                layout.sx
-            ),
-            0,
-            layout.cols-1
-        );
 
     if(
-        currentCol !== p.col
+        parcel.x >
+        board.left+
+        board.colGap*2.5
     ){
 
-        p.col =
-            currentCol;
+        const difference =
+            targetY-
+            parcel.y;
 
-        const result =
-            routeForParcel(p);
-
-        if(result){
-
-            p.row =
-                result.row;
-
-            p.targetRow =
-                clamp(
-                    p.targetRow+
-                    (
-                        Math.random()<.18
-                            ? (
-                                Math.random()<.5
-                                    ? -1
-                                    : 1
-                            )
-                            : 0
-                    ),
-                    0,
-                    layout.rows-1
-                );
-
-        }
+        parcel.y +=
+            clamp(
+                difference,
+                -70*dt,
+                70*dt
+            );
 
     }
 
-    /*
-       Destination reached.
-    */
+    if(
+        parcel.x >
+        board.right+55
+    ){
 
-    const exitX =
-        layout.right+35;
+        finishParcel(
+            parcel
+        );
 
-    if(p.x >= exitX){
+    }
 
-        const correct =
-            Math.abs(
-                p.y-
-                targetY
-            ) < layout.sy*.35;
+}
 
-        if(correct){
+/* =========================================================
+   FINISH PARCEL
+========================================================= */
 
-            deliverParcel(p);
+function finishParcel(parcel){
 
-        }
-        else{
+    if(!parcel.alive){
+        return;
+    }
 
-            wrongParcel(p);
+    parcel.alive = false;
 
-        }
+    const targetY =
+        board.top+
+        destinationLane(parcel)*
+        board.rowGap;
+
+    const correct =
+        Math.abs(
+            parcel.y-targetY
+        ) <
+        board.rowGap*.35;
+
+    if(correct){
+
+        deliverParcel(
+            parcel
+        );
+
+    }
+    else{
+
+        loseParcel(
+            parcel
+        );
 
     }
 
@@ -1721,153 +1606,90 @@ function updateParcel(
    DELIVERY
 ========================================================= */
 
-function deliverParcel(p){
-
-    p.dead = true;
+function deliverParcel(parcel){
 
     const multiplier =
         1+
         Math.min(
-            4,
-            combo*.15
+            3,
+            combo*.1
         );
+
+    const value =
+        parcel.special
+            ? 300
+            : 100;
 
     const points =
         Math.round(
-            p.value*multiplier
+            value*multiplier
         );
 
     score += points;
 
     combo++;
 
-    successSound();
+    deliverySound();
 
-    floating.push({
+    addFloatingText(
+        parcel.x,
+        parcel.y-18,
+        "+"+
+        points+
+        (
+            combo>=3
+                ? "  COMBO "+combo
+                : ""
+        ),
+        parcel.special
+            ? COLORS.yellow
+            : COLORS.green,
+        1,
+        parcel.special
+    );
 
-        x:p.x,
-        y:p.y-15,
-
-        text:
-            "+"+
-            points+
-            (
-                combo>=3
-                    ? "  COMBO x"+combo
-                    : ""
-            ),
-
-        color:
-            p.rare
-                ? YELLOW
-                : GREEN,
-
-        life:1,
-        ttl:1,
-
-        big:p.rare
-
-    });
-
-    for(let i=0;i<14;i++){
-
-        const a =
-            Math.random()*
-            Math.PI*2;
-
-        particles.push({
-
-            x:p.x,
-            y:p.y,
-
-            vx:
-                Math.cos(a)*
-                rand(40,150),
-
-            vy:
-                Math.sin(a)*
-                rand(40,150),
-
-            size:
-                rand(2,5),
-
-            life:.55,
-            ttl:.55,
-
-            color:
-                p.rare
-                    ? YELLOW
-                    : GREEN
-
-        });
-
-    }
+    explode(
+        parcel.x,
+        parcel.y,
+        parcel.special
+            ? COLORS.yellow
+            : COLORS.green,
+        parcel.special
+            ? 20
+            : 12
+    );
 
 }
 
 /* =========================================================
-   WRONG DELIVERY
+   WRONG DESTINATION
 ========================================================= */
 
-function wrongParcel(p){
+function loseParcel(parcel){
 
-    p.dead = true;
-
-    mistakes--;
+    errors--;
 
     combo = 0;
 
-    failureSound();
+    mistakeSound();
 
-    floating.push({
+    addFloatingText(
+        parcel.x,
+        parcel.y-18,
+        "WRONG DEPOT",
+        COLORS.red,
+        1,
+        true
+    );
 
-        x:p.x,
-        y:p.y-15,
+    explode(
+        parcel.x,
+        parcel.y,
+        COLORS.red,
+        18
+    );
 
-        text:
-            "WRONG DEPOT",
-
-        color:RED,
-
-        life:1,
-        ttl:1,
-
-        big:true
-
-    });
-
-    for(let i=0;i<18;i++){
-
-        const a =
-            Math.random()*
-            Math.PI*2;
-
-        particles.push({
-
-            x:p.x,
-            y:p.y,
-
-            vx:
-                Math.cos(a)*
-                rand(40,130),
-
-            vy:
-                Math.sin(a)*
-                rand(40,130),
-
-            size:
-                rand(2,4),
-
-            life:.6,
-            ttl:.6,
-
-            color:RED
-
-        });
-
-    }
-
-    if(mistakes <= 0){
+    if(errors <= 0){
 
         endGame();
 
@@ -1876,106 +1698,213 @@ function wrongParcel(p){
 }
 
 /* =========================================================
-   UPDATE
+   PARTICLES
+========================================================= */
+
+function explode(
+    x,
+    y,
+    color,
+    amount
+){
+
+    for(
+        let i=0;
+        i<amount;
+        i++
+    ){
+
+        const angle =
+            Math.random()*
+            Math.PI*2;
+
+        const speed =
+            random(
+                35,
+                145
+            );
+
+        particles.push({
+
+            x,
+            y,
+
+            vx:
+                Math.cos(angle)*
+                speed,
+
+            vy:
+                Math.sin(angle)*
+                speed,
+
+            size:
+                random(2,5),
+
+            life:
+                random(
+                    .35,
+                    .75
+                ),
+
+            color
+
+        });
+
+    }
+
+}
+
+/* =========================================================
+   FLOATING TEXT
+========================================================= */
+
+function addFloatingText(
+    x,
+    y,
+    text,
+    color,
+    life,
+    big
+){
+
+    texts.push({
+
+        x,
+        y,
+        text,
+        color,
+        life,
+        maxLife:life,
+        big:!!big
+
+    });
+
+}
+
+/* =========================================================
+   UPDATE PARTICLES
+========================================================= */
+
+function updateParticles(dt){
+
+    for(const particle of particles){
+
+        particle.life -= dt;
+
+        particle.x +=
+            particle.vx*dt;
+
+        particle.y +=
+            particle.vy*dt;
+
+        particle.vx *=
+            Math.pow(
+                .025,
+                dt
+            );
+
+        particle.vy *=
+            Math.pow(
+                .025,
+                dt
+            );
+
+    }
+
+    particles =
+        particles.filter(
+            p => p.life>0
+        );
+
+}
+
+/* =========================================================
+   UPDATE TEXT
+========================================================= */
+
+function updateTexts(dt){
+
+    for(const item of texts){
+
+        item.life -= dt;
+
+        item.y -=
+            item.big
+                ? 20*dt
+                : 14*dt;
+
+    }
+
+    texts =
+        texts.filter(
+            t => t.life>0
+        );
+
+}
+
+/* =========================================================
+   GAME UPDATE
 ========================================================= */
 
 function update(dt){
 
-    if(
-        !gameRunning ||
-        paused
-    ){
+    if(state !== "playing"){
         return;
     }
 
+    shiftTimer += dt;
+
     /*
-       Day progression.
+        Shifts last progressively less time.
     */
 
-    dayTimer += dt;
-
-    if(dayTimer >= dayLength){
-
-        day++;
-
-        dayTimer = 0;
-
-        buildLayout();
-
-        /*
-           Restore one mistake every few days.
-        */
-
-        if(
-            day%3 === 0 &&
-            mistakes < 3
-        ){
-
-            mistakes++;
-
-        }
-
-        floating.push({
-
-            x:W/2,
-            y:100,
-
-            text:
-                "DAY "+day,
-
-            color:INK,
-
-            life:1.2,
-            ttl:1.2,
-
-            big:true
-
-        });
-
-        beep(
-            300,
-            .15,
-            "square",
-            .04
+    const shiftLength =
+        Math.max(
+            18,
+            31-shift*.7
         );
+
+    if(
+        shiftTimer >=
+        shiftLength
+    ){
+
+        shift++;
+
+        beginShift();
 
     }
 
     /*
-       Spawn rate increases with day.
+        Spawn rate becomes more aggressive.
     */
 
     spawnTimer -= dt;
 
     if(spawnTimer <= 0){
 
-        spawnParcel();
+        createParcel();
 
-        const interval =
+        const base =
             Math.max(
-                .45,
-                1.45-
-                day*.035
+                .42,
+                1.45-shift*.045
             );
 
         spawnTimer =
-            rand(
-                interval*.7,
-                interval*1.25
+            random(
+                base*.65,
+                base*1.15
             );
 
     }
 
-    /*
-       Update parcels.
-    */
+    for(const parcel of parcels){
 
-    for(const p of parcels){
-
-        if(!p.dead){
+        if(parcel.alive){
 
             updateParcel(
-                p,
+                parcel,
                 dt
             );
 
@@ -1985,14 +1914,10 @@ function update(dt){
 
     parcels =
         parcels.filter(
-            p => !p.dead
+            p => p.alive
         );
 
-    /*
-       Switch flashes.
-    */
-
-    for(const sw of switchers){
+    for(const sw of switches){
 
         sw.flash =
             Math.max(
@@ -2002,127 +1927,89 @@ function update(dt){
 
     }
 
-    /*
-       Particles.
-    */
+    updateParticles(dt);
+    updateTexts(dt);
 
-    for(const p of particles){
-
-        p.life -= dt;
-
-        p.x +=
-            p.vx*dt;
-
-        p.y +=
-            p.vy*dt;
-
-        p.vx *=
-            Math.pow(
-                .03,
-                dt
-            );
-
-        p.vy *=
-            Math.pow(
-                .03,
-                dt
-            );
-
-    }
-
-    particles =
-        particles.filter(
-            p => p.life > 0
-        );
-
-    /*
-       Floating text.
-    */
-
-    for(const f of floating){
-
-        f.life -= dt;
-
-        f.y -=
-            (f.big ? 24 : 18)*dt;
-
-    }
-
-    floating =
-        floating.filter(
-            f => f.life > 0
-        );
-
-    /*
-       HUD.
-    */
-
-    scoreEl.textContent =
-        score.toLocaleString();
-
-    dayEl.textContent =
-        day;
-
-    mistakesEl.textContent =
-        mistakes;
-
-    emergencyBtn.textContent =
-        emergency > 0
-            ? "Emergency Reroute [SPACE]"
-            : "Emergency Used";
-
-    if(emergency > 0){
-
-        emergencyBtn.classList.remove(
-            "disabled"
-        );
-
-    }
-
-    statusEl.textContent =
-        combo >= 5
-            ? "COMBO x"+combo
-            : "ROUTE THE MAIL";
+    updateHUD();
 
 }
 
 /* =========================================================
-   DRAW BACKGROUND
+   HUD
+========================================================= */
+
+function updateHUD(){
+
+    scoreValue.textContent =
+        score.toLocaleString();
+
+    shiftValue.textContent =
+        shift;
+
+    errorsValue.textContent =
+        errors;
+
+    comboValue.textContent =
+        combo;
+
+    if(combo >= 5){
+
+        message.textContent =
+            "COMBO "+combo;
+
+    }
+    else if(
+        parcels.length >=
+        6+Math.floor(shift/2)
+    ){
+
+        message.textContent =
+            "TRAFFIC BUILDING";
+
+    }
+    else{
+
+        message.textContent =
+            "ROUTE THE PARCELS";
+
+    }
+
+}
+
+/* =========================================================
+   DRAW PAPER
 ========================================================= */
 
 function drawBackground(){
 
     ctx.fillStyle =
-        PAPER_DARK;
+        COLORS.paperDark;
 
     ctx.fillRect(
         0,
         0,
-        W,
-        H
+        width,
+        height
     );
 
     /*
-       Paper grain.
-       Deterministic-looking random marks
-       are cheap and give the background
-       a printed texture.
+        Cheap paper texture.
     */
 
     ctx.globalAlpha = .13;
 
-    for(let i=0;i<180;i++){
+    for(let i=0;i<260;i++){
 
         const x =
-            (i*83)%W;
+            (i*137)%width;
 
         const y =
-            (i*137)%H;
+            (i*71)%height;
 
         ctx.fillStyle =
-            i%3===0
-                ? "#7d715f"
-                : "#c5b99f";
+            i%2
+                ? "#8d806b"
+                : "#f7edd6";
 
         ctx.fillRect(
             x,
@@ -2138,95 +2025,95 @@ function drawBackground(){
 }
 
 /* =========================================================
-   DRAW TRACKS
+   DRAW BOARD
 ========================================================= */
 
-function drawTracks(){
+function drawBoard(){
 
-    if(!layout) return;
+    if(!board){
+        return;
+    }
 
     /*
-       Main depot board.
+        Main wooden/printed board.
     */
 
     ctx.fillStyle =
-        "#d7ccb6";
+        "#d0c3aa";
 
     ctx.fillRect(
-        layout.left-32,
-        layout.top-32,
-        layout.right-layout.left+64,
-        layout.bottom-layout.top+64
+        board.left-32,
+        board.top-32,
+        board.right-
+            board.left+
+            64,
+        board.bottom-
+            board.top+
+            64
     );
 
     ctx.strokeStyle =
-        "rgba(37,35,31,.18)";
+        "rgba(39,37,31,.18)";
 
     ctx.lineWidth = 1;
 
     /*
-       horizontal rails
+        Lanes.
     */
 
-    for(let r=0;r<layout.rows;r++){
+    for(
+        let row=0;
+        row<board.rows;
+        row++
+    ){
 
         const y =
-            layout.top+
-            r*layout.sy;
+            board.top+
+            row*
+            board.rowGap;
 
-        ctx.beginPath();
-
-        ctx.moveTo(
-            layout.left-35,
-            y
-        );
-
-        ctx.lineTo(
-            layout.right+40,
-            y
-        );
-
-        ctx.stroke();
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-            layout.left-35,
-            y+8
-        );
-
-        ctx.lineTo(
-            layout.right+40,
-            y+8
-        );
-
-        ctx.stroke();
-
-    }
-
-    /*
-       vertical junction guides.
-    */
-
-    for(let c=0;c<layout.cols;c++){
-
-        const x =
-            layout.left+
-            c*layout.sx;
+        /*
+            Main rail.
+        */
 
         ctx.strokeStyle =
-            "rgba(37,35,31,.08)";
+            COLORS.rail;
+
+        ctx.lineWidth = 5;
 
         ctx.beginPath();
 
         ctx.moveTo(
-            x,
-            layout.top-25
+            board.left-35,
+            y
         );
 
         ctx.lineTo(
-            x,
-            layout.bottom+25
+            board.right+45,
+            y
+        );
+
+        ctx.stroke();
+
+        /*
+            Rail highlight.
+        */
+
+        ctx.strokeStyle =
+            COLORS.railLight;
+
+        ctx.lineWidth = 1;
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            board.left-35,
+            y-3
+        );
+
+        ctx.lineTo(
+            board.right+45,
+            y-3
         );
 
         ctx.stroke();
@@ -2234,59 +2121,111 @@ function drawTracks(){
     }
 
     /*
-       Entrance.
+        Lane numbers.
     */
 
-    ctx.fillStyle = INK;
+    ctx.fillStyle =
+        COLORS.ink;
 
     ctx.font =
-        "900 10px system-ui";
+        "900 9px Arial";
+
+    ctx.textAlign =
+        "right";
+
+    for(
+        let row=0;
+        row<board.rows;
+        row++
+    ){
+
+        const y =
+            board.top+
+            row*
+            board.rowGap;
+
+        ctx.fillText(
+            "LINE "+(row+1),
+            board.left-44,
+            y+3
+        );
+
+    }
+
+    /*
+        Entrance.
+    */
 
     ctx.textAlign =
         "left";
 
+    ctx.font =
+        "900 10px Arial";
+
     ctx.fillText(
         "INCOMING",
-        layout.left-36,
-        layout.top-42
+        board.left-35,
+        board.top-45
     );
 
     /*
-       Exit labels.
+        Destination bays.
     */
 
-    for(let i=0;i<destinations.length;i++){
+    for(
+        let i=0;
+        i<destinations.length;
+        i++
+    ){
 
-        const d =
+        const destination =
             destinations[i];
 
+        const lane =
+            destinationLane({
+                destination
+            });
+
         const y =
-            layout.top+
-            (i+1)*layout.sy;
+            board.top+
+            lane*
+            board.rowGap;
 
         ctx.fillStyle =
-            d.color;
+            destination.color;
 
         ctx.fillRect(
-            layout.right+15,
-            y-16,
-            44,
-            32
+            board.right+14,
+            y-18,
+            47,
+            36
         );
 
         ctx.fillStyle =
-            "#fff8e8";
+            COLORS.white;
 
         ctx.font =
-            "900 11px system-ui";
+            "950 13px Arial";
 
         ctx.textAlign =
             "center";
 
         ctx.fillText(
-            d.letter,
-            layout.right+37,
-            y+4
+            destination.letter,
+            board.right+37,
+            y+5
+        );
+
+        ctx.fillStyle =
+            COLORS.ink;
+
+        ctx.font =
+            "900 8px Arial";
+
+        ctx.fillText(
+            destination.id.toUpperCase(),
+            board.right+37,
+            y+30
         );
 
     }
@@ -2299,65 +2238,70 @@ function drawTracks(){
 
 function drawSwitches(){
 
-    for(const sw of switchers){
+    for(
+        let i=0;
+        i<switches.length;
+        i++
+    ){
+
+        const sw =
+            switches[i];
 
         ctx.save();
 
         /*
-           Shadow.
+            Shadow.
         */
 
         ctx.fillStyle =
-            "rgba(37,35,31,.18)";
+            "rgba(39,37,31,.2)";
 
         ctx.fillRect(
-            sw.x-16+3,
-            sw.y-16+4,
-            32,
-            32
+            sw.x-17+3,
+            sw.y-17+4,
+            34,
+            34
         );
 
         /*
-           Body.
+            Switch plate.
         */
 
         ctx.fillStyle =
             sw.flash>0
-                ? "#fff2bd"
-                : PAPER;
+                ? "#fff0b8"
+                : COLORS.paper;
 
         ctx.strokeStyle =
-            INK;
+            COLORS.ink;
 
         ctx.lineWidth = 2;
 
         ctx.fillRect(
-            sw.x-16,
-            sw.y-16,
-            32,
-            32
+            sw.x-17,
+            sw.y-17,
+            34,
+            34
         );
 
         ctx.strokeRect(
-            sw.x-16,
-            sw.y-16,
-            32,
-            32
+            sw.x-17,
+            sw.y-17,
+            34,
+            34
         );
 
         /*
-           Lever.
+            Lever.
         */
 
         ctx.strokeStyle =
             sw.state
-                ? RED
-                : INK;
+                ? COLORS.red
+                : COLORS.ink;
 
         ctx.lineWidth = 5;
-
-        ctx.lineCap =
-            "round";
+        ctx.lineCap = "round";
 
         ctx.beginPath();
 
@@ -2369,16 +2313,16 @@ function drawSwitches(){
         if(sw.state){
 
             ctx.lineTo(
-                sw.x+10,
-                sw.y-10
+                sw.x+11,
+                sw.y-11
             );
 
         }
         else{
 
             ctx.lineTo(
-                sw.x+10,
-                sw.y+10
+                sw.x+11,
+                sw.y+11
             );
 
         }
@@ -2386,22 +2330,22 @@ function drawSwitches(){
         ctx.stroke();
 
         /*
-           Number.
+            Number.
         */
 
         ctx.fillStyle =
-            INK;
+            COLORS.ink;
 
         ctx.font =
-            "900 9px system-ui";
+            "900 8px Arial";
 
         ctx.textAlign =
             "center";
 
         ctx.fillText(
-            sw.index+1,
+            String(i+1),
             sw.x,
-            sw.y+4
+            sw.y+3
         );
 
         ctx.restore();
@@ -2416,114 +2360,107 @@ function drawSwitches(){
 
 function drawParcels(){
 
-    for(const p of parcels){
+    for(const parcel of parcels){
 
         ctx.save();
 
         ctx.translate(
-            p.x,
-            p.y
+            parcel.x,
+            parcel.y
         );
 
         /*
-           Parcel shadow.
+            Shadow.
         */
 
         ctx.fillStyle =
-            "rgba(37,35,31,.2)";
+            "rgba(39,37,31,.2)";
 
         ctx.fillRect(
-            -11,
-            -7+3,
-            22,
-            14
+            -14,
+            -8+3,
+            28,
+            16
         );
 
         /*
-           Parcel.
+            Parcel body.
         */
 
         ctx.fillStyle =
-            p.rare
-                ? "#e6c766"
-                : "#f1e7cd";
+            parcel.special
+                ? "#dfc15d"
+                : "#f1e5c9";
 
         ctx.strokeStyle =
-            INK;
+            COLORS.ink;
 
         ctx.lineWidth =
-            p.rare ? 3 : 2;
+            parcel.special
+                ? 3
+                : 2;
 
         ctx.fillRect(
-            -11,
-            -7,
-            22,
-            14
+            -14,
+            -8,
+            28,
+            16
         );
 
         ctx.strokeRect(
-            -11,
-            -7,
-            22,
-            14
+            -14,
+            -8,
+            28,
+            16
         );
 
         /*
-           Destination stamp.
+            Destination stamp.
         */
 
         ctx.fillStyle =
-            p.destination.color;
+            parcel.destination.color;
 
         ctx.fillRect(
-            -7,
-            -4,
-            14,
-            8
+            -9,
+            -5,
+            18,
+            10
         );
 
         ctx.fillStyle =
-            "#fff8e8";
+            COLORS.white;
 
         ctx.font =
-            "900 7px system-ui";
+            "950 8px Arial";
 
         ctx.textAlign =
             "center";
 
         ctx.fillText(
-            p.destination.letter,
+            parcel.destination.letter,
             0,
             3
         );
 
         /*
-           Rare parcel has a gold corner.
+            Special parcels get a little seal.
         */
 
-        if(p.rare){
+        if(parcel.special){
 
             ctx.fillStyle =
-                "#25231f";
+                COLORS.red;
 
             ctx.beginPath();
 
-            ctx.moveTo(
-                5,
-                -7
+            ctx.arc(
+                10,
+                -6,
+                3,
+                0,
+                Math.PI*2
             );
-
-            ctx.lineTo(
-                11,
-                -7
-            );
-
-            ctx.lineTo(
-                11,
-                -1
-            );
-
-            ctx.closePath();
 
             ctx.fill();
 
@@ -2536,64 +2473,237 @@ function drawParcels(){
 }
 
 /* =========================================================
-   DRAW EFFECTS
+   DRAW PARTICLES
 ========================================================= */
 
-function drawEffects(){
+function drawParticles(){
 
-    for(const p of particles){
+    for(const particle of particles){
 
         ctx.globalAlpha =
             clamp(
-                p.life/p.ttl,
+                particle.life/.75,
                 0,
                 1
             );
 
         ctx.fillStyle =
-            p.color ||
-            INK;
+            particle.color;
 
         ctx.fillRect(
-            p.x,
-            p.y,
-            p.size,
-            p.size
+            particle.x,
+            particle.y,
+            particle.size,
+            particle.size
         );
 
     }
 
     ctx.globalAlpha = 1;
 
-    for(const f of floating){
+}
+
+/* =========================================================
+   DRAW FLOATING TEXT
+========================================================= */
+
+function drawTexts(){
+
+    for(const item of texts){
 
         ctx.globalAlpha =
             clamp(
-                f.life/f.ttl,
+                item.life/item.maxLife,
                 0,
                 1
             );
 
         ctx.fillStyle =
-            f.color;
+            item.color;
 
         ctx.font =
-            f.big
-                ? "900 21px system-ui"
-                : "900 13px system-ui";
+            item.big
+                ? "950 20px Arial"
+                : "900 12px Arial";
 
         ctx.textAlign =
             "center";
 
         ctx.fillText(
-            f.text,
-            f.x,
-            f.y
+            item.text,
+            item.x,
+            item.y
         );
 
     }
 
     ctx.globalAlpha = 1;
+
+}
+
+/* =========================================================
+   DRAW MENU DECORATION
+========================================================= */
+
+function drawMenuDecoration(){
+
+    const x =
+        width/2;
+
+    const y =
+        height*.78;
+
+    ctx.save();
+
+    ctx.translate(
+        x,
+        y
+    );
+
+    /*
+        Conveyor machine.
+    */
+
+    ctx.fillStyle =
+        "#c7b99d";
+
+    ctx.strokeStyle =
+        COLORS.ink;
+
+    ctx.lineWidth = 3;
+
+    ctx.fillRect(
+        -185,
+        -42,
+        370,
+        78
+    );
+
+    ctx.strokeRect(
+        -185,
+        -42,
+        370,
+        78
+    );
+
+    /*
+        Wheels.
+    */
+
+    for(
+        const wheelX of [-105,0,105]
+    ){
+
+        ctx.beginPath();
+
+        ctx.arc(
+            wheelX,
+            -4,
+            28,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fillStyle =
+            COLORS.paper;
+
+        ctx.fill();
+
+        ctx.stroke();
+
+        for(
+            let i=0;
+            i<8;
+            i++
+        ){
+
+            const angle =
+                i*
+                Math.PI/4;
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                wheelX+
+                Math.cos(angle)*21,
+                -4+
+                Math.sin(angle)*21
+            );
+
+            ctx.lineTo(
+                wheelX+
+                Math.cos(angle)*32,
+                -4+
+                Math.sin(angle)*32
+            );
+
+            ctx.stroke();
+
+        }
+
+    }
+
+    /*
+        Conveyor.
+    */
+
+    ctx.fillStyle =
+        COLORS.ink;
+
+    ctx.fillRect(
+        -220,
+        40,
+        440,
+        7
+    );
+
+    /*
+        Parcel.
+    */
+
+    ctx.fillStyle =
+        "#f0e4c8";
+
+    ctx.fillRect(
+        -18,
+        13,
+        36,
+        20
+    );
+
+    ctx.strokeRect(
+        -18,
+        13,
+        36,
+        20
+    );
+
+    ctx.fillStyle =
+        COLORS.red;
+
+    ctx.fillRect(
+        -10,
+        17,
+        20,
+        12
+    );
+
+    ctx.fillStyle =
+        COLORS.white;
+
+    ctx.font =
+        "950 8px Arial";
+
+    ctx.textAlign =
+        "center";
+
+    ctx.fillText(
+        "MAIL",
+        0,
+        26
+    );
+
+    ctx.restore();
 
 }
 
@@ -2605,215 +2715,66 @@ function draw(){
 
     drawBackground();
 
-    if(gameRunning){
+    if(
+        state === "playing" ||
+        state === "paused"
+    ){
 
-        drawTracks();
-
+        drawBoard();
         drawSwitches();
-
         drawParcels();
-
-        drawEffects();
+        drawParticles();
+        drawTexts();
 
     }
     else{
 
-        /*
-           Menu illustration.
-        */
+        drawMenuDecoration();
 
-        drawDecorativeMachine();
+        drawParticles();
+        drawTexts();
 
     }
-
-    requestAnimationFrame(
-        draw
-    );
 
 }
 
 /* =========================================================
-   MENU ILLUSTRATION
-========================================================= */
-
-function drawDecorativeMachine(){
-
-    const cx =
-        W/2;
-
-    const cy =
-        H*.74;
-
-    ctx.save();
-
-    ctx.translate(
-        cx,
-        cy
-    );
-
-    ctx.fillStyle =
-        "#d2c4aa";
-
-    ctx.strokeStyle =
-        INK;
-
-    ctx.lineWidth = 3;
-
-    ctx.fillRect(
-        -180,
-        -55,
-        360,
-        90
-    );
-
-    ctx.strokeRect(
-        -180,
-        -55,
-        360,
-        90
-    );
-
-    /*
-       gears
-    */
-
-    for(const x of [-105,0,105]){
-
-        ctx.beginPath();
-
-        ctx.arc(
-            x,
-            -10,
-            30,
-            0,
-            Math.PI*2
-        );
-
-        ctx.fillStyle =
-            "#f5efdf";
-
-        ctx.fill();
-
-        ctx.stroke();
-
-        for(let i=0;i<8;i++){
-
-            const a =
-                i*Math.PI/4;
-
-            ctx.beginPath();
-
-            ctx.moveTo(
-                x+
-                Math.cos(a)*24,
-                -10+
-                Math.sin(a)*24
-            );
-
-            ctx.lineTo(
-                x+
-                Math.cos(a)*35,
-                -10+
-                Math.sin(a)*35
-            );
-
-            ctx.stroke();
-
-        }
-
-        ctx.fillStyle =
-            INK;
-
-        ctx.beginPath();
-
-        ctx.arc(
-            x,
-            -10,
-            5,
-            0,
-            Math.PI*2
-        );
-
-        ctx.fill();
-
-    }
-
-    /*
-       Conveyor.
-    */
-
-    ctx.fillStyle =
-        INK;
-
-    ctx.fillRect(
-        -220,
-        38,
-        440,
-        7
-    );
-
-    ctx.fillStyle =
-        RED;
-
-    ctx.fillRect(
-        -25,
-        10,
-        50,
-        20
-    );
-
-    ctx.fillStyle =
-        "#fff8e8";
-
-    ctx.font =
-        "900 11px system-ui";
-
-    ctx.textAlign =
-        "center";
-
-    ctx.fillText(
-        "MAIL",
-        0,
-        24
-    );
-
-    ctx.restore();
-
-}
-
-/* =========================================================
-   START / END
+   START GAME
 ========================================================= */
 
 function startGame(){
 
-    try{
-        initAudio();
+    startAudio();
 
-        if(
-            audio &&
-            audio.state === "suspended"
-        ){
-            audio.resume();
-        }
-    }
-    catch(e){
-        /*
-           Audio is optional.
-           Gameplay must still start if
-           the browser blocks audio.
-        */
-    }
+    state = "playing";
+
+    score = 0;
+    shift = 1;
+    errors = 3;
+    combo = 0;
+
+    spawnTimer = .7;
+    shiftTimer = 0;
+
+    emergencyAvailable = true;
+
+    parcels = [];
+    particles = [];
+    texts = [];
+
+    panicButton.classList.remove(
+        "used"
+    );
 
     menu.classList.add(
         "hidden"
     );
 
-    gameover.classList.add(
+    pauseScreen.classList.add(
         "hidden"
     );
 
-    pause.classList.add(
+    gameOverScreen.classList.add(
         "hidden"
     );
 
@@ -2821,163 +2782,172 @@ function startGame(){
         "hidden"
     );
 
-    gameRunning = true;
-    paused = false;
+    createBoard();
 
-    score = 0;
-    day = 1;
-    mistakes = 3;
-    combo = 0;
+    updateHUD();
 
-    emergency = 1;
-
-    parcels = [];
-    particles = [];
-    floating = [];
-
-    dayTimer = 0;
-    spawnTimer = .5;
-
-    buildLayout();
-
-    emergencyBtn.classList.remove(
-        "disabled"
-    );
-
-    scoreEl.textContent = "0";
-    dayEl.textContent = "1";
-    mistakesEl.textContent = "3";
-
-    beep(
-        180,
+    tone(
+        220,
         .1,
         "square",
-        .03
+        .025
     );
 
 }
 
+/* =========================================================
+   END GAME
+========================================================= */
+
 function endGame(){
 
-    gameRunning = false;
-    paused = false;
+    if(state === "gameover"){
+        return;
+    }
 
-    best =
-        Math.max(
-            best,
-            score
-        );
+    state = "gameover";
 
-    localStorage.setItem(
-        "switchbackBest",
-        String(best)
-    );
+    if(score > best){
+
+        best = score;
+
+        try{
+
+            localStorage.setItem(
+                "switchback-best",
+                String(best)
+            );
+
+        }
+        catch(error){}
+
+    }
 
     finalScore.textContent =
         score.toLocaleString();
 
-    finalDay.textContent =
-        day;
+    finalShift.textContent =
+        shift;
 
     finalBest.textContent =
         best.toLocaleString();
 
-    menuBest.textContent =
+    bestMenu.textContent =
         best.toLocaleString();
 
     hud.classList.add(
         "hidden"
     );
 
-    gameover.classList.remove(
+    gameOverScreen.classList.remove(
         "hidden"
     );
 
-}
-
-/* =========================================================
-   BUTTONS
-========================================================= */
-
-const startButton =
-    document.getElementById("start");
-
-const restartButton =
-    document.getElementById("restart");
-
-const resumeButton =
-    document.getElementById("resume");
-
-startButton.onclick = function(e){
-    e.preventDefault();
-    e.stopPropagation();
-    startGame();
-};
-
-restartButton.onclick = function(e){
-    e.preventDefault();
-    e.stopPropagation();
-    startGame();
-};
-
-resumeButton.onclick = function(e){
-    e.preventDefault();
-    e.stopPropagation();
-
-    paused = false;
-
-    pause.classList.add("hidden");
-};
-
-emergencyBtn.onclick = function(e){
-    e.preventDefault();
-    e.stopPropagation();
-    emergencyReroute();
-};
-/* =========================================================
-   GAME LOOP
-========================================================= */
-
-let last =
-    performance.now();
-
-function loop(now){
-
-    let dt =
-        (now-last)/1000;
-
-    last = now;
-
-    dt =
-        Math.min(
-            dt,
-            .05
-        );
-
-    update(dt);
-
-    requestAnimationFrame(
-        loop
+    tone(
+        90,
+        .3,
+        "sawtooth",
+        .04
     );
 
 }
 
 /* =========================================================
-   INITIALIZATION
+   BUTTON EVENT HANDLERS
 ========================================================= */
 
-menuBest.textContent =
-    best.toLocaleString();
+startButton.addEventListener(
+    "click",
+    function(event){
 
-resize();
+        event.preventDefault();
 
-draw();
+        startGame();
 
-requestAnimationFrame(
-    loop
+    }
 );
 
-})();
+restartButton.addEventListener(
+    "click",
+    function(event){
+
+        event.preventDefault();
+
+        startGame();
+
+    }
+);
+
+resumeButton.addEventListener(
+    "click",
+    function(event){
+
+        event.preventDefault();
+
+        if(state === "paused"){
+
+            state = "playing";
+
+            pauseScreen.classList.add(
+                "hidden"
+            );
+
+        }
+
+    }
+);
+
+panicButton.addEventListener(
+    "click",
+    function(event){
+
+        event.preventDefault();
+
+        useEmergency();
+
+    }
+);
+
+/* =========================================================
+   ANIMATION LOOP
+========================================================= */
+
+let previousTime =
+    performance.now();
+
+function frame(now){
+
+    const delta =
+        Math.min(
+            .05,
+            Math.max(
+                0,
+                (now-previousTime)/1000
+            )
+        );
+
+    previousTime = now;
+
+    update(delta);
+
+    draw();
+
+    requestAnimationFrame(
+        frame
+    );
+
+}
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+resizeCanvas();
+
+requestAnimationFrame(
+    frame
+);
+
 </script>
 
 </body>
