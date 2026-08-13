@@ -1,0 +1,3338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Chain Reaction: Demolition</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;color:#eee;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+body{touch-action:none}
+canvas{display:block;width:100%;height:100%;background:#151515}
+#ui{position:fixed;inset:0;pointer-events:none}
+.panel{position:absolute;background:rgba(12,12,15,.88);border:1px solid #444;border-radius:12px;box-shadow:0 8px 30px #0008;backdrop-filter:blur(6px)}
+#top{left:12px;top:12px;padding:10px 13px;min-width:240px}
+#top b{font-size:18px}
+.stat{display:flex;justify-content:space-between;gap:20px;color:#aaa;font-size:13px}
+.stat strong{color:#fff}
+#tools{left:50%;bottom:14px;transform:translateX(-50%);padding:8px;display:flex;gap:7px;pointer-events:auto}
+button{border:1px solid #555;background:#242429;color:#eee;border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer}
+button:hover{background:#333}
+button.active{outline:2px solid #fff;background:#3a3a42}
+button.danger{background:#6d2020;border-color:#a33}
+button.good{background:#1f6338}
+button:disabled{opacity:.4;cursor:not-allowed}
+#help{right:12px;top:12px;padding:10px 13px;font-size:12px;color:#bbb;max-width:260px}
+#help strong{color:#fff}
+#message{position:absolute;left:50%;top:43%;transform:translate(-50%,-50%);text-align:center;opacity:0;transition:opacity .2s;pointer-events:none}
+#message h1{font-size:48px;margin:0;text-shadow:0 4px 20px #000}
+#message p{margin:5px;font-size:18px}
+#center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:auto}
+#center h1{font-size:42px;margin:0 0 8px}
+#center p{color:#aaa;margin:0 0 18px}
+#center button{font-size:18px;padding:12px 24px}
+.hidden{display:none!important}
+#mobileHint{display:none}
+
+/* SHOP */
+
+#shop{
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(620px,calc(100% - 28px));
+  max-height:calc(100% - 28px);
+  padding:20px;
+  pointer-events:auto;
+  z-index:20;
+  overflow:auto;
+}
+
+#shop h1{
+  margin:0;
+  font-size:30px;
+}
+
+#shopSub{
+  margin:4px 0 18px;
+  color:#999;
+  font-size:13px;
+}
+
+#shopMoney{
+  position:absolute;
+  right:20px;
+  top:20px;
+  font-size:20px;
+  font-weight:800;
+  color:#ffd66b;
+}
+
+.shopGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.shopItem{
+  border:1px solid #444;
+  background:#19191d;
+  border-radius:11px;
+  padding:13px;
+}
+
+.shopItemTitle{
+  font-weight:800;
+  font-size:17px;
+}
+
+.shopItemDesc{
+  color:#888;
+  font-size:12px;
+  min-height:32px;
+  margin:4px 0 10px;
+}
+
+.shopItemBottom{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+}
+
+.shopItem button{
+  padding:7px 10px;
+}
+
+.price{
+  color:#ffd66b;
+  font-weight:800;
+}
+
+#shopContinue{
+  width:100%;
+  margin-top:14px;
+  padding:12px;
+  font-size:16px;
+}
+
+@media(max-width:700px){
+ #help{display:none}
+ #top{min-width:205px}
+ #tools{width:calc(100% - 16px);overflow-x:auto;justify-content:center}
+ #tools button{white-space:nowrap;padding:8px 9px}
+ #mobileHint{display:block;position:absolute;right:10px;top:92px;color:#777;font-size:11px}
+
+ #shop{
+   padding:15px;
+ }
+
+ #shop h1{
+   font-size:25px;
+ }
+
+ #shopMoney{
+   right:15px;
+   top:15px;
+   font-size:17px;
+ }
+
+ .shopGrid{
+   grid-template-columns:1fr;
+ }
+}
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="ui">
+
+  <div id="top" class="panel">
+    <b id="roundName">ROUND 1</b>
+    <div class="stat"><span>Score</span><strong id="score">0</strong></div>
+    <div class="stat"><span>Best</span><strong id="best">0</strong></div>
+    <div class="stat"><span>Money</span><strong id="money">$0</strong></div>
+    <div class="stat"><span>Chain</span><strong id="chain">0×</strong></div>
+    <div class="stat"><span>Destroyed</span><strong id="destroyed">0</strong></div>
+    <div class="stat"><span>Explosives</span><strong id="ammo">5</strong></div>
+  </div>
+
+  <div id="help" class="panel">
+    <strong>DEMOLITION</strong><br>
+    Select an explosive, click/tap the structure to place it, then hit DETONATE.<br>
+    <span style="color:#e9a84b">Tip:</span> make objects fall onto other objects and explosives for huge chains.
+  </div>
+
+  <div id="mobileHint">Tap objects to place charges</div>
+
+  <div id="tools" class="panel">
+    <button data-tool="bomb" class="active">💣 Bomb <span>3</span></button>
+    <button data-tool="dynamite">🧨 Dynamite <span>2</span></button>
+    <button data-tool="fire">🔥 Fire <span>1</span></button>
+    <button data-tool="shock">⚡ Shock <span>1</span></button>
+    <button id="detonate" class="danger">DETONATE</button>
+    <button id="reset">RESET</button>
+  </div>
+
+  <div id="message">
+    <h1 id="msgTitle"></h1>
+    <p id="msgText"></p>
+  </div>
+
+  <div id="center" class="panel">
+    <h1>💥 CHAIN REACTION</h1>
+    <p>Destroy. Explode. Chain. Repeat.</p>
+    <button id="start">START DEMOLITION</button>
+  </div>
+
+  <!-- SHOP -->
+  <div id="shop" class="panel hidden">
+
+    <div id="shopMoney">$0</div>
+
+    <h1>🛒 DEMOLITION SHOP</h1>
+
+    <div id="shopSub">
+      Buy extra explosives before the next round.
+    </div>
+
+    <div class="shopGrid">
+
+      <div class="shopItem">
+        <div class="shopItemTitle">💣 Bomb +1</div>
+        <div class="shopItemDesc">
+          Large blast radius and strong structural damage.
+        </div>
+        <div class="shopItemBottom">
+          <span class="price">$120</span>
+          <button class="shopBuy" data-buy="bomb">BUY</button>
+        </div>
+      </div>
+
+      <div class="shopItem">
+        <div class="shopItemTitle">🧨 Dynamite +1</div>
+        <div class="shopItemDesc">
+          Smaller blast, but significantly stronger impact.
+        </div>
+        <div class="shopItemBottom">
+          <span class="price">$90</span>
+          <button class="shopBuy" data-buy="dynamite">BUY</button>
+        </div>
+      </div>
+
+      <div class="shopItem">
+        <div class="shopItemTitle">🔥 Fire +1</div>
+        <div class="shopItemDesc">
+          Cheap charge for weakening objects and starting chains.
+        </div>
+        <div class="shopItemBottom">
+          <span class="price">$60</span>
+          <button class="shopBuy" data-buy="fire">BUY</button>
+        </div>
+      </div>
+
+      <div class="shopItem">
+        <div class="shopItemTitle">⚡ Shock +1</div>
+        <div class="shopItemDesc">
+          Huge radius with lower direct damage.
+        </div>
+        <div class="shopItemBottom">
+          <span class="price">$150</span>
+          <button class="shopBuy" data-buy="shock">BUY</button>
+        </div>
+      </div>
+
+    </div>
+
+    <button id="shopContinue" class="good">
+      CONTINUE TO NEXT ROUND
+    </button>
+
+  </div>
+
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+let W=innerWidth;
+let H=innerHeight;
+let dpr=Math.min(devicePixelRatio||1,2);
+
+function resize(){
+  W=innerWidth;
+  H=innerHeight;
+
+  canvas.width=W*dpr;
+  canvas.height=H*dpr;
+  canvas.style.width=W+"px";
+  canvas.style.height=H+"px";
+
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+addEventListener("resize",resize);
+resize();
+
+const $=id=>document.getElementById(id);
+
+let best=+localStorage.getItem("chainReactionBest")||0;
+
+let money=+localStorage.getItem("chainReactionMoney")||0;
+
+$("best").textContent=best.toLocaleString();
+$("money").textContent="$"+money.toLocaleString();
+
+const TYPES={
+  wood:{
+    name:"Wood",
+    color:"#9b643d",
+    edge:"#d28b54",
+    mass:2,
+    strength:32,
+    points:90,
+    friction:.92
+  },
+
+  steel:{
+    name:"Steel",
+    color:"#68717b",
+    edge:"#aab4be",
+    mass:7,
+    strength:115,
+    points:220,
+    friction:.95
+  },
+
+  glass:{
+    name:"Glass",
+    color:"#78aeba",
+    edge:"#d0f5ff",
+    mass:.8,
+    strength:15,
+    points:150,
+    friction:.88
+  },
+
+  barrel:{
+    name:"Barrel",
+    color:"#7b4d28",
+    edge:"#c98c49",
+    mass:3,
+    strength:24,
+    points:180,
+    friction:.9,
+    explosive:true
+  },
+
+  stone:{
+    name:"Stone",
+    color:"#66645f",
+    edge:"#aaa79f",
+    mass:12,
+    strength:240,
+    points:300,
+    friction:.96
+  },
+
+  rubber:{
+    name:"Rubber",
+    color:"#27272b",
+    edge:"#55555c",
+    mass:1.5,
+    strength:45,
+    points:120,
+    friction:.7
+  }
+};
+
+let world=[];
+let particles=[];
+let charges=[];
+let explosions=[];
+let floating=[];
+let sparks=[];
+
+let running=false;
+let phase="menu";
+
+let round=1;
+let score=0;
+let chain=0;
+let destroyed=0;
+let exploded=0;
+
+let selected="bomb";
+let shake=0;
+let time=0;
+
+/*
+===========================================================
+PROGRESSION
+===========================================================
+*/
+
+let cameraZoom=1;
+
+const baseTools={
+  bomb:3,
+  dynamite:2,
+  fire:1,
+  shock:1
+};
+
+const tools={
+  bomb:{max:3,used:0},
+  dynamite:{max:2,used:0},
+  fire:{max:1,used:0},
+  shock:{max:1,used:0}
+};
+
+const shopPrices={
+  bomb:120,
+  dynamite:90,
+  fire:60,
+  shock:150
+};
+
+let purchasedNext={
+  bomb:0,
+  dynamite:0,
+  fire:0,
+  shock:0
+};
+
+let shopOpen=false;
+
+let mouse={
+  x:0,
+  y:0,
+  down:false
+};
+
+function rand(a,b){
+  return a+Math.random()*(b-a);
+}
+
+function pick(a){
+  return a[(Math.random()*a.length)|0];
+}
+
+function clamp(v,a,b){
+  return Math.max(a,Math.min(b,v));
+}
+
+function dist(a,b,c,d){
+  return Math.hypot(a-c,b-d);
+}
+
+function saveMoney(){
+
+  localStorage.setItem(
+    "chainReactionMoney",
+    money
+  );
+
+  $("money").textContent=
+    "$"+money.toLocaleString();
+
+  $("shopMoney").textContent=
+    "$"+money.toLocaleString();
+}
+
+function getProgression(){
+
+  /*
+    More objects every round.
+  */
+
+  const extraCols=
+    Math.floor((round-1)/2);
+
+  const extraRows=
+    Math.floor((round-1)/1.7);
+
+  /*
+    Visual zoom gradually decreases.
+    It never becomes absurdly tiny.
+  */
+
+  cameraZoom=
+    clamp(
+      1-(round-1)*.035,
+      .58,
+      1
+    );
+
+  return {
+    extraCols,
+    extraRows
+  };
+}
+
+function resetTools(){
+
+  for(const k in tools){
+
+    tools[k].used=0;
+
+    tools[k].max=
+      baseTools[k]+
+      purchasedNext[k];
+
+  }
+
+  /*
+    Purchases are consumed when the round begins.
+    This means buying +1 Bomb gives one additional
+    bomb for the next round.
+  */
+
+  purchasedNext={
+    bomb:0,
+    dynamite:0,
+    fire:0,
+    shock:0
+  };
+}
+
+function buildRound(){
+
+  world=[];
+  particles=[];
+  charges=[];
+  explosions=[];
+  floating=[];
+  sparks=[];
+
+  score=0;
+  chain=0;
+  destroyed=0;
+  exploded=0;
+
+  resetTools();
+
+  const progression=
+    getProgression();
+
+  /*
+    More columns and rows as rounds progress.
+  */
+
+  const cols=Math.max(
+    7,
+    Math.min(
+      18,
+      Math.floor(W/90)+
+      progression.extraCols
+    )
+  );
+
+  const rows=Math.max(
+    5,
+    Math.min(
+      15,
+      4+
+      Math.floor(round/2)+
+      progression.extraRows
+    )
+  );
+
+  /*
+    Slightly smaller blocks on later rounds
+    so the structure can become much larger.
+  */
+
+  const bw=clamp(
+    W/(cols+2),
+    34,
+    72
+  );
+
+  const bh=
+    round>=7
+    ?22
+    :round>=4
+    ?24
+    :26;
+
+  const ground=H-42;
+
+  /*
+    Keep the whole structure inside the physics
+    area even as the number of rows increases.
+  */
+
+  const structureHeight=
+    rows*bh;
+
+  const topY=
+    Math.max(
+      75,
+      ground-
+      structureHeight-
+      20
+    );
+
+  const baseX=
+    W/2-
+    (cols*bw)/2;
+
+  for(let r=0;r<rows;r++){
+
+    const offset=
+      (r%2)*bw*.5;
+
+    for(let c=0;c<cols;c++){
+
+      /*
+        Higher rounds have fewer gaps.
+      */
+
+      const gapChance=
+        Math.max(
+          .025,
+          .10-
+          round*.004
+        );
+
+      if(
+        Math.random()<gapChance&&
+        r>1
+      ){
+        continue;
+      }
+
+      let type;
+
+      const roll=Math.random();
+
+      if(r>=rows-2){
+
+        /*
+          Base rows become increasingly heavy.
+        */
+
+        if(round>=8){
+
+          type=
+            roll<.40
+            ?"wood"
+            :roll<.67
+            ?"stone"
+            :roll<.88
+            ?"steel"
+            :"barrel";
+
+        }
+        else{
+
+          type=
+            roll<.62
+            ?"wood"
+            :roll<.85
+            ?"stone"
+            :"steel";
+        }
+      }
+
+      else if(round>=10){
+
+        type=
+          roll<.25
+          ?"wood"
+          :roll<.43
+          ?"glass"
+          :roll<.61
+          ?"steel"
+          :roll<.75
+          ?"barrel"
+          :roll<.90
+          ?"rubber"
+          :"stone";
+
+      }
+
+      else if(round>=6){
+
+        type=
+          roll<.30
+          ?"wood"
+          :roll<.49
+          ?"glass"
+          :roll<.65
+          ?"steel"
+          :roll<.80
+          ?"barrel"
+          :roll<.93
+          ?"rubber"
+          :"stone";
+
+      }
+
+      else if(roll<.38){
+
+        type="wood";
+
+      }
+      else if(roll<.60){
+
+        type="glass";
+
+      }
+      else if(roll<.75){
+
+        type="steel";
+
+      }
+      else if(roll<.9){
+
+        type="barrel";
+
+      }
+      else{
+
+        type="rubber";
+      }
+
+      const w=bw*rand(.78,1.02);
+      const h=bh;
+
+      world.push({
+        x:baseX+c*bw+offset,
+        y:topY+(rows-r-1)*bh,
+
+        w,
+        h,
+
+        type,
+
+        vx:0,
+        vy:0,
+
+        angle:0,
+        av:0,
+
+        hp:TYPES[type].strength*
+          (.88+Math.random()*.24)*
+          (1+Math.max(0,round-5)*.025),
+
+        alive:true,
+        rest:false,
+
+        id:world.length,
+
+        exploded:false
+      });
+    }
+  }
+
+  /*
+    Extra vertical supports increase as the rounds progress.
+  */
+
+  const supportCount=
+    Math.min(
+      9,
+      2+
+      Math.floor(round/2)
+    );
+
+  for(let i=0;i<supportCount;i++){
+
+    const x=
+      W*.20+
+      (i/
+        Math.max(
+          1,
+          supportCount-1
+        ))*
+      W*.60+
+      rand(-12,12);
+
+    const supportHeight=
+      rand(65,100)+
+      Math.min(60,round*3);
+
+    world.push({
+
+      x:x,
+
+      y:ground-
+        supportHeight/2-
+        rand(0,25),
+
+      w:
+        clamp(
+          bw*.34,
+          18,
+          28
+        ),
+
+      h:supportHeight,
+
+      type:
+        round>=9&&
+        Math.random()<.45
+        ?"steel"
+        :"wood",
+
+      vx:0,
+      vy:0,
+
+      angle:
+        rand(-.015,.015),
+
+      av:0,
+
+      hp:
+        90*
+        (1+round*.04),
+
+      alive:true,
+      rest:false,
+
+      id:world.length,
+
+      exploded:false
+    });
+  }
+
+  /*
+    More barrels on higher rounds.
+  */
+
+  const barrelCount=Math.min(
+    10,
+    2+
+    Math.floor(round/2)
+  );
+
+  for(let i=0;i<barrelCount;i++){
+
+    const candidates=world.filter(
+      o=>
+        o.type!=="stone"&&
+        o.type!=="rubber"
+    );
+
+    if(!candidates.length)break;
+
+    const target=pick(candidates);
+
+    target.type="barrel";
+    target.hp=
+      TYPES.barrel.strength*
+      (1+round*.025);
+  }
+
+  $("roundName").textContent=
+    "ROUND "+round;
+
+  updateUI();
+}
+
+function screenToWorld(e){
+
+  const r=canvas.getBoundingClientRect();
+
+  return {
+    x:e.clientX-r.left,
+    y:e.clientY-r.top
+  };
+}
+
+function canPlace(x,y){
+  return y<H-42&&y>70;
+}
+
+function placeCharge(x,y){
+
+  if(phase!=="placing")return;
+  if(!canPlace(x,y))return;
+
+  const t=tools[selected];
+
+  if(t.used>=t.max){
+
+    flash(
+      "OUT OF CHARGES",
+      "Buy more in the shop."
+    );
+
+    return;
+  }
+
+  charges.push({
+    x,
+    y,
+    type:selected,
+    age:0
+  });
+
+  t.used++;
+
+  updateUI();
+}
+
+function flash(title,text){
+
+  $("msgTitle").textContent=title;
+  $("msgText").textContent=text;
+
+  $("message").style.opacity=1;
+
+  clearTimeout(flash.t);
+
+  flash.t=setTimeout(()=>{
+    $("message").style.opacity=0;
+  },900);
+}
+
+canvas.addEventListener("pointerdown",e=>{
+
+  if(!running)return;
+
+  mouse.down=true;
+
+  const p=screenToWorld(e);
+
+  placeCharge(p.x,p.y);
+});
+
+canvas.addEventListener("pointermove",e=>{
+
+  const p=screenToWorld(e);
+
+  mouse.x=p.x;
+  mouse.y=p.y;
+});
+
+addEventListener("pointerup",()=>{
+  mouse.down=false;
+});
+
+document.querySelectorAll("[data-tool]").forEach(b=>{
+
+  b.onclick=()=>{
+
+    selected=b.dataset.tool;
+
+    document
+      .querySelectorAll("[data-tool]")
+      .forEach(x=>x.classList.remove("active"));
+
+    b.classList.add("active");
+  };
+});
+
+$("detonate").onclick=()=>{
+
+  if(
+    phase==="placing"&&
+    charges.length
+  ){
+
+    phase="exploding";
+
+    detonateAll();
+  }
+};
+
+$("reset").onclick=()=>{
+
+  if(running){
+
+    buildRound();
+
+    phase="placing";
+
+    flash(
+      "RESET",
+      "New structure."
+    );
+  }
+};
+
+$("start").onclick=()=>{
+
+  running=true;
+
+  $("center").classList.add("hidden");
+
+  round=1;
+
+  buildRound();
+
+  phase="placing";
+};
+
+addEventListener("keydown",e=>{
+
+  if(e.code==="Space"){
+
+    e.preventDefault();
+
+    if(
+      phase==="placing"&&
+      charges.length
+    ){
+
+      phase="exploding";
+
+      detonateAll();
+    }
+  }
+
+  if(
+    e.key.toLowerCase()==="r"&&
+    running
+  ){
+
+    buildRound();
+
+    phase="placing";
+  }
+});
+
+/*
+===========================================================
+SHOP
+===========================================================
+*/
+
+function openShop(){
+
+  shopOpen=true;
+
+  $("shop").classList.remove("hidden");
+
+  $("shopMoney").textContent=
+    "$"+money.toLocaleString();
+
+  updateShop();
+}
+
+function closeShop(){
+
+  shopOpen=false;
+
+  $("shop").classList.add("hidden");
+}
+
+function updateShop(){
+
+  $("shopMoney").textContent=
+    "$"+money.toLocaleString();
+
+  document
+    .querySelectorAll(".shopBuy")
+    .forEach(button=>{
+
+      const type=button.dataset.buy;
+      const price=shopPrices[type];
+
+      button.disabled=
+        money<price;
+
+      button.textContent=
+        money>=price
+        ?"BUY"
+        :"TOO EXPENSIVE";
+    });
+}
+
+document
+  .querySelectorAll(".shopBuy")
+  .forEach(button=>{
+
+    button.onclick=()=>{
+
+      const type=
+        button.dataset.buy;
+
+      const price=
+        shopPrices[type];
+
+      if(money<price){
+
+        flash(
+          "NOT ENOUGH MONEY",
+          "Destroy more objects to earn cash."
+        );
+
+        return;
+      }
+
+      money-=price;
+
+      purchasedNext[type]++;
+
+      saveMoney();
+
+      updateShop();
+
+      beep(
+        520,
+        .08,
+        "square",
+        .025
+      );
+    };
+  });
+
+$("shopContinue").onclick=()=>{
+
+  closeShop();
+
+  round++;
+
+  buildRound();
+
+  phase="placing";
+
+  flash(
+    "ROUND "+round,
+    "Larger structure incoming."
+  );
+};
+
+/*
+===========================================================
+DETONATION
+===========================================================
+*/
+
+function detonateAll(){
+
+  const q=charges.splice(0);
+
+  for(const c of q){
+
+    if(c.type==="bomb"){
+
+      explode(
+        c.x,
+        c.y,
+        125,
+        16,
+        "bomb"
+      );
+    }
+
+    if(c.type==="dynamite"){
+
+      explode(
+        c.x,
+        c.y,
+        75,
+        26,
+        "dynamite"
+      );
+    }
+
+    if(c.type==="fire"){
+
+      startFire(
+        c.x,
+        c.y
+      );
+    }
+
+    if(c.type==="shock"){
+
+      shock(
+        c.x,
+        c.y
+      );
+    }
+  }
+
+  phase="simulation";
+}
+
+function explode(
+  x,
+  y,
+  r,
+  power,
+  kind
+){
+
+  explosions.push({
+
+    x,
+    y,
+
+    r:0,
+
+    max:r,
+
+    power,
+
+    kind,
+
+    hit:new Set()
+  });
+
+  exploded++;
+
+  shake=Math.max(
+    shake,
+    kind==="bomb"?11:6
+  );
+
+  burst(
+    x,
+    y,
+    kind==="bomb"?34:20,
+    kind==="bomb"
+      ?" #ffb12b".trim()
+      :"#ff7135"
+  );
+
+  if(kind==="bomb"){
+
+    soundBoom();
+
+  }
+  else{
+
+    soundPop();
+  }
+}
+
+function startFire(x,y){
+
+  explosions.push({
+
+    x,
+    y,
+
+    r:0,
+
+    max:42,
+
+    power:7,
+
+    kind:"fire",
+
+    hit:new Set(),
+
+    fire:true
+  });
+
+  burst(
+    x,
+    y,
+    15,
+    "#ff6a20"
+  );
+
+  soundPop();
+}
+
+function shock(x,y){
+
+  explosions.push({
+
+    x,
+    y,
+
+    r:0,
+
+    max:170,
+
+    power:9,
+
+    kind:"shock",
+
+    hit:new Set(),
+
+    shock:true
+  });
+
+  for(let i=0;i<20;i++){
+
+    sparks.push({
+
+      x,
+      y,
+
+      vx:
+        Math.cos(
+          i/20*Math.PI*2
+        )*
+        rand(3,9),
+
+      vy:
+        Math.sin(
+          i/20*Math.PI*2
+        )*
+        rand(3,9),
+
+      life:35
+    });
+  }
+
+  soundZap();
+
+  shake=Math.max(
+    shake,
+    7
+  );
+}
+
+function damageObject(
+  o,
+  amount,
+  fx,
+  fy
+){
+
+  if(!o.alive)return;
+
+  o.hp-=amount;
+
+  const dx=o.x-fx;
+  const dy=o.y-fy;
+
+  const d=
+    Math.hypot(dx,dy)||1;
+
+  const impulseScale=
+    amount/
+    (TYPES[o.type].mass*25);
+
+  o.vx+=clamp(
+    dx/d*
+    impulseScale,
+    -12,
+    12
+  );
+
+  o.vy+=clamp(
+    dy/d*
+    impulseScale-
+    amount/
+    (TYPES[o.type].mass*80),
+    -12,
+    12
+  );
+
+  o.av+=clamp(
+    dx/d*
+    amount*
+    .0008,
+    -.05,
+    .05
+  );
+
+  if(o.hp<=0){
+
+    destroyObject(o);
+  }
+}
+
+function destroyObject(o){
+
+  if(!o.alive)return;
+
+  o.alive=false;
+
+  destroyed++;
+
+  const pts=
+    TYPES[o.type].points;
+
+  const bonus=
+    Math.max(
+      1,
+      Math.floor(chain/5)+1
+    );
+
+  const earned=
+    pts*bonus;
+
+  score+=earned;
+
+  /*
+    Money is deliberately much smaller than score,
+    so score can remain the big number while money
+    controls progression.
+  */
+
+  const cash=
+    Math.max(
+      2,
+      Math.floor(earned/35)
+    );
+
+  money+=cash;
+
+  saveMoney();
+
+  chain++;
+
+  floating.push({
+
+    x:o.x,
+
+    y:o.y,
+
+    text:
+      "+"+
+      earned.toLocaleString()+
+      "  💰$"+
+      cash,
+
+    life:70
+  });
+
+  burst(
+    o.x,
+    o.y,
+    o.type==="glass"
+      ?18
+      :12,
+    o.type==="glass"
+      ?" #bdf6ff".trim()
+      :"#c8a06b"
+  );
+
+  if(o.type==="glass"){
+
+    soundGlass();
+  }
+
+  if(o.type==="barrel"){
+
+    setTimeout(()=>{
+
+      explode(
+        o.x,
+        o.y,
+        95,
+        19,
+        "barrel"
+      );
+
+    },30);
+  }
+
+  if(
+    chain>1&&
+    chain%8===0
+  ){
+
+    flash(
+      "CHAIN ×"+chain,
+      "Keep it going!"
+    );
+  }
+}
+
+function burst(
+  x,
+  y,
+  n,
+  color
+){
+
+  for(let i=0;i<n;i++){
+
+    particles.push({
+
+      x,
+      y,
+
+      vx:rand(-6,6),
+
+      vy:rand(-6,3),
+
+      life:rand(25,55),
+
+      max:55,
+
+      size:rand(1,4),
+
+      color
+    });
+  }
+}
+
+/*
+===========================================================
+ROTATED RECTANGLE COLLISION
+===========================================================
+*/
+
+function getCorners(o){
+
+  const c=Math.cos(o.angle);
+  const s=Math.sin(o.angle);
+
+  const hw=o.w/2;
+  const hh=o.h/2;
+
+  return [
+
+    {
+      x:o.x+(-hw*c+hh*s),
+      y:o.y+(-hw*s-hh*c)
+    },
+
+    {
+      x:o.x+(hw*c+hh*s),
+      y:o.y+(hw*s-hh*c)
+    },
+
+    {
+      x:o.x+(hw*c-hh*s),
+      y:o.y+(hw*s+hh*c)
+    },
+
+    {
+      x:o.x+(-hw*c-hh*s),
+      y:o.y+(-hw*s+hh*c)
+    }
+  ];
+}
+
+function getAxes(points){
+
+  const result=[];
+
+  for(
+    let i=0;
+    i<points.length;
+    i++
+  ){
+
+    const p1=points[i];
+
+    const p2=
+      points[
+        (i+1)%points.length
+      ];
+
+    const dx=
+      p2.x-p1.x;
+
+    const dy=
+      p2.y-p1.y;
+
+    const len=
+      Math.hypot(dx,dy)||1;
+
+    result.push({
+
+      x:-dy/len,
+
+      y:dx/len
+    });
+  }
+
+  return result;
+}
+
+function project(
+  points,
+  axis
+){
+
+  let min=Infinity;
+  let max=-Infinity;
+
+  for(const p of points){
+
+    const value=
+      p.x*axis.x+
+      p.y*axis.y;
+
+    if(value<min)min=value;
+    if(value>max)max=value;
+  }
+
+  return {
+    min,
+    max
+  };
+}
+
+function rotatedCollision(a,b){
+
+  const ac=getCorners(a);
+  const bc=getCorners(b);
+
+  const axes=[
+
+    ...getAxes(ac),
+
+    ...getAxes(bc)
+
+  ];
+
+  let smallestOverlap=
+    Infinity;
+
+  let smallestAxis=null;
+
+  for(const axis of axes){
+
+    const pa=
+      project(
+        ac,
+        axis
+      );
+
+    const pb=
+      project(
+        bc,
+        axis
+      );
+
+    const overlap=
+      Math.min(
+        pa.max,
+        pb.max
+      )-
+      Math.max(
+        pa.min,
+        pb.min
+      );
+
+    if(overlap<=0){
+
+      return null;
+    }
+
+    if(
+      overlap<
+      smallestOverlap
+    ){
+
+      smallestOverlap=
+        overlap;
+
+      smallestAxis={
+        x:axis.x,
+        y:axis.y
+      };
+    }
+  }
+
+  const dx=b.x-a.x;
+  const dy=b.y-a.y;
+
+  if(
+    dx*smallestAxis.x+
+    dy*smallestAxis.y<0
+  ){
+
+    smallestAxis.x=
+      -smallestAxis.x;
+
+    smallestAxis.y=
+      -smallestAxis.y;
+  }
+
+  return {
+
+    overlap:
+      smallestOverlap,
+
+    axis:
+      smallestAxis
+  };
+}
+
+/*
+===========================================================
+PHYSICS
+===========================================================
+*/
+
+function update(dt){
+
+  time+=dt;
+
+  if(!running)return;
+
+  for(const c of charges){
+
+    c.age+=dt;
+  }
+
+  /*
+  EXPLOSIONS
+  */
+
+  for(const e of explosions){
+
+    e.r+=
+      e.max*
+      dt*
+      3.1;
+
+    for(const o of world){
+
+      if(
+        !o.alive||
+        e.hit.has(o.id)
+      )continue;
+
+      const d=
+        dist(
+          o.x,
+          o.y,
+          e.x,
+          e.y
+        );
+
+      if(
+        d<
+        e.r+
+        Math.max(
+          o.w,
+          o.h
+        )*.55
+      ){
+
+        e.hit.add(o.id);
+
+        const fall=
+          clamp(
+            1-
+            d/
+            (e.max+20),
+            .05,
+            1
+          );
+
+        if(e.shock){
+
+          damageObject(
+            o,
+            e.power*fall,
+            e.x,
+            e.y
+          );
+
+        }
+        else if(e.fire){
+
+          damageObject(
+            o,
+            e.power*fall,
+            e.x,
+            e.y
+          );
+
+        }
+        else{
+
+          damageObject(
+            o,
+            e.power*
+            fall*
+            10,
+            e.x,
+            e.y
+          );
+        }
+
+        const directionX=
+          (o.x-e.x)/
+          (d||1);
+
+        const directionY=
+          (o.y-e.y)/
+          (d||1);
+
+        o.vx+=clamp(
+          directionX*
+          fall*
+          (e.power*.08),
+          -8,
+          8
+        );
+
+        o.vy+=clamp(
+          directionY*
+          fall*
+          (e.power*.08),
+          -8,
+          8
+        );
+      }
+    }
+  }
+
+  explosions=
+    explosions.filter(
+      e=>e.r<e.max*1.35
+    );
+
+  /*
+  GRAVITY + MOVEMENT
+  */
+
+  const ground=H-42;
+
+  for(const o of world){
+
+    if(!o.alive)continue;
+
+    /*
+      Gravity — don't push an object into another
+      object below it.
+    */
+
+    let supported=false;
+
+    for(const other of world){
+
+      if(
+        other===o||
+        !other.alive
+      )continue;
+
+      if(other.y<=o.y)continue;
+
+      const collision=
+        rotatedCollision(
+          o,
+          other
+        );
+
+      if(
+        collision&&
+        collision.axis.y>0.25
+      ){
+
+        supported=true;
+
+        break;
+      }
+    }
+
+    if(!supported){
+
+      o.vy+=
+        .42*
+        dt*
+        60;
+
+    }
+    else if(o.vy>0){
+
+      o.vy=0;
+    }
+
+    o.vx*=
+      Math.pow(
+        .999,
+        dt*60
+      );
+
+    o.vy*=
+      Math.pow(
+        .998,
+        dt*60
+      );
+
+    o.x+=
+      o.vx*
+      dt*
+      60;
+
+    o.y+=
+      o.vy*
+      dt*
+      60;
+
+    o.angle+=
+      o.av*
+      dt*
+      60;
+
+    o.av*=.500;
+
+    const halfW=o.w/2;
+    const halfH=o.h/2;
+
+    const verticalExtent=
+      Math.abs(
+        Math.cos(o.angle)
+      )*
+      halfH+
+      Math.abs(
+        Math.sin(o.angle)
+      )*
+      halfW;
+
+    if(
+      o.y+
+      verticalExtent>
+      ground
+    ){
+
+      o.y=
+        ground-
+        verticalExtent;
+
+      /*
+        NO BOUNCE:
+        Objects stop vertically as soon as they
+        contact the floor.
+      */
+
+      o.vy=0;
+
+      o.vx*=
+        TYPES[o.type].friction;
+
+      const normalizedAngle=
+        (
+          (
+            o.angle+
+            Math.PI
+          )%
+          (Math.PI*2)
+        )-
+        Math.PI;
+
+      let angleToHorizontal=
+        Math.abs(
+          normalizedAngle
+        );
+
+      if(
+        angleToHorizontal>
+        Math.PI/2
+      ){
+
+        angleToHorizontal=
+          Math.abs(
+            Math.PI-
+            angleToHorizontal
+          );
+      }
+
+      const fiveDegrees=
+        5*Math.PI/180;
+
+      if(
+        angleToHorizontal>
+        fiveDegrees&&
+        Math.abs(o.vy)>1.4
+      ){
+
+        o.av+=clamp(
+          -Math.sin(
+            o.angle
+          )*.0015,
+          -.01,
+          .01
+        );
+
+      }
+      else{
+
+        o.av*=.92;
+      }
+
+      if(
+        angleToHorizontal<=
+        fiveDegrees
+      ){
+
+        o.av*=.85;
+
+        o.angle*=.985;
+
+        if(
+          Math.abs(o.angle)<.003
+        ){
+
+          o.angle=0;
+        }
+      }
+    }
+
+    if(
+      o.x-halfW<10
+    ){
+
+      o.x=
+        10+
+        halfW;
+
+      o.vx=
+        Math.abs(o.vx)*.45;
+    }
+
+    if(
+      o.x+halfW>
+      W-10
+    ){
+
+      o.x=
+        W-
+        10-
+        halfW;
+
+      o.vx=
+        -Math.abs(o.vx)*.45;
+    }
+  }
+
+  /*
+  =========================================================
+  ROTATED OBJECT-OBJECT COLLISIONS
+  =========================================================
+  */
+
+  for(
+    let i=0;
+    i<world.length;
+    i++
+  ){
+
+    const a=world[i];
+
+    if(!a.alive)continue;
+
+    for(
+      let j=i+1;
+      j<world.length;
+      j++
+    ){
+
+      const b=world[j];
+
+      if(!b.alive)continue;
+
+      const collision=
+        rotatedCollision(
+          a,
+          b
+        );
+
+      if(!collision)continue;
+
+      const axis=
+        collision.axis;
+
+      /*
+        Fully correct the overlap, but cap the correction
+        to prevent numerical explosions from bad spawning.
+      */
+
+      const correction=
+        Math.min(
+          collision.overlap*1.01,
+          4
+        );
+
+      a.x-=
+        axis.x*
+        correction;
+
+      a.y-=
+        axis.y*
+        correction;
+
+      b.x+=
+        axis.x*
+        correction;
+
+      b.y+=
+        axis.y*
+        correction;
+
+      const relativeVelocity=
+        (b.vx-a.vx)*
+        axis.x+
+        (b.vy-a.vy)*
+        axis.y;
+
+      /*
+        No bounce/restitution.
+        Objects simply stop their velocity into the
+        collision surface.
+      */
+
+      if(relativeVelocity<0){
+
+        const massA=
+          TYPES[a.type].mass;
+
+        const massB=
+          TYPES[b.type].mass;
+
+        const totalMass=
+          massA+
+          massB;
+
+        const impulse=
+          clamp(
+            -relativeVelocity/
+            (1/massA+1/massB),
+            0,
+            3
+          );
+
+        /*
+          Remove only the velocity directed into the
+          other object. There is no outward bounce.
+        */
+
+        a.vx-=
+          axis.x*
+          impulse/
+          massA;
+
+        a.vy-=
+          axis.y*
+          impulse/
+          massA;
+
+        b.vx+=
+          axis.x*
+          impulse/
+          massB;
+
+        b.vy+=
+          axis.y*
+          impulse/
+          massB;
+
+        /*
+          Collision damage remains deliberately small.
+        */
+
+        const impact=
+          Math.abs(
+            relativeVelocity
+          );
+
+        if(impact>2){
+
+          const damage=
+            impact*.04;
+
+          damageObject(
+            a,
+            damage,
+            b.x,
+            b.y
+          );
+
+          damageObject(
+            b,
+            damage,
+            a.x,
+            a.y
+          );
+        }
+
+        /*
+          BARREL COLLISIONS
+        */
+
+        if(
+          a.type==="barrel"&&
+          impact>8&&
+          !a.exploded
+        ){
+
+          a.exploded=true;
+
+          explode(
+            a.x,
+            a.y,
+            82,
+            17,
+            "barrel"
+          );
+        }
+
+        if(
+          b.type==="barrel"&&
+          impact>8&&
+          !b.exploded
+        ){
+
+          b.exploded=true;
+
+          explode(
+            b.x,
+            b.y,
+            82,
+            17,
+            "barrel"
+          );
+        }
+
+        /*
+          ROTATION FROM IMPACT.
+          Objects remain completely rigid — only their
+          angle changes.
+        */
+
+        const torqueStrength=.0012;
+
+        const torqueA=
+          (
+            (b.y-a.y)*
+            axis.x-
+            (b.x-a.x)*
+            axis.y
+          )*
+          torqueStrength*
+          impact;
+
+        const torqueB=
+          (
+            (a.y-b.y)*
+            axis.x-
+            (a.x-b.x)*
+            axis.y
+          )*
+          torqueStrength*
+          impact;
+
+        /*
+          Surface friction.
+          Only affect velocity along the collision surface,
+          and keep it deliberately small so it cannot create
+          repeated collision impulses.
+        */
+
+        const tangentX=
+          -axis.y;
+
+        const tangentY=
+          axis.x;
+
+        const relativeTangent=
+          (b.vx-a.vx)*
+          tangentX+
+          (b.vy-a.vy)*
+          tangentY;
+
+        const friction=.035;
+
+        const frictionImpulse=
+          clamp(
+            relativeTangent*
+            friction,
+            -1.5,
+            1.5
+          );
+
+        a.vx+=
+          tangentX*
+          frictionImpulse/
+          massA;
+
+        a.vy+=
+          tangentY*
+          frictionImpulse/
+          massA;
+
+        b.vx-=
+          tangentX*
+          frictionImpulse/
+          massB;
+
+        b.vy-=
+          tangentY*
+          frictionImpulse/
+          massB;
+
+        /*
+          Apply the collision torque.
+        */
+
+        a.av+=
+          clamp(
+            torqueA,
+            -.035,
+            .035
+          );
+
+        b.av+=
+          clamp(
+            torqueB,
+            -.035,
+            .035
+          );
+      }
+    }
+  }
+
+  /*
+  PARTICLES
+  */
+
+  for(const p of particles){
+
+    p.x+=p.vx;
+    p.y+=p.vy;
+
+    p.vy+=.12;
+
+    p.vx*=.98;
+
+    p.life--;
+  }
+
+  particles=
+    particles.filter(
+      p=>p.life>0
+    );
+
+  /*
+  SPARKS
+  */
+
+  for(const s of sparks){
+
+    s.x+=s.vx;
+    s.y+=s.vy;
+
+    s.vx*=.96;
+    s.vy*=.96;
+
+    s.life--;
+  }
+
+  sparks=
+    sparks.filter(
+      s=>s.life>0
+    );
+
+  /*
+  FLOATING SCORE
+  */
+
+  for(const f of floating){
+
+    f.y-=.5;
+
+    f.life--;
+  }
+
+  floating=
+    floating.filter(
+      f=>f.life>0
+    );
+
+  shake*=
+    Math.pow(
+      .04,
+      dt
+    );
+
+  /*
+    End of simulation.
+  */
+
+  if(
+    phase==="simulation"&&
+    explosions.length===0&&
+    particles.length<5
+  ){
+
+    phase="results";
+
+    finishRound();
+  }
+
+  updateUI();
+}
+
+function finishRound(){
+
+  if(score>best){
+
+    best=score;
+
+    localStorage.setItem(
+      "chainReactionBest",
+      best
+    );
+
+    $("best").textContent=
+      best.toLocaleString();
+  }
+
+  /*
+    Round completion bonus.
+    Later rounds are worth considerably more money.
+  */
+
+  const roundBonus=
+    75+
+    round*35+
+    Math.floor(
+      destroyed*4
+    );
+
+  money+=roundBonus;
+
+  saveMoney();
+
+  setTimeout(()=>{
+
+    if(phase!=="results")return;
+
+    const surviving=
+      world.filter(
+        o=>o.alive
+      ).length;
+
+    $("msgTitle").textContent=
+      surviving
+      ?"ROUND COMPLETE"
+      :"TOTAL ANNIHILATION";
+
+    $("msgText").textContent=
+      `${score.toLocaleString()} points · `+
+      `${destroyed} destroyed · `+
+      `chain ×${chain} · `+
+      `+$${roundBonus}`;
+
+    $("message").style.opacity=1;
+
+    setTimeout(()=>{
+
+      if(phase==="results"){
+
+        $("message").style.opacity=0;
+
+        /*
+          Shop before the next round.
+        */
+
+        openShop();
+
+      }
+
+    },1800);
+
+  },200);
+}
+
+function updateUI(){
+
+  $("score").textContent=
+    score.toLocaleString();
+
+  $("chain").textContent=
+    chain+"×";
+
+  $("destroyed").textContent=
+    destroyed;
+
+  $("money").textContent=
+    "$"+
+    money.toLocaleString();
+
+  const remaining=
+    Object.values(tools)
+      .reduce(
+        (a,t)=>
+          a+
+          t.max-
+          t.used,
+        0
+      );
+
+  $("ammo").textContent=
+    remaining;
+
+  document
+    .querySelectorAll("[data-tool]")
+    .forEach(b=>{
+
+      const t=
+        tools[
+          b.dataset.tool
+        ];
+
+      b.querySelector("span")
+        .textContent=
+          Math.max(
+            0,
+            t.max-
+            t.used
+          );
+    });
+}
+
+function draw(){
+
+  ctx.save();
+
+  if(shake>.2){
+
+    ctx.translate(
+      rand(
+        -shake,
+        shake
+      ),
+      rand(
+        -shake,
+        shake
+      )
+    );
+  }
+
+  /*
+    PROGRESSIVE CAMERA ZOOM
+
+    The physics still operates in the normal canvas
+    coordinate system. Only rendering is zoomed, which
+    means larger structures can be displayed without
+    changing the collision mathematics.
+  */
+
+  const zoom=
+    cameraZoom;
+
+  ctx.translate(
+    W/2,
+    H/2
+  );
+
+  ctx.scale(
+    zoom,
+    zoom
+  );
+
+  ctx.translate(
+    -W/2,
+    -H/2
+  );
+
+  ctx.fillStyle="#151515";
+
+  ctx.fillRect(
+    -100,
+    -100,
+    W+200,
+    H+200
+  );
+
+  drawBackground();
+
+  if(
+    phase==="placing"&&
+    mouse.x&&
+    mouse.y
+  ){
+
+    const r=
+      selected==="bomb"
+      ?125
+      :selected==="dynamite"
+      ?75
+      :selected==="shock"
+      ?170
+      :42;
+
+    ctx.beginPath();
+
+    ctx.arc(
+      mouse.x,
+      mouse.y,
+      r,
+      0,
+      Math.PI*2
+    );
+
+    ctx.strokeStyle=
+      selected==="shock"
+      ?" #6de9ff".trim()
+      :"#ffffff33";
+
+    ctx.setLineDash(
+      [6,8]
+    );
+
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+  }
+
+  for(const o of world){
+
+    if(o.alive){
+
+      drawObject(o);
+    }
+  }
+
+  for(const c of charges){
+
+    drawCharge(c);
+  }
+
+  for(const e of explosions){
+
+    drawExplosion(e);
+  }
+
+  for(const p of particles){
+
+    ctx.globalAlpha=
+      p.life/p.max;
+
+    ctx.fillStyle=
+      p.color;
+
+    ctx.fillRect(
+      p.x-p.size/2,
+      p.y-p.size/2,
+      p.size,
+      p.size
+    );
+  }
+
+  for(const s of sparks){
+
+    ctx.globalAlpha=
+      s.life/35;
+
+    ctx.fillStyle=
+      "#fff3a6";
+
+    ctx.fillRect(
+      s.x,
+      s.y,
+      2,
+      2
+    );
+  }
+
+  ctx.globalAlpha=1;
+
+  for(const f of floating){
+
+    ctx.globalAlpha=
+      Math.min(
+        1,
+        f.life/25
+      );
+
+    ctx.fillStyle=
+      "#ffe08a";
+
+    ctx.font=
+      "bold 14px system-ui";
+
+    ctx.textAlign=
+      "center";
+
+    ctx.fillText(
+      f.text,
+      f.x,
+      f.y
+    );
+  }
+
+  ctx.restore();
+}
+
+function drawBackground(){
+
+  const g=
+    ctx.createLinearGradient(
+      0,
+      0,
+      0,
+      H
+    );
+
+  g.addColorStop(
+    0,
+    "#20232a"
+  );
+
+  g.addColorStop(
+    1,
+    "#101112"
+  );
+
+  ctx.fillStyle=g;
+
+  ctx.fillRect(
+    0,
+    0,
+    W,
+    H
+  );
+
+  ctx.strokeStyle=
+    "#292c31";
+
+  ctx.lineWidth=1;
+
+  for(
+    let x=0;
+    x<W;
+    x+=40
+  ){
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      x,
+      0
+    );
+
+    ctx.lineTo(
+      x,
+      H
+    );
+
+    ctx.stroke();
+  }
+
+  for(
+    let y=0;
+    y<H;
+    y+=40
+  ){
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      0,
+      y
+    );
+
+    ctx.lineTo(
+      W,
+      y
+    );
+
+    ctx.stroke();
+  }
+
+  ctx.fillStyle=
+    "#26282b";
+
+  ctx.fillRect(
+    0,
+    H-42,
+    W,
+    42
+  );
+
+  ctx.fillStyle=
+    "#3a3b3d";
+
+  ctx.fillRect(
+    0,
+    H-42,
+    W,
+    3
+  );
+}
+
+function drawObject(o){
+
+  ctx.save();
+
+  ctx.translate(
+    o.x,
+    o.y
+  );
+
+  ctx.rotate(
+    o.angle
+  );
+
+  const t=
+    TYPES[o.type];
+
+  ctx.fillStyle=
+    t.color;
+
+  ctx.strokeStyle=
+    t.edge;
+
+  ctx.lineWidth=2;
+
+  if(o.type==="barrel"){
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+      -o.w/2,
+      -o.h/2,
+      o.w,
+      o.h,
+      5
+    );
+
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle=
+      "#d3a15b";
+
+    ctx.lineWidth=3;
+
+    ctx.strokeRect(
+      -o.w/2+4,
+      -o.h/2+5,
+      o.w-8,
+      o.h-10
+    );
+
+    ctx.fillStyle=
+      "#ef7d25";
+
+    ctx.beginPath();
+
+    ctx.arc(
+      0,
+      0,
+      5,
+      0,
+      Math.PI*2
+    );
+
+    ctx.fill();
+
+  }
+
+  else if(o.type==="glass"){
+
+    ctx.globalAlpha=.75;
+
+    ctx.fillRect(
+      -o.w/2,
+      -o.h/2,
+      o.w,
+      o.h
+    );
+
+    ctx.globalAlpha=1;
+
+    ctx.strokeRect(
+      -o.w/2,
+      -o.h/2,
+      o.w,
+      o.h
+    );
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -o.w*.3,
+      -o.h*.3
+    );
+
+    ctx.lineTo(
+      o.w*.25,
+      o.h*.3
+    );
+
+    ctx.stroke();
+
+  }
+
+  else{
+
+    ctx.fillRect(
+      -o.w/2,
+      -o.h/2,
+      o.w,
+      o.h
+    );
+
+    ctx.strokeRect(
+      -o.w/2,
+      -o.h/2,
+      o.w,
+      o.h
+    );
+
+    if(o.type==="wood"){
+
+      ctx.strokeStyle=
+        "#6e4329";
+
+      ctx.lineWidth=1;
+
+      for(
+        let x=-o.w/2+8;
+        x<o.w/2;
+        x+=14
+      ){
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+          x,
+          -o.h/2+2
+        );
+
+        ctx.lineTo(
+          x+
+          rand(-2,2),
+          o.h/2-2
+        );
+
+        ctx.stroke();
+      }
+    }
+  }
+
+  if(
+    o.hp<
+    TYPES[o.type].strength*.65
+  ){
+
+    ctx.strokeStyle=
+      "#ff5d4a";
+
+    ctx.globalAlpha=.5;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -o.w*.3,
+      -o.h*.2
+    );
+
+    ctx.lineTo(
+      o.w*.2,
+      o.h*.2
+    );
+
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawCharge(c){
+
+  const pulse=
+    1+
+    Math.sin(
+      time*7+
+      c.x
+    )*.08;
+
+  ctx.save();
+
+  ctx.translate(
+    c.x,
+    c.y
+  );
+
+  ctx.scale(
+    pulse,
+    pulse
+  );
+
+  if(c.type==="bomb"){
+
+    ctx.fillStyle=
+      "#171719";
+
+    ctx.beginPath();
+
+    ctx.arc(
+      0,
+      0,
+      11,
+      0,
+      Math.PI*2
+    );
+
+    ctx.fill();
+
+    ctx.strokeStyle=
+      "#777";
+
+    ctx.stroke();
+
+    ctx.fillStyle=
+      "#ffb020";
+
+    ctx.fillRect(
+      4,
+      -13,
+      3,
+      5
+    );
+
+  }
+
+  else if(c.type==="dynamite"){
+
+    ctx.fillStyle=
+      "#b13b2f";
+
+    ctx.fillRect(
+      -14,
+      -5,
+      28,
+      10
+    );
+
+    ctx.strokeStyle=
+      "#e8b08c";
+
+    ctx.strokeRect(
+      -14,
+      -5,
+      28,
+      10
+    );
+
+    ctx.strokeStyle=
+      "#aaa";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      14,
+      0
+    );
+
+    ctx.quadraticCurveTo(
+      20,
+      -8,
+      18,
+      -13
+    );
+
+    ctx.stroke();
+
+  }
+
+  else if(c.type==="fire"){
+
+    ctx.fillStyle=
+      "#ff6a20";
+
+    ctx.beginPath();
+
+    ctx.arc(
+      0,
+      0,
+      10,
+      0,
+      Math.PI*2
+    );
+
+    ctx.fill();
+
+    ctx.fillStyle=
+      "#ffe16a";
+
+    ctx.beginPath();
+
+    ctx.arc(
+      0,
+      2,
+      5,
+      0,
+      Math.PI*2
+    );
+
+    ctx.fill();
+
+  }
+
+  else{
+
+    ctx.strokeStyle=
+      "#72e9ff";
+
+    ctx.lineWidth=3;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -7,
+      -11
+    );
+
+    ctx.lineTo(
+      2,
+      -1
+    );
+
+    ctx.lineTo(
+      -3,
+      -1
+    );
+
+    ctx.lineTo(
+      8,
+      11
+    );
+
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawExplosion(e){
+
+  const p=
+    e.r/e.max;
+
+  ctx.save();
+
+  const a=
+    1-
+    clamp(
+      p,
+      0,
+      1
+    );
+
+  ctx.globalAlpha=
+    a*.35;
+
+  const g=
+    ctx.createRadialGradient(
+      e.x,
+      e.y,
+      0,
+      e.x,
+      e.y,
+      e.r
+    );
+
+  g.addColorStop(
+    0,
+    e.kind==="shock"
+      ?" #dffcff".trim()
+      :"#fff2a0"
+  );
+
+  g.addColorStop(
+    .25,
+    e.kind==="shock"
+      ?" #6de9ff".trim()
+      :"#ffad26"
+  );
+
+  g.addColorStop(
+    1,
+    "transparent"
+  );
+
+  ctx.fillStyle=g;
+
+  ctx.beginPath();
+
+  ctx.arc(
+    e.x,
+    e.y,
+    e.r,
+    0,
+    Math.PI*2
+  );
+
+  ctx.fill();
+
+  ctx.globalAlpha=
+    a*.9;
+
+  ctx.strokeStyle=
+    e.kind==="shock"
+      ?" #80edff".trim()
+      :"#ffb12b";
+
+  ctx.lineWidth=3;
+
+  ctx.beginPath();
+
+  ctx.arc(
+    e.x,
+    e.y,
+    e.r*.8,
+    0,
+    Math.PI*2
+  );
+
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function loop(ts){
+
+  const dt=
+    Math.min(
+      .033,
+      (ts-
+        (loop.last||ts))/
+      1000
+    );
+
+  loop.last=ts;
+
+  update(dt);
+
+  draw();
+
+  requestAnimationFrame(
+    loop
+  );
+}
+
+requestAnimationFrame(loop);
+
+let audio;
+
+function beep(
+  freq,
+  dur,
+  type="sine",
+  gain=.03
+){
+
+  try{
+
+    audio||=
+      new(
+        window.AudioContext||
+        window.webkitAudioContext
+      )();
+
+    const o=
+      audio.createOscillator();
+
+    const g=
+      audio.createGain();
+
+    o.type=type;
+
+    o.frequency.value=
+      freq;
+
+    g.gain.setValueAtTime(
+      gain,
+      audio.currentTime
+    );
+
+    g.gain.exponentialRampToValueAtTime(
+      .0001,
+      audio.currentTime+
+      dur
+    );
+
+    o.connect(g);
+
+    g.connect(
+      audio.destination
+    );
+
+    o.start();
+
+    o.stop(
+      audio.currentTime+
+      dur
+    );
+
+  }catch{}
+}
+
+function soundPop(){
+
+  beep(
+    120,
+    .08,
+    "square",
+    .025
+  );
+
+  beep(
+    240,
+    .05,
+    "sine",
+    .015
+  );
+}
+
+function soundGlass(){
+
+  beep(
+    800,
+    .12,
+    "triangle",
+    .018
+  );
+
+  beep(
+    1200,
+    .08,
+    "triangle",
+    .01
+  );
+}
+
+function soundZap(){
+
+  beep(
+    90,
+    .15,
+    "sawtooth",
+    .025
+  );
+
+  beep(
+    700,
+    .12,
+    "square",
+    .015
+  );
+}
+
+function soundBoom(){
+
+  beep(
+    55,
+    .28,
+    "sawtooth",
+    .055
+  );
+
+  setTimeout(
+    ()=>beep(
+      35,
+      .3,
+      "sine",
+      .04
+    ),
+    20
+  );
+}
+
+})();
+</script>
+</body>
+</html>
