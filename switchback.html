@@ -1,0 +1,2865 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>SWITCHBACK</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#e8dfcc;
+    color:#25231f;
+    font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+body{
+    touch-action:none;
+}
+
+canvas{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+    touch-action:none;
+}
+
+.overlay{
+    position:fixed;
+    inset:0;
+    z-index:10;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    background:rgba(232,223,204,.78);
+}
+
+.paper{
+    width:min(720px,94vw);
+    max-height:92vh;
+    overflow:auto;
+    background:#f5efdf;
+    border:3px solid #25231f;
+    box-shadow:
+        8px 8px 0 #25231f,
+        14px 14px 0 rgba(37,35,31,.13);
+    padding:34px;
+    position:relative;
+}
+
+.paper:before{
+    content:"";
+    position:absolute;
+    inset:10px;
+    border:1px dashed rgba(37,35,31,.2);
+    pointer-events:none;
+}
+
+.content{
+    position:relative;
+    z-index:1;
+}
+
+.kicker{
+    text-transform:uppercase;
+    letter-spacing:.2em;
+    font-size:11px;
+    font-weight:900;
+    color:#8e2c25;
+}
+
+h1{
+    margin:4px 0 0;
+    font-family:
+        Impact,
+        Haettenschweiler,
+        "Arial Narrow Bold",
+        sans-serif;
+    font-size:clamp(62px,12vw,110px);
+    line-height:.82;
+    letter-spacing:-.025em;
+    color:#25231f;
+    transform:rotate(-1deg);
+}
+
+h2{
+    font-size:34px;
+    margin:4px 0 8px;
+}
+
+.subtitle{
+    max-width:600px;
+    font-size:15px;
+    line-height:1.6;
+    margin:20px 0;
+}
+
+.instructions{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin:22px 0;
+}
+
+.instruction{
+    border:2px solid #25231f;
+    padding:13px;
+    background:#eee5d1;
+}
+
+.instruction b{
+    display:block;
+    margin-bottom:5px;
+    text-transform:uppercase;
+    font-size:12px;
+}
+
+.instruction span{
+    font-size:12px;
+    line-height:1.4;
+}
+
+button{
+    font:inherit;
+}
+
+.mainButton{
+    border:3px solid #25231f;
+    background:#c83b2e;
+    color:#fff8e8;
+    padding:13px 24px;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    cursor:pointer;
+    box-shadow:5px 5px 0 #25231f;
+    transition:
+        transform .08s,
+        box-shadow .08s;
+}
+
+.mainButton:hover{
+    transform:translate(-2px,-2px);
+    box-shadow:7px 7px 0 #25231f;
+}
+
+.mainButton:active{
+    transform:translate(4px,4px);
+    box-shadow:1px 1px 0 #25231f;
+}
+
+.best{
+    margin-top:15px;
+    font-size:12px;
+    opacity:.6;
+}
+
+.hidden{
+    display:none!important;
+}
+
+#hud{
+    position:fixed;
+    inset:0;
+    z-index:3;
+    pointer-events:none;
+}
+
+.hudTop{
+    position:absolute;
+    top:14px;
+    left:16px;
+    right:16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+}
+
+.hudBlock{
+    background:#f5efdf;
+    border:2px solid #25231f;
+    box-shadow:3px 3px 0 rgba(37,35,31,.7);
+    padding:7px 11px;
+    min-width:100px;
+}
+
+.hudLabel{
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-size:9px;
+    font-weight:900;
+    opacity:.55;
+}
+
+.hudValue{
+    font-size:21px;
+    font-weight:950;
+    line-height:1;
+}
+
+.hudRight{
+    display:flex;
+    gap:7px;
+}
+
+#status{
+    position:absolute;
+    left:50%;
+    top:15px;
+    transform:translateX(-50%);
+    background:#25231f;
+    color:#f5efdf;
+    padding:7px 13px;
+    font-weight:900;
+    text-transform:uppercase;
+    font-size:11px;
+    letter-spacing:.1em;
+}
+
+#emergency{
+    position:absolute;
+    bottom:18px;
+    left:50%;
+    transform:translateX(-50%);
+    pointer-events:auto;
+    border:2px solid #25231f;
+    background:#e2b52e;
+    color:#25231f;
+    padding:9px 15px;
+    font-weight:900;
+    text-transform:uppercase;
+    cursor:pointer;
+    box-shadow:3px 3px 0 #25231f;
+}
+
+#emergency:active{
+    transform:translate(calc(-50% + 3px),3px);
+    box-shadow:none;
+}
+
+#emergency.disabled{
+    opacity:.35;
+    pointer-events:none;
+}
+
+.stamp{
+    position:absolute;
+    top:90px;
+    right:22px;
+    transform:rotate(8deg);
+    border:3px solid #8e2c25;
+    color:#8e2c25;
+    padding:7px 12px;
+    font-size:13px;
+    font-weight:950;
+    text-transform:uppercase;
+    opacity:.85;
+}
+
+@media(max-width:650px){
+    .paper{
+        padding:25px;
+    }
+
+    .instructions{
+        grid-template-columns:1fr;
+    }
+
+    .hudBlock{
+        min-width:78px;
+    }
+
+    .hudValue{
+        font-size:17px;
+    }
+
+    #status{
+        top:72px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="hud" class="hidden">
+
+    <div class="hudTop">
+
+        <div class="hudBlock">
+            <div class="hudLabel">Delivered</div>
+            <div class="hudValue" id="score">0</div>
+        </div>
+
+        <div class="hudRight">
+
+            <div class="hudBlock">
+                <div class="hudLabel">Day</div>
+                <div class="hudValue" id="day">1</div>
+            </div>
+
+            <div class="hudBlock">
+                <div class="hudLabel">Mistakes</div>
+                <div class="hudValue" id="mistakes">3</div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div id="status">
+        ROUTE THE MAIL
+    </div>
+
+    <div class="stamp">
+        EXPRESS
+    </div>
+
+    <button id="emergency">
+        Emergency Reroute [SPACE]
+    </button>
+
+</div>
+
+<div id="menu" class="overlay">
+
+    <div class="paper">
+
+        <div class="content">
+
+            <div class="kicker">
+                Department of Unnecessarily Difficult Mail
+            </div>
+
+            <h1>SWITCHBACK</h1>
+
+            <div class="subtitle">
+                The parcels are moving. The machines are moving.
+                The deadline is moving. Unfortunately, your switches
+                are the only things that aren't smart enough to do
+                their jobs themselves.
+                <br><br>
+                Route every parcel into the correct processing station.
+                Flip switches at exactly the right moment.
+            </div>
+
+            <div class="instructions">
+
+                <div class="instruction">
+                    <b>01 — Flip</b>
+                    <span>
+                        Click or tap a black switch to change
+                        where the track sends parcels.
+                    </span>
+                </div>
+
+                <div class="instruction">
+                    <b>02 — Match</b>
+                    <span>
+                        Every parcel has a destination mark.
+                        Get it to the matching station.
+                    </span>
+                </div>
+
+                <div class="instruction">
+                    <b>03 — Risk</b>
+                    <span>
+                        Golden parcels are worth much more,
+                        but their routes are harder.
+                    </span>
+                </div>
+
+            </div>
+
+            <button class="mainButton" id="start">
+                Open The Depot
+            </button>
+
+            <div class="best">
+                Best delivery count:
+                <strong id="menuBest">0</strong>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div id="gameover" class="overlay hidden">
+
+    <div class="paper">
+
+        <div class="content">
+
+            <div class="kicker">
+                End of shift
+            </div>
+
+            <h2>THE DEPOT HAS CLOSED</h2>
+
+            <div class="subtitle">
+                Too many parcels went to the wrong place.
+                The supervisor has confiscated the switches.
+            </div>
+
+            <div class="instructions">
+
+                <div class="instruction">
+                    <b>Delivered</b>
+                    <span id="finalScore">0</span>
+                </div>
+
+                <div class="instruction">
+                    <b>Day</b>
+                    <span id="finalDay">1</span>
+                </div>
+
+                <div class="instruction">
+                    <b>Best</b>
+                    <span id="finalBest">0</span>
+                </div>
+
+            </div>
+
+            <button class="mainButton" id="restart">
+                Reopen Depot
+            </button>
+
+            <div class="best">
+                Press R or ENTER to restart.
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div id="pause" class="overlay hidden">
+
+    <div class="paper">
+
+        <div class="content">
+
+            <div class="kicker">
+                Everything has stopped
+            </div>
+
+            <h2>SHIFT PAUSED</h2>
+
+            <div class="subtitle">
+                The parcels are patiently waiting.
+                They are surprisingly understanding.
+            </div>
+
+            <button class="mainButton" id="resume">
+                Resume Shift
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   CANVAS SETUP
+========================================================= */
+
+const canvas =
+    document.getElementById("canvas");
+
+const ctx =
+    canvas.getContext("2d");
+
+let W = innerWidth;
+let H = innerHeight;
+let DPR = 1;
+
+function resize(){
+
+    W = innerWidth;
+    H = innerHeight;
+
+    DPR =
+        Math.min(
+            2,
+            window.devicePixelRatio || 1
+        );
+
+    canvas.width =
+        Math.floor(W * DPR);
+
+    canvas.height =
+        Math.floor(H * DPR);
+
+    canvas.style.width =
+        W + "px";
+
+    canvas.style.height =
+        H + "px";
+
+    ctx.setTransform(
+        DPR,
+        0,
+        0,
+        DPR,
+        0,
+        0
+    );
+
+    if(gameRunning){
+        buildLayout();
+    }
+}
+
+addEventListener(
+    "resize",
+    resize
+);
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const hud =
+    document.getElementById("hud");
+
+const menu =
+    document.getElementById("menu");
+
+const gameover =
+    document.getElementById("gameover");
+
+const pause =
+    document.getElementById("pause");
+
+const scoreEl =
+    document.getElementById("score");
+
+const dayEl =
+    document.getElementById("day");
+
+const mistakesEl =
+    document.getElementById("mistakes");
+
+const statusEl =
+    document.getElementById("status");
+
+const emergencyBtn =
+    document.getElementById("emergency");
+
+const menuBest =
+    document.getElementById("menuBest");
+
+const finalScore =
+    document.getElementById("finalScore");
+
+const finalDay =
+    document.getElementById("finalDay");
+
+const finalBest =
+    document.getElementById("finalBest");
+
+/* =========================================================
+   AUDIO
+========================================================= */
+
+let audio = null;
+
+function initAudio(){
+
+    if(audio) return;
+
+    try{
+
+        audio =
+            new (
+                window.AudioContext ||
+                window.webkitAudioContext
+            )();
+
+    }
+    catch(e){}
+
+}
+
+function beep(
+    frequency,
+    duration,
+    type="square",
+    volume=.035
+){
+
+    if(!audio) return;
+
+    try{
+
+        const osc =
+            audio.createOscillator();
+
+        const gain =
+            audio.createGain();
+
+        osc.type = type;
+
+        osc.frequency.setValueAtTime(
+            frequency,
+            audio.currentTime
+        );
+
+        gain.gain.setValueAtTime(
+            .0001,
+            audio.currentTime
+        );
+
+        gain.gain.exponentialRampToValueAtTime(
+            volume,
+            audio.currentTime+.008
+        );
+
+        gain.gain.exponentialRampToValueAtTime(
+            .0001,
+            audio.currentTime+duration
+        );
+
+        osc.connect(gain);
+        gain.connect(audio.destination);
+
+        osc.start();
+
+        osc.stop(
+            audio.currentTime+duration+.02
+        );
+
+    }
+    catch(e){}
+}
+
+function successSound(){
+
+    beep(420,.08,"square",.035);
+
+    setTimeout(
+        () => beep(620,.11,"square",.035),
+        55
+    );
+
+}
+
+function failureSound(){
+
+    beep(170,.18,"sawtooth",.045);
+
+}
+
+function switchSound(){
+
+    beep(260,.045,"square",.025);
+
+}
+
+/* =========================================================
+   GAME DATA
+========================================================= */
+
+let gameRunning = false;
+let paused = false;
+
+let score = 0;
+let day = 1;
+let mistakes = 3;
+
+let best =
+    Number(
+        localStorage.getItem(
+            "switchbackBest"
+        ) || 0
+    );
+
+let combo = 0;
+
+let switchers = [];
+let parcels = [];
+let particles = [];
+let floating = [];
+
+let layout = null;
+
+let spawnTimer = 0;
+let dayTimer = 0;
+let dayLength = 24;
+
+let emergency = 1;
+
+let mouseX = 0;
+let mouseY = 0;
+
+/* =========================================================
+   COLORS / VISUAL LANGUAGE
+========================================================= */
+
+const PAPER = "#f5efdf";
+const PAPER_DARK = "#e8dfcc";
+const INK = "#25231f";
+const RED = "#c83b2e";
+const YELLOW = "#e2b52e";
+const GREEN = "#617c4c";
+const PURPLE = "#72556f";
+
+/* =========================================================
+   RANDOM
+========================================================= */
+
+function rand(a,b){
+    return Math.random()*(b-a)+a;
+}
+
+function clamp(v,a,b){
+    return Math.max(
+        a,
+        Math.min(
+            b,
+            v
+        )
+    );
+}
+
+function distance(
+    a,b,c,d
+){
+    return Math.hypot(
+        a-c,
+        b-d
+    );
+}
+
+/* =========================================================
+   LAYOUT
+========================================================= */
+
+function buildLayout(){
+
+    const margin =
+        Math.max(
+            60,
+            Math.min(
+                110,
+                W*.1
+            )
+        );
+
+    const left = margin;
+    const right = W-margin;
+    const top = 125;
+    const bottom = H-85;
+
+    const width =
+        right-left;
+
+    const height =
+        bottom-top;
+
+    const cols =
+        W < 650 ? 3 : 5;
+
+    const rows =
+        W < 650 ? 4 : 4;
+
+    const sx =
+        width/(cols-1);
+
+    const sy =
+        height/(rows-1);
+
+    const nodes = [];
+
+    for(let y=0;y<rows;y++){
+
+        for(let x=0;x<cols;x++){
+
+            nodes.push({
+                x:left+x*sx,
+                y:top+y*sy
+            });
+
+        }
+
+    }
+
+    /*
+       Each node is a junction.
+       Some are switches.
+    */
+
+    switchers = [];
+
+    const candidates =
+        nodes.filter(
+            (_,i) =>
+                i % cols !== cols-1 &&
+                i >= cols
+        );
+
+    /*
+       Pick a different number of switches
+       depending on day.
+    */
+
+    const count =
+        Math.min(
+            candidates.length,
+            4 +
+            Math.floor(
+                day*.7
+            )
+        );
+
+    const shuffled =
+        [...candidates]
+            .sort(
+                () => Math.random()-.5
+            );
+
+    for(let i=0;i<count;i++){
+
+        const n =
+            shuffled[i];
+
+        switchers.push({
+
+            x:n.x,
+            y:n.y,
+
+            state:
+                Math.random()<.5
+                    ? 0
+                    : 1,
+
+            index:i,
+
+            flash:0,
+
+            /*
+               Memory mechanic:
+               every switch tracks which
+               side was used most recently.
+            */
+
+            lastInput:
+                Math.random()<.5
+                    ? 0
+                    : 1
+
+        });
+
+    }
+
+    layout = {
+        left,
+        right,
+        top,
+        bottom,
+        cols,
+        rows,
+        sx,
+        sy,
+        nodes
+    };
+
+}
+
+/* =========================================================
+   DESTINATIONS
+========================================================= */
+
+const destinations = [
+    {
+        name:"RED",
+        color:RED,
+        letter:"R"
+    },
+    {
+        name:"GOLD",
+        color:YELLOW,
+        letter:"G"
+    },
+    {
+        name:"GREEN",
+        color:GREEN,
+        letter:"N"
+    }
+];
+
+function randomDestination(){
+
+    return destinations[
+        Math.floor(
+            Math.random()*
+            destinations.length
+        )
+    ];
+
+}
+
+/* =========================================================
+   PARCEL ROUTING
+========================================================= */
+
+/*
+   Instead of simulating a complicated physical
+   rail network, the board is represented as
+   horizontal/vertical segments between junctions.
+
+   A parcel has a current node and a target.
+   At a switch, its route is selected by the
+   switch's current state.
+
+   The visual path is still completely deterministic.
+*/
+
+function routeForParcel(parcel){
+
+    const target =
+        parcel.destination;
+
+    /*
+       Pick a lane based on destination.
+       The switches determine whether the parcel
+       continues toward that lane or crosses.
+    */
+
+    let row =
+        parcel.row;
+
+    let col =
+        parcel.col;
+
+    const targetRow =
+        target === destinations[0]
+            ? 1
+            : target === destinations[1]
+                ? 2
+                : 3;
+
+    if(
+        col >= layout.cols-1
+    ){
+
+        return null;
+
+    }
+
+    let nextCol =
+        col+1;
+
+    let nextRow =
+        row;
+
+    const sw =
+        findSwitchAt(
+            nextCol,
+            nextRow
+        );
+
+    if(sw){
+
+        /*
+           Memory mechanic:
+           if a parcel enters from the
+           same side as the previous parcel,
+           the switch reverses its effective
+           choice.
+
+           This means blindly clicking the
+           same switch repeatedly is unreliable.
+        */
+
+        let choice =
+            sw.state;
+
+        if(
+            sw.lastInput ===
+            parcel.entrySide
+        ){
+
+            choice =
+                1-choice;
+
+        }
+
+        sw.lastInput =
+            parcel.entrySide;
+
+        if(choice === 1){
+
+            if(
+                row < targetRow
+            ){
+                nextRow++;
+            }
+            else if(
+                row > targetRow
+            ){
+                nextRow--;
+            }
+            else{
+
+                /*
+                   Already on the right row:
+                   switch sideways into a bonus
+                   lane if possible.
+                */
+
+                if(
+                    row > 0 &&
+                    Math.random()<.35
+                ){
+                    nextRow--;
+                }
+
+            }
+
+            nextRow =
+                clamp(
+                    nextRow,
+                    0,
+                    layout.rows-1
+                );
+
+        }
+
+    }
+    else{
+
+        /*
+           Non-switch nodes naturally drift toward
+           the destination lane.
+        */
+
+        if(
+            row < targetRow &&
+            Math.random()<.45
+        ){
+            nextRow++;
+        }
+        else if(
+            row > targetRow &&
+            Math.random()<.45
+        ){
+            nextRow--;
+        }
+
+    }
+
+    return {
+        col:nextCol,
+        row:nextRow
+    };
+
+}
+
+function findSwitchAt(
+    col,
+    row
+){
+
+    if(!layout) return null;
+
+    const node =
+        layout.nodes[
+            row*layout.cols+col
+        ];
+
+    if(!node) return null;
+
+    return switchers.find(
+        s =>
+            Math.abs(s.x-node.x)<2 &&
+            Math.abs(s.y-node.y)<2
+    );
+
+}
+
+/* =========================================================
+   PARCEL CREATION
+========================================================= */
+
+function spawnParcel(){
+
+    const destination =
+        randomDestination();
+
+    const rare =
+        Math.random() <
+        Math.min(
+            .08+day*.006,
+            .25
+        );
+
+    const row =
+        Math.floor(
+            Math.random()*
+            layout.rows
+        );
+
+    const speed =
+        75 +
+        day*4 +
+        rand(-5,15);
+
+    parcels.push({
+
+        x:layout.left-30,
+
+        y:
+            layout.top+
+            row*layout.sy,
+
+        row,
+        col:-1,
+
+        targetRow:
+            destination === destinations[0]
+                ? 1
+                : destination === destinations[1]
+                    ? 2
+                    : 3,
+
+        destination,
+
+        speed,
+
+        progress:0,
+
+        entrySide:
+            Math.random()<.5
+                ? 0
+                : 1,
+
+        rare,
+
+        value:
+            rare
+                ? 400
+                : 100,
+
+        life:0,
+
+        dead:false,
+
+        path:[],
+
+        currentNode:null
+
+    });
+
+}
+
+/* =========================================================
+   SWITCH INTERACTION
+========================================================= */
+
+function toggleSwitch(sw){
+
+    if(!gameRunning || paused){
+        return;
+    }
+
+    sw.state =
+        1-sw.state;
+
+    sw.flash =
+        .35;
+
+    switchSound();
+
+    /*
+       Small reward for actually interacting.
+    */
+
+    floating.push({
+        x:sw.x,
+        y:sw.y-24,
+        text:
+            sw.state
+                ? "DIVERGE"
+                : "STRAIGHT",
+        color:
+            sw.state
+                ? RED
+                : INK,
+        life:.7,
+        ttl:.7
+    });
+
+}
+
+/* =========================================================
+   MOUSE / TOUCH
+========================================================= */
+
+function getPointer(e){
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+    return {
+        x:
+            e.clientX-
+            rect.left,
+
+        y:
+            e.clientY-
+            rect.top
+    };
+
+}
+
+canvas.addEventListener(
+    "pointerdown",
+    e => {
+
+        const p =
+            getPointer(e);
+
+        mouseX = p.x;
+        mouseY = p.y;
+
+        if(
+            !gameRunning ||
+            paused
+        ){
+            return;
+        }
+
+        for(const sw of switchers){
+
+            if(
+                distance(
+                    p.x,
+                    p.y,
+                    sw.x,
+                    sw.y
+                ) < 32
+            ){
+
+                toggleSwitch(sw);
+
+                return;
+            }
+
+        }
+
+    }
+);
+
+/* =========================================================
+   KEYBOARD
+========================================================= */
+
+const keys = new Set();
+
+addEventListener(
+    "keydown",
+    e => {
+
+        const key =
+            e.key.toLowerCase();
+
+        keys.add(key);
+
+        if(
+            [
+                " ",
+                "arrowup",
+                "arrowdown",
+                "arrowleft",
+                "arrowright"
+            ].includes(key)
+        ){
+            e.preventDefault();
+        }
+
+        if(key === "p"){
+            togglePause();
+        }
+
+        if(
+            key === "r" &&
+            !gameRunning
+        ){
+            startGame();
+        }
+
+        if(
+            key === "enter" &&
+            !gameRunning
+        ){
+            startGame();
+        }
+
+        /*
+           Number keys select switches.
+        */
+
+        if(
+            key >= "1" &&
+            key <= "9"
+        ){
+
+            const index =
+                Number(key)-1;
+
+            if(
+                switchers[index]
+            ){
+
+                toggleSwitch(
+                    switchers[index]
+                );
+
+            }
+
+        }
+
+        if(key === " "){
+            emergencyReroute();
+        }
+
+    },
+    {passive:false}
+);
+
+addEventListener(
+    "keyup",
+    e => {
+
+        keys.delete(
+            e.key.toLowerCase()
+        );
+
+    }
+);
+
+/* =========================================================
+   EMERGENCY REROUTE
+========================================================= */
+
+function emergencyReroute(){
+
+    if(
+        !gameRunning ||
+        paused ||
+        emergency <= 0
+    ){
+        return;
+    }
+
+    emergency--;
+
+    emergencyBtn.classList.add(
+        "disabled"
+    );
+
+    /*
+       Every active parcel gets a brief
+       speed reduction and is shifted toward
+       its target lane.
+    */
+
+    for(const p of parcels){
+
+        if(p.dead) continue;
+
+        const targetY =
+            layout.top+
+            p.targetRow*
+            layout.sy;
+
+        p.y +=
+            clamp(
+                targetY-p.y,
+                -55,
+                55
+            );
+
+        p.speed *= .55;
+
+    }
+
+    floating.push({
+        x:W/2,
+        y:H/2,
+        text:"ROUTE CLEARED",
+        color:RED,
+        life:1,
+        ttl:1,
+        big:true
+    });
+
+    beep(
+        110,
+        .3,
+        "sawtooth",
+        .045
+    );
+
+}
+
+/* =========================================================
+   PAUSE
+========================================================= */
+
+function togglePause(){
+
+    if(!gameRunning){
+        return;
+    }
+
+    paused = !paused;
+
+    if(paused){
+
+        pause.classList.remove(
+            "hidden"
+        );
+
+    }
+    else{
+
+        pause.classList.add(
+            "hidden"
+        );
+
+    }
+
+}
+
+document
+    .getElementById("resume")
+    .onclick =
+    () => {
+
+        paused = false;
+
+        pause.classList.add(
+            "hidden"
+        );
+
+    };
+
+/* =========================================================
+   PARCEL UPDATE
+========================================================= */
+
+function updateParcel(
+    p,
+    dt
+){
+
+    p.life += dt;
+
+    /*
+       Before entering the board, parcel moves
+       horizontally.
+    */
+
+    if(p.col < 0){
+
+        p.x +=
+            p.speed*dt;
+
+        const firstX =
+            layout.left;
+
+        if(p.x >= firstX){
+
+            p.x = firstX;
+
+            p.col = 0;
+
+        }
+
+        return;
+
+    }
+
+    /*
+       Determine target node.
+    */
+
+    const targetY =
+        layout.top+
+        p.targetRow*
+        layout.sy;
+
+    /*
+       The parcel moves along its current lane.
+    */
+
+    p.x +=
+        p.speed*dt;
+
+    /*
+       Slowly bend toward destination lane.
+    */
+
+    const verticalStrength =
+        .9+
+        day*.025;
+
+    p.y +=
+        clamp(
+            targetY-p.y,
+            -p.speed*verticalStrength*dt,
+            p.speed*verticalStrength*dt
+        );
+
+    /*
+       If it passes a junction, evaluate its switch.
+    */
+
+    const currentCol =
+        clamp(
+            Math.floor(
+                (
+                    p.x-
+                    layout.left
+                ) /
+                layout.sx
+            ),
+            0,
+            layout.cols-1
+        );
+
+    if(
+        currentCol !== p.col
+    ){
+
+        p.col =
+            currentCol;
+
+        const result =
+            routeForParcel(p);
+
+        if(result){
+
+            p.row =
+                result.row;
+
+            p.targetRow =
+                clamp(
+                    p.targetRow+
+                    (
+                        Math.random()<.18
+                            ? (
+                                Math.random()<.5
+                                    ? -1
+                                    : 1
+                            )
+                            : 0
+                    ),
+                    0,
+                    layout.rows-1
+                );
+
+        }
+
+    }
+
+    /*
+       Destination reached.
+    */
+
+    const exitX =
+        layout.right+35;
+
+    if(p.x >= exitX){
+
+        const correct =
+            Math.abs(
+                p.y-
+                targetY
+            ) < layout.sy*.35;
+
+        if(correct){
+
+            deliverParcel(p);
+
+        }
+        else{
+
+            wrongParcel(p);
+
+        }
+
+    }
+
+}
+
+/* =========================================================
+   DELIVERY
+========================================================= */
+
+function deliverParcel(p){
+
+    p.dead = true;
+
+    const multiplier =
+        1+
+        Math.min(
+            4,
+            combo*.15
+        );
+
+    const points =
+        Math.round(
+            p.value*multiplier
+        );
+
+    score += points;
+
+    combo++;
+
+    successSound();
+
+    floating.push({
+
+        x:p.x,
+        y:p.y-15,
+
+        text:
+            "+"+
+            points+
+            (
+                combo>=3
+                    ? "  COMBO x"+combo
+                    : ""
+            ),
+
+        color:
+            p.rare
+                ? YELLOW
+                : GREEN,
+
+        life:1,
+        ttl:1,
+
+        big:p.rare
+
+    });
+
+    for(let i=0;i<14;i++){
+
+        const a =
+            Math.random()*
+            Math.PI*2;
+
+        particles.push({
+
+            x:p.x,
+            y:p.y,
+
+            vx:
+                Math.cos(a)*
+                rand(40,150),
+
+            vy:
+                Math.sin(a)*
+                rand(40,150),
+
+            size:
+                rand(2,5),
+
+            life:.55,
+            ttl:.55,
+
+            color:
+                p.rare
+                    ? YELLOW
+                    : GREEN
+
+        });
+
+    }
+
+}
+
+/* =========================================================
+   WRONG DELIVERY
+========================================================= */
+
+function wrongParcel(p){
+
+    p.dead = true;
+
+    mistakes--;
+
+    combo = 0;
+
+    failureSound();
+
+    floating.push({
+
+        x:p.x,
+        y:p.y-15,
+
+        text:
+            "WRONG DEPOT",
+
+        color:RED,
+
+        life:1,
+        ttl:1,
+
+        big:true
+
+    });
+
+    for(let i=0;i<18;i++){
+
+        const a =
+            Math.random()*
+            Math.PI*2;
+
+        particles.push({
+
+            x:p.x,
+            y:p.y,
+
+            vx:
+                Math.cos(a)*
+                rand(40,130),
+
+            vy:
+                Math.sin(a)*
+                rand(40,130),
+
+            size:
+                rand(2,4),
+
+            life:.6,
+            ttl:.6,
+
+            color:RED
+
+        });
+
+    }
+
+    if(mistakes <= 0){
+
+        endGame();
+
+    }
+
+}
+
+/* =========================================================
+   UPDATE
+========================================================= */
+
+function update(dt){
+
+    if(
+        !gameRunning ||
+        paused
+    ){
+        return;
+    }
+
+    /*
+       Day progression.
+    */
+
+    dayTimer += dt;
+
+    if(dayTimer >= dayLength){
+
+        day++;
+
+        dayTimer = 0;
+
+        buildLayout();
+
+        /*
+           Restore one mistake every few days.
+        */
+
+        if(
+            day%3 === 0 &&
+            mistakes < 3
+        ){
+
+            mistakes++;
+
+        }
+
+        floating.push({
+
+            x:W/2,
+            y:100,
+
+            text:
+                "DAY "+day,
+
+            color:INK,
+
+            life:1.2,
+            ttl:1.2,
+
+            big:true
+
+        });
+
+        beep(
+            300,
+            .15,
+            "square",
+            .04
+        );
+
+    }
+
+    /*
+       Spawn rate increases with day.
+    */
+
+    spawnTimer -= dt;
+
+    if(spawnTimer <= 0){
+
+        spawnParcel();
+
+        const interval =
+            Math.max(
+                .45,
+                1.45-
+                day*.035
+            );
+
+        spawnTimer =
+            rand(
+                interval*.7,
+                interval*1.25
+            );
+
+    }
+
+    /*
+       Update parcels.
+    */
+
+    for(const p of parcels){
+
+        if(!p.dead){
+
+            updateParcel(
+                p,
+                dt
+            );
+
+        }
+
+    }
+
+    parcels =
+        parcels.filter(
+            p => !p.dead
+        );
+
+    /*
+       Switch flashes.
+    */
+
+    for(const sw of switchers){
+
+        sw.flash =
+            Math.max(
+                0,
+                sw.flash-dt
+            );
+
+    }
+
+    /*
+       Particles.
+    */
+
+    for(const p of particles){
+
+        p.life -= dt;
+
+        p.x +=
+            p.vx*dt;
+
+        p.y +=
+            p.vy*dt;
+
+        p.vx *=
+            Math.pow(
+                .03,
+                dt
+            );
+
+        p.vy *=
+            Math.pow(
+                .03,
+                dt
+            );
+
+    }
+
+    particles =
+        particles.filter(
+            p => p.life > 0
+        );
+
+    /*
+       Floating text.
+    */
+
+    for(const f of floating){
+
+        f.life -= dt;
+
+        f.y -=
+            (f.big ? 24 : 18)*dt;
+
+    }
+
+    floating =
+        floating.filter(
+            f => f.life > 0
+        );
+
+    /*
+       HUD.
+    */
+
+    scoreEl.textContent =
+        score.toLocaleString();
+
+    dayEl.textContent =
+        day;
+
+    mistakesEl.textContent =
+        mistakes;
+
+    emergencyBtn.textContent =
+        emergency > 0
+            ? "Emergency Reroute [SPACE]"
+            : "Emergency Used";
+
+    if(emergency > 0){
+
+        emergencyBtn.classList.remove(
+            "disabled"
+        );
+
+    }
+
+    statusEl.textContent =
+        combo >= 5
+            ? "COMBO x"+combo
+            : "ROUTE THE MAIL";
+
+}
+
+/* =========================================================
+   DRAW BACKGROUND
+========================================================= */
+
+function drawBackground(){
+
+    ctx.fillStyle =
+        PAPER_DARK;
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+    /*
+       Paper grain.
+       Deterministic-looking random marks
+       are cheap and give the background
+       a printed texture.
+    */
+
+    ctx.globalAlpha = .13;
+
+    for(let i=0;i<180;i++){
+
+        const x =
+            (i*83)%W;
+
+        const y =
+            (i*137)%H;
+
+        ctx.fillStyle =
+            i%3===0
+                ? "#7d715f"
+                : "#c5b99f";
+
+        ctx.fillRect(
+            x,
+            y,
+            1,
+            1
+        );
+
+    }
+
+    ctx.globalAlpha = 1;
+
+}
+
+/* =========================================================
+   DRAW TRACKS
+========================================================= */
+
+function drawTracks(){
+
+    if(!layout) return;
+
+    /*
+       Main depot board.
+    */
+
+    ctx.fillStyle =
+        "#d7ccb6";
+
+    ctx.fillRect(
+        layout.left-32,
+        layout.top-32,
+        layout.right-layout.left+64,
+        layout.bottom-layout.top+64
+    );
+
+    ctx.strokeStyle =
+        "rgba(37,35,31,.18)";
+
+    ctx.lineWidth = 1;
+
+    /*
+       horizontal rails
+    */
+
+    for(let r=0;r<layout.rows;r++){
+
+        const y =
+            layout.top+
+            r*layout.sy;
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            layout.left-35,
+            y
+        );
+
+        ctx.lineTo(
+            layout.right+40,
+            y
+        );
+
+        ctx.stroke();
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            layout.left-35,
+            y+8
+        );
+
+        ctx.lineTo(
+            layout.right+40,
+            y+8
+        );
+
+        ctx.stroke();
+
+    }
+
+    /*
+       vertical junction guides.
+    */
+
+    for(let c=0;c<layout.cols;c++){
+
+        const x =
+            layout.left+
+            c*layout.sx;
+
+        ctx.strokeStyle =
+            "rgba(37,35,31,.08)";
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            x,
+            layout.top-25
+        );
+
+        ctx.lineTo(
+            x,
+            layout.bottom+25
+        );
+
+        ctx.stroke();
+
+    }
+
+    /*
+       Entrance.
+    */
+
+    ctx.fillStyle = INK;
+
+    ctx.font =
+        "900 10px system-ui";
+
+    ctx.textAlign =
+        "left";
+
+    ctx.fillText(
+        "INCOMING",
+        layout.left-36,
+        layout.top-42
+    );
+
+    /*
+       Exit labels.
+    */
+
+    for(let i=0;i<destinations.length;i++){
+
+        const d =
+            destinations[i];
+
+        const y =
+            layout.top+
+            (i+1)*layout.sy;
+
+        ctx.fillStyle =
+            d.color;
+
+        ctx.fillRect(
+            layout.right+15,
+            y-16,
+            44,
+            32
+        );
+
+        ctx.fillStyle =
+            "#fff8e8";
+
+        ctx.font =
+            "900 11px system-ui";
+
+        ctx.textAlign =
+            "center";
+
+        ctx.fillText(
+            d.letter,
+            layout.right+37,
+            y+4
+        );
+
+    }
+
+}
+
+/* =========================================================
+   DRAW SWITCHES
+========================================================= */
+
+function drawSwitches(){
+
+    for(const sw of switchers){
+
+        ctx.save();
+
+        /*
+           Shadow.
+        */
+
+        ctx.fillStyle =
+            "rgba(37,35,31,.18)";
+
+        ctx.fillRect(
+            sw.x-16+3,
+            sw.y-16+4,
+            32,
+            32
+        );
+
+        /*
+           Body.
+        */
+
+        ctx.fillStyle =
+            sw.flash>0
+                ? "#fff2bd"
+                : PAPER;
+
+        ctx.strokeStyle =
+            INK;
+
+        ctx.lineWidth = 2;
+
+        ctx.fillRect(
+            sw.x-16,
+            sw.y-16,
+            32,
+            32
+        );
+
+        ctx.strokeRect(
+            sw.x-16,
+            sw.y-16,
+            32,
+            32
+        );
+
+        /*
+           Lever.
+        */
+
+        ctx.strokeStyle =
+            sw.state
+                ? RED
+                : INK;
+
+        ctx.lineWidth = 5;
+
+        ctx.lineCap =
+            "round";
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            sw.x,
+            sw.y
+        );
+
+        if(sw.state){
+
+            ctx.lineTo(
+                sw.x+10,
+                sw.y-10
+            );
+
+        }
+        else{
+
+            ctx.lineTo(
+                sw.x+10,
+                sw.y+10
+            );
+
+        }
+
+        ctx.stroke();
+
+        /*
+           Number.
+        */
+
+        ctx.fillStyle =
+            INK;
+
+        ctx.font =
+            "900 9px system-ui";
+
+        ctx.textAlign =
+            "center";
+
+        ctx.fillText(
+            sw.index+1,
+            sw.x,
+            sw.y+4
+        );
+
+        ctx.restore();
+
+    }
+
+}
+
+/* =========================================================
+   DRAW PARCELS
+========================================================= */
+
+function drawParcels(){
+
+    for(const p of parcels){
+
+        ctx.save();
+
+        ctx.translate(
+            p.x,
+            p.y
+        );
+
+        /*
+           Parcel shadow.
+        */
+
+        ctx.fillStyle =
+            "rgba(37,35,31,.2)";
+
+        ctx.fillRect(
+            -11,
+            -7+3,
+            22,
+            14
+        );
+
+        /*
+           Parcel.
+        */
+
+        ctx.fillStyle =
+            p.rare
+                ? "#e6c766"
+                : "#f1e7cd";
+
+        ctx.strokeStyle =
+            INK;
+
+        ctx.lineWidth =
+            p.rare ? 3 : 2;
+
+        ctx.fillRect(
+            -11,
+            -7,
+            22,
+            14
+        );
+
+        ctx.strokeRect(
+            -11,
+            -7,
+            22,
+            14
+        );
+
+        /*
+           Destination stamp.
+        */
+
+        ctx.fillStyle =
+            p.destination.color;
+
+        ctx.fillRect(
+            -7,
+            -4,
+            14,
+            8
+        );
+
+        ctx.fillStyle =
+            "#fff8e8";
+
+        ctx.font =
+            "900 7px system-ui";
+
+        ctx.textAlign =
+            "center";
+
+        ctx.fillText(
+            p.destination.letter,
+            0,
+            3
+        );
+
+        /*
+           Rare parcel has a gold corner.
+        */
+
+        if(p.rare){
+
+            ctx.fillStyle =
+                "#25231f";
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                5,
+                -7
+            );
+
+            ctx.lineTo(
+                11,
+                -7
+            );
+
+            ctx.lineTo(
+                11,
+                -1
+            );
+
+            ctx.closePath();
+
+            ctx.fill();
+
+        }
+
+        ctx.restore();
+
+    }
+
+}
+
+/* =========================================================
+   DRAW EFFECTS
+========================================================= */
+
+function drawEffects(){
+
+    for(const p of particles){
+
+        ctx.globalAlpha =
+            clamp(
+                p.life/p.ttl,
+                0,
+                1
+            );
+
+        ctx.fillStyle =
+            p.color ||
+            INK;
+
+        ctx.fillRect(
+            p.x,
+            p.y,
+            p.size,
+            p.size
+        );
+
+    }
+
+    ctx.globalAlpha = 1;
+
+    for(const f of floating){
+
+        ctx.globalAlpha =
+            clamp(
+                f.life/f.ttl,
+                0,
+                1
+            );
+
+        ctx.fillStyle =
+            f.color;
+
+        ctx.font =
+            f.big
+                ? "900 21px system-ui"
+                : "900 13px system-ui";
+
+        ctx.textAlign =
+            "center";
+
+        ctx.fillText(
+            f.text,
+            f.x,
+            f.y
+        );
+
+    }
+
+    ctx.globalAlpha = 1;
+
+}
+
+/* =========================================================
+   DRAW
+========================================================= */
+
+function draw(){
+
+    drawBackground();
+
+    if(gameRunning){
+
+        drawTracks();
+
+        drawSwitches();
+
+        drawParcels();
+
+        drawEffects();
+
+    }
+    else{
+
+        /*
+           Menu illustration.
+        */
+
+        drawDecorativeMachine();
+
+    }
+
+    requestAnimationFrame(
+        draw
+    );
+
+}
+
+/* =========================================================
+   MENU ILLUSTRATION
+========================================================= */
+
+function drawDecorativeMachine(){
+
+    const cx =
+        W/2;
+
+    const cy =
+        H*.74;
+
+    ctx.save();
+
+    ctx.translate(
+        cx,
+        cy
+    );
+
+    ctx.fillStyle =
+        "#d2c4aa";
+
+    ctx.strokeStyle =
+        INK;
+
+    ctx.lineWidth = 3;
+
+    ctx.fillRect(
+        -180,
+        -55,
+        360,
+        90
+    );
+
+    ctx.strokeRect(
+        -180,
+        -55,
+        360,
+        90
+    );
+
+    /*
+       gears
+    */
+
+    for(const x of [-105,0,105]){
+
+        ctx.beginPath();
+
+        ctx.arc(
+            x,
+            -10,
+            30,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fillStyle =
+            "#f5efdf";
+
+        ctx.fill();
+
+        ctx.stroke();
+
+        for(let i=0;i<8;i++){
+
+            const a =
+                i*Math.PI/4;
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                x+
+                Math.cos(a)*24,
+                -10+
+                Math.sin(a)*24
+            );
+
+            ctx.lineTo(
+                x+
+                Math.cos(a)*35,
+                -10+
+                Math.sin(a)*35
+            );
+
+            ctx.stroke();
+
+        }
+
+        ctx.fillStyle =
+            INK;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            x,
+            -10,
+            5,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+
+    }
+
+    /*
+       Conveyor.
+    */
+
+    ctx.fillStyle =
+        INK;
+
+    ctx.fillRect(
+        -220,
+        38,
+        440,
+        7
+    );
+
+    ctx.fillStyle =
+        RED;
+
+    ctx.fillRect(
+        -25,
+        10,
+        50,
+        20
+    );
+
+    ctx.fillStyle =
+        "#fff8e8";
+
+    ctx.font =
+        "900 11px system-ui";
+
+    ctx.textAlign =
+        "center";
+
+    ctx.fillText(
+        "MAIL",
+        0,
+        24
+    );
+
+    ctx.restore();
+
+}
+
+/* =========================================================
+   START / END
+========================================================= */
+
+function startGame(){
+
+    initAudio();
+
+    if(
+        audio &&
+        audio.state === "suspended"
+    ){
+
+        audio.resume();
+
+    }
+
+    menu.classList.add(
+        "hidden"
+    );
+
+    gameover.classList.add(
+        "hidden"
+    );
+
+    pause.classList.add(
+        "hidden"
+    );
+
+    hud.classList.remove(
+        "hidden"
+    );
+
+    gameRunning = true;
+    paused = false;
+
+    score = 0;
+    day = 1;
+    mistakes = 3;
+    combo = 0;
+
+    emergency = 1;
+
+    parcels = [];
+    particles = [];
+    floating = [];
+
+    dayTimer = 0;
+    spawnTimer = .5;
+
+    buildLayout();
+
+    emergencyBtn.classList.remove(
+        "disabled"
+    );
+
+    scoreEl.textContent = "0";
+    dayEl.textContent = "1";
+    mistakesEl.textContent = "3";
+
+    beep(
+        180,
+        .1,
+        "square",
+        .03
+    );
+
+}
+
+function endGame(){
+
+    gameRunning = false;
+    paused = false;
+
+    best =
+        Math.max(
+            best,
+            score
+        );
+
+    localStorage.setItem(
+        "switchbackBest",
+        String(best)
+    );
+
+    finalScore.textContent =
+        score.toLocaleString();
+
+    finalDay.textContent =
+        day;
+
+    finalBest.textContent =
+        best.toLocaleString();
+
+    menuBest.textContent =
+        best.toLocaleString();
+
+    hud.classList.add(
+        "hidden"
+    );
+
+    gameover.classList.remove(
+        "hidden"
+    );
+
+}
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+document
+    .getElementById("start")
+    .addEventListener(
+        "click",
+        startGame
+    );
+
+document
+    .getElementById("restart")
+    .addEventListener(
+        "click",
+        startGame
+    );
+
+emergencyBtn.addEventListener(
+    "click",
+    emergencyReroute
+);
+
+/* =========================================================
+   GAME LOOP
+========================================================= */
+
+let last =
+    performance.now();
+
+function loop(now){
+
+    let dt =
+        (now-last)/1000;
+
+    last = now;
+
+    dt =
+        Math.min(
+            dt,
+            .05
+        );
+
+    update(dt);
+
+    requestAnimationFrame(
+        loop
+    );
+
+}
+
+/* =========================================================
+   INITIALIZATION
+========================================================= */
+
+menuBest.textContent =
+    best.toLocaleString();
+
+resize();
+
+draw();
+
+requestAnimationFrame(
+    loop
+);
+
+})();
+</script>
+
+</body>
+</html>
+```
