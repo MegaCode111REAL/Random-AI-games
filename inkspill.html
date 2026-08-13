@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>INKSPILL</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{
+  background:#f7f1e8;
+  color:#24211f;
+  font-family:Arial,Helvetica,sans-serif;
+  touch-action:none;
+}
+canvas{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+}
+#ui{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+#top{
+  position:absolute;
+  top:20px;
+  left:24px;
+  right:24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+}
+.stats{
+  display:flex;
+  gap:20px;
+  align-items:flex-start;
+}
+.stat{
+  min-width:70px;
+}
+.stat small{
+  display:block;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:#7c746c;
+  margin-bottom:4px;
+}
+.stat strong{
+  display:block;
+  font-size:27px;
+  line-height:1;
+  font-weight:900;
+}
+#pause{
+  pointer-events:auto;
+  border:0;
+  background:transparent;
+  color:#24211f;
+  font-weight:900;
+  font-size:11px;
+  letter-spacing:.12em;
+  cursor:pointer;
+  padding:8px;
+}
+#message{
+  position:absolute;
+  left:50%;
+  top:25px;
+  transform:translateX(-50%);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:#9b332e;
+  opacity:0;
+  transition:opacity .2s;
+}
+.overlay{
+  position:fixed;
+  inset:0;
+  z-index:5;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#f7f1e8;
+}
+.overlay.hidden{display:none}
+.panel{
+  width:min(760px,90vw);
+  text-align:center;
+}
+.logo{
+  font-size:clamp(64px,14vw,150px);
+  line-height:.78;
+  font-weight:1000;
+  letter-spacing:-.09em;
+  color:#24211f;
+  margin:0;
+}
+.logo span{
+  color:#9b332e;
+}
+.subtitle{
+  margin:28px auto 35px;
+  max-width:550px;
+  font-size:14px;
+  line-height:1.65;
+  color:#645d57;
+}
+.start{
+  appearance:none;
+  border:0;
+  background:#24211f;
+  color:#f7f1e8;
+  padding:17px 30px;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:transform .12s,background .12s;
+}
+.start:hover{background:#9b332e}
+.start:active{transform:scale(.96)}
+.help{
+  margin-top:22px;
+  color:#817970;
+  font-size:10px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+#gameover .score{
+  font-size:64px;
+  font-weight:1000;
+  letter-spacing:-.06em;
+  margin:20px 0;
+}
+#gameover .label{
+  font-size:10px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:#827970;
+}
+#pauseScreen .pauseTitle{
+  font-size:52px;
+  font-weight:1000;
+  letter-spacing:-.05em;
+}
+@media(max-width:600px){
+  #top{top:14px;left:15px;right:15px}
+  .stats{gap:13px}
+  .stat strong{font-size:21px}
+  .stat{min-width:50px}
+  #pause{font-size:9px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="ui">
+  <div id="top">
+    <div class="stats">
+      <div class="stat">
+        <small>Score</small>
+        <strong id="score">0</strong>
+      </div>
+      <div class="stat">
+        <small>Combo</small>
+        <strong id="combo">0</strong>
+      </div>
+      <div class="stat">
+        <small>Stage</small>
+        <strong id="stage">1</strong>
+      </div>
+    </div>
+    <button id="pause" type="button">PAUSE</button>
+  </div>
+  <div id="message"></div>
+</div>
+
+<div id="title" class="overlay">
+  <div class="panel">
+    <div class="logo">INK<span>SPILL</span></div>
+    <div class="subtitle">
+      Paint is leaking into an empty canvas.<br>
+      Catch the falling drops with your moving shape —
+      but every drop you catch changes the shape itself.
+    </div>
+    <button id="start" class="start" type="button">Start Drawing</button>
+    <div class="help">Move with mouse, touch or arrow keys</div>
+  </div>
+</div>
+
+<div id="pauseScreen" class="overlay hidden">
+  <div class="panel">
+    <div class="pauseTitle">PAUSED</div>
+    <div class="subtitle">The ink waits.</div>
+    <button id="resume" class="start" type="button">Continue</button>
+  </div>
+</div>
+
+<div id="gameover" class="overlay hidden">
+  <div class="panel">
+    <div class="label">Canvas ruined</div>
+    <div class="score" id="finalScore">0</div>
+    <div class="subtitle" id="resultText"></div>
+    <button id="again" class="start" type="button">Draw Again</button>
+    <div class="help">Best: <span id="best">0</span></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+
+const title=document.getElementById("title");
+const pauseScreen=document.getElementById("pauseScreen");
+const gameover=document.getElementById("gameover");
+
+const startBtn=document.getElementById("start");
+const resumeBtn=document.getElementById("resume");
+const againBtn=document.getElementById("again");
+const pauseBtn=document.getElementById("pause");
+
+const scoreEl=document.getElementById("score");
+const comboEl=document.getElementById("combo");
+const stageEl=document.getElementById("stage");
+const finalScoreEl=document.getElementById("finalScore");
+const resultText=document.getElementById("resultText");
+const bestEl=document.getElementById("best");
+const messageEl=document.getElementById("message");
+
+let W=innerWidth;
+let H=innerHeight;
+let DPR=1;
+
+let state="title";
+let score=0;
+let combo=0;
+let stage=1;
+let best=0;
+
+let player={
+  x:W/2,
+  y:H*.82,
+  vx:0,
+  width:90,
+  targetX:W/2,
+  shape:0,
+  rotation:0
+};
+
+let drops=[];
+let particles=[];
+let marks=[];
+
+let spawnTimer=0;
+let stageTimer=0;
+let elapsed=0;
+let last=performance.now();
+
+let keys={
+  left:false,
+  right:false
+};
+
+const colors=[
+  "#9b332e",
+  "#274c5a",
+  "#d08a32",
+  "#536b3d",
+  "#754b6b",
+  "#252321"
+];
+
+function clamp(v,min,max){
+  return Math.max(min,Math.min(max,v));
+}
+
+function rand(min,max){
+  return Math.random()*(max-min)+min;
+}
+
+function resize(){
+  W=innerWidth;
+  H=innerHeight;
+
+  DPR=Math.min(2,window.devicePixelRatio||1);
+
+  canvas.width=Math.floor(W*DPR);
+  canvas.height=Math.floor(H*DPR);
+
+  canvas.style.width=W+"px";
+  canvas.style.height=H+"px";
+
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+
+  player.y=H*.82;
+  player.x=clamp(player.x,40,W-40);
+  player.targetX=player.x;
+}
+
+window.addEventListener("resize",resize);
+
+function loadBest(){
+  try{
+    best=Number(localStorage.getItem("inkspill-best")||0);
+  }catch(e){
+    best=0;
+  }
+  bestEl.textContent=best.toLocaleString();
+}
+
+loadBest();
+
+function sound(freq,duration=.07,type="sine"){
+  try{
+    if(!window.AudioContext&&!window.webkitAudioContext)return;
+
+    if(!sound.ctx){
+      sound.ctx=new(window.AudioContext||window.webkitAudioContext)();
+    }
+
+    if(sound.ctx.state==="suspended"){
+      sound.ctx.resume().catch(()=>{});
+    }
+
+    const o=sound.ctx.createOscillator();
+    const g=sound.ctx.createGain();
+
+    o.type=type;
+    o.frequency.value=freq;
+
+    g.gain.setValueAtTime(.0001,sound.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.025,sound.ctx.currentTime+.01);
+    g.gain.exponentialRampToValueAtTime(.0001,sound.ctx.currentTime+duration);
+
+    o.connect(g);
+    g.connect(sound.ctx.destination);
+
+    o.start();
+    o.stop(sound.ctx.currentTime+duration+.02);
+  }catch(e){}
+}
+
+function resetGame(){
+  score=0;
+  combo=0;
+  stage=1;
+
+  player={
+    x:W/2,
+    y:H*.82,
+    vx:0,
+    width:90,
+    targetX:W/2,
+    shape:0,
+    rotation:0
+  };
+
+  drops=[];
+  particles=[];
+  marks=[];
+
+  spawnTimer=.4;
+  stageTimer=0;
+  elapsed=0;
+
+  updateHUD();
+}
+
+function startGame(){
+  resetGame();
+
+  state="playing";
+
+  title.classList.add("hidden");
+  pauseScreen.classList.add("hidden");
+  gameover.classList.add("hidden");
+
+  messageEl.style.opacity="0";
+
+  sound(280,.1,"triangle");
+}
+
+function pauseGame(){
+  if(state!=="playing")return;
+
+  state="paused";
+  pauseScreen.classList.remove("hidden");
+}
+
+function resumeGame(){
+  if(state!=="paused")return;
+
+  state="playing";
+  pauseScreen.classList.add("hidden");
+  last=performance.now();
+}
+
+function endGame(){
+  if(state!=="playing")return;
+
+  state="gameover";
+
+  if(score>best){
+    best=score;
+
+    try{
+      localStorage.setItem("inkspill-best",String(best));
+    }catch(e){}
+  }
+
+  finalScoreEl.textContent=score.toLocaleString();
+  bestEl.textContent=best.toLocaleString();
+
+  resultText.textContent=
+    combo>=8
+      ?"You found a rhythm. The canvas didn't."
+      :"The ink won this round.";
+
+  gameover.classList.remove("hidden");
+
+  sound(110,.25,"sawtooth");
+}
+
+function updateHUD(){
+  scoreEl.textContent=Math.floor(score).toLocaleString();
+  comboEl.textContent=combo;
+  stageEl.textContent=stage;
+}
+
+function spawnDrop(){
+  const type=Math.random();
+
+  let radius;
+  let value;
+  let speed;
+  let color;
+  let special=false;
+
+  if(type<.08){
+    radius=18;
+    value=500;
+    speed=rand(100,145);
+    color="#252321";
+    special=true;
+  }else if(type<.25){
+    radius=13;
+    value=200;
+    speed=rand(120,170);
+    color=colors[Math.floor(Math.random()*colors.length)];
+  }else{
+    radius=8;
+    value=75;
+    speed=rand(105,145);
+    color=colors[Math.floor(Math.random()*colors.length)];
+  }
+
+  drops.push({
+    x:rand(30,W-30),
+    y:-30,
+    radius,
+    speed:speed+stage*8,
+    value,
+    color,
+    special,
+    rotation:rand(0,Math.PI*2),
+    spin:rand(-3,3),
+    wobble:rand(0,Math.PI*2),
+    caught:false
+  });
+}
+
+function playerWidth(){
+  return player.width*(1+Math.min(player.shape*.055,.5));
+}
+
+function collision(drop){
+  const w=playerWidth();
+  const left=player.x-w/2;
+  const right=player.x+w/2;
+
+  return(
+    drop.y+drop.radius>=player.y-12 &&
+    drop.y-drop.radius<=player.y+18 &&
+    drop.x>=left-drop.radius &&
+    drop.x<=right+drop.radius
+  );
+}
+
+function catchDrop(drop){
+  drop.caught=true;
+
+  combo++;
+
+  const multiplier=1+Math.min(combo*.18,3);
+  const points=Math.round(drop.value*multiplier);
+
+  score+=points;
+
+  player.shape++;
+
+  if(drop.special){
+    player.width*=.84;
+    player.width=clamp(player.width,34,120);
+
+    flashMessage("BLACK INK — SHAPE SHRUNK");
+
+    for(let i=0;i<40;i++){
+      createParticle(drop.x,drop.y,"#252321",rand(80,250));
+    }
+
+    sound(90,.16,"square");
+  }else{
+    player.width=clamp(
+      player.width+2.5,
+      34,
+      145
+    );
+
+    for(let i=0;i<12;i++){
+      createParticle(drop.x,drop.y,drop.color,rand(40,150));
+    }
+
+    sound(
+      300+Math.min(combo,20)*22,
+      .055,
+      "triangle"
+    );
+  }
+
+  marks.push({
+    x:drop.x,
+    y:drop.y,
+    text:"+"+points,
+    color:drop.color,
+    life:1
+  });
+
+  updateHUD();
+}
+
+function missDrop(drop){
+  combo=0;
+
+  player.width=clamp(
+    player.width-8,
+    34,
+    145
+  );
+
+  for(let i=0;i<8;i++){
+    createParticle(
+      drop.x,
+      H-20,
+      "#b8afa6",
+      rand(20,80)
+    );
+  }
+
+  sound(80,.09,"sawtooth");
+
+  updateHUD();
+}
+
+function createParticle(x,y,color,speed){
+  const a=Math.random()*Math.PI*2;
+
+  particles.push({
+    x,
+    y,
+    vx:Math.cos(a)*speed,
+    vy:Math.sin(a)*speed,
+    life:rand(.35,.8),
+    size:rand(1,4),
+    color
+  });
+}
+
+function flashMessage(text){
+  messageEl.textContent=text;
+  messageEl.style.opacity="1";
+
+  clearTimeout(flashMessage.timer);
+
+  flashMessage.timer=setTimeout(()=>{
+    messageEl.style.opacity="0";
+  },1000);
+}
+
+function update(dt){
+  if(state!=="playing")return;
+
+  elapsed+=dt;
+  stageTimer+=dt;
+
+  if(stageTimer>=18){
+    stage++;
+    stageTimer=0;
+    flashMessage("STAGE "+stage);
+    sound(420,.12,"triangle");
+  }
+
+  let keyboardSpeed=0;
+
+  if(keys.left)keyboardSpeed-=1;
+  if(keys.right)keyboardSpeed+=1;
+
+  if(keyboardSpeed!==0){
+    player.targetX+=keyboardSpeed*420*dt;
+  }
+
+  player.targetX=clamp(
+    player.targetX,
+    playerWidth()/2+10,
+    W-playerWidth()/2-10
+  );
+
+  const difference=player.targetX-player.x;
+
+  player.vx+=difference*18*dt;
+  player.vx*=Math.pow(.002,dt);
+  player.x+=player.vx*dt;
+
+  player.x=clamp(
+    player.x,
+    playerWidth()/2+10,
+    W-playerWidth()/2-10
+  );
+
+  player.rotation+=
+    player.vx*.0008;
+
+  const interval=Math.max(
+    .22,
+    .72-stage*.025
+  );
+
+  spawnTimer-=dt;
+
+  if(spawnTimer<=0){
+    spawnDrop();
+
+    if(stage>=5&&Math.random()<.12){
+      spawnDrop();
+    }
+
+    spawnTimer=rand(
+      interval*.7,
+      interval*1.3
+    );
+  }
+
+  for(const drop of drops){
+
+    drop.y+=drop.speed*dt;
+
+    drop.rotation+=drop.spin*dt;
+
+    drop.wobble+=dt*2;
+
+    drop.x+=
+      Math.sin(drop.wobble)*stage*.35;
+
+    if(
+      !drop.caught&&
+      collision(drop)
+    ){
+      catchDrop(drop);
+    }
+  }
+
+  const remaining=[];
+
+  for(const drop of drops){
+
+    if(drop.caught)continue;
+
+    if(drop.y>H+50){
+      missDrop(drop);
+      continue;
+    }
+
+    remaining.push(drop);
+  }
+
+  drops=remaining;
+
+  for(const p of particles){
+    p.life-=dt;
+    p.x+=p.vx*dt;
+    p.y+=p.vy*dt;
+    p.vx*=Math.pow(.05,dt);
+    p.vy*=Math.pow(.05,dt);
+  }
+
+  particles=particles.filter(p=>p.life>0);
+
+  for(const m of marks){
+    m.life-=dt;
+    m.y-=38*dt;
+  }
+
+  marks=marks.filter(m=>m.life>0);
+
+  if(combo>=12){
+    score+=dt*combo*2;
+  }
+
+  if(
+    player.width<=35&&
+    Math.random()<dt*.04
+  ){
+    flashMessage("CAREFUL — TOO THIN");
+  }
+}
+
+function drawBackground(){
+  ctx.fillStyle="#f7f1e8";
+  ctx.fillRect(0,0,W,H);
+
+  ctx.save();
+
+  ctx.globalAlpha=.08;
+
+  for(let x=0;x<W;x+=34){
+    ctx.fillStyle="#24211f";
+    ctx.fillRect(
+      x,
+      0,
+      1,
+      H
+    );
+  }
+
+  ctx.restore();
+
+  ctx.fillStyle="#e4dbd0";
+  ctx.fillRect(
+    0,
+    H*.84,
+    W,
+    2
+  );
+}
+
+function drawDrops(){
+  for(const d of drops){
+
+    ctx.save();
+
+    ctx.translate(d.x,d.y);
+    ctx.rotate(d.rotation);
+
+    ctx.fillStyle=d.color;
+
+    if(d.special){
+
+      ctx.beginPath();
+
+      for(let i=0;i<10;i++){
+        const a=i/10*Math.PI*2;
+        const r=i%2===0?d.radius:d.radius*.55;
+
+        const x=Math.cos(a)*r;
+        const y=Math.sin(a)*r;
+
+        if(i===0)ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+      }
+
+      ctx.closePath();
+      ctx.fill();
+
+    }else{
+
+      ctx.beginPath();
+      ctx.arc(
+        0,
+        0,
+        d.radius,
+        0,
+        Math.PI*2
+      );
+      ctx.fill();
+
+      ctx.fillStyle="rgba(255,255,255,.22)";
+
+      ctx.beginPath();
+      ctx.arc(
+        -d.radius*.3,
+        -d.radius*.35,
+        d.radius*.2,
+        0,
+        Math.PI*2
+      );
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+}
+
+function drawPlayer(){
+
+  const w=playerWidth();
+  const x=player.x;
+  const y=player.y;
+
+  ctx.save();
+
+  ctx.translate(x,y);
+  ctx.rotate(player.rotation);
+
+  const sides=3+Math.min(
+    player.shape%8,
+    5
+  );
+
+  const radius=Math.max(
+    18,
+    w*.28
+  );
+
+  ctx.fillStyle="#24211f";
+
+  ctx.beginPath();
+
+  for(let i=0;i<sides;i++){
+
+    const a=
+      i/sides*Math.PI*2-
+      Math.PI/2;
+
+    const rx=
+      Math.cos(a)*radius*
+      (1+(i%2)*.15);
+
+    const ry=
+      Math.sin(a)*radius*.55;
+
+    if(i===0)ctx.moveTo(rx,ry);
+    else ctx.lineTo(rx,ry);
+  }
+
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle="#f7f1e8";
+
+  ctx.beginPath();
+  ctx.arc(
+    0,
+    -1,
+    3,
+    0,
+    Math.PI*2
+  );
+  ctx.fill();
+
+  ctx.restore();
+
+  ctx.fillStyle="#24211f";
+
+  ctx.fillRect(
+    x-w/2,
+    y+10,
+    w,
+    4
+  );
+}
+
+function drawParticles(){
+
+  for(const p of particles){
+
+    ctx.globalAlpha=
+      clamp(
+        p.life/.8,
+        0,
+        1
+      );
+
+    ctx.fillStyle=p.color;
+
+    ctx.fillRect(
+      p.x,
+      p.y,
+      p.size,
+      p.size
+    );
+  }
+
+  ctx.globalAlpha=1;
+}
+
+function drawMarks(){
+
+  ctx.textAlign="center";
+  ctx.font="900 13px Arial";
+
+  for(const m of marks){
+
+    ctx.globalAlpha=
+      clamp(
+        m.life,
+        0,
+        1
+      );
+
+    ctx.fillStyle=m.color;
+
+    ctx.fillText(
+      m.text,
+      m.x,
+      m.y
+    );
+  }
+
+  ctx.globalAlpha=1;
+}
+
+function draw(){
+  drawBackground();
+
+  if(
+    state==="playing"||
+    state==="paused"
+  ){
+    drawDrops();
+    drawPlayer();
+    drawParticles();
+    drawMarks();
+  }
+}
+
+function pointerPosition(e){
+  const rect=canvas.getBoundingClientRect();
+
+  return{
+    x:e.clientX-rect.left,
+    y:e.clientY-rect.top
+  };
+}
+
+canvas.addEventListener(
+  "pointerdown",
+  e=>{
+    if(state!=="playing")return;
+
+    const p=pointerPosition(e);
+
+    player.targetX=p.x;
+
+    try{
+      canvas.setPointerCapture(e.pointerId);
+    }catch(_){}
+  }
+);
+
+canvas.addEventListener(
+  "pointermove",
+  e=>{
+    if(state!=="playing")return;
+
+    const p=pointerPosition(e);
+
+    player.targetX=p.x;
+  }
+);
+
+window.addEventListener(
+  "keydown",
+  e=>{
+    const k=e.key.toLowerCase();
+
+    if(k==="arrowleft"||k==="a"){
+      keys.left=true;
+      e.preventDefault();
+    }
+
+    if(k==="arrowright"||k==="d"){
+      keys.right=true;
+      e.preventDefault();
+    }
+
+    if(k==="p"){
+      if(state==="playing")pauseGame();
+      else if(state==="paused")resumeGame();
+    }
+
+    if(k==="enter"&&state==="title"){
+      startGame();
+    }
+
+    if(k==="r"&&state==="gameover"){
+      startGame();
+    }
+  }
+);
+
+window.addEventListener(
+  "keyup",
+  e=>{
+    const k=e.key.toLowerCase();
+
+    if(k==="arrowleft"||k==="a"){
+      keys.left=false;
+    }
+
+    if(k==="arrowright"||k==="d"){
+      keys.right=false;
+    }
+  }
+);
+
+startBtn.addEventListener(
+  "click",
+  e=>{
+    e.preventDefault();
+    startGame();
+  }
+);
+
+resumeBtn.addEventListener(
+  "click",
+  e=>{
+    e.preventDefault();
+    resumeGame();
+  }
+);
+
+againBtn.addEventListener(
+  "click",
+  e=>{
+    e.preventDefault();
+    startGame();
+  }
+);
+
+pauseBtn.addEventListener(
+  "click",
+  e=>{
+    e.preventDefault();
+
+    if(state==="playing"){
+      pauseGame();
+    }else if(state==="paused"){
+      resumeGame();
+    }
+  }
+);
+
+function loop(now){
+
+  const dt=Math.min(
+    .05,
+    Math.max(
+      0,
+      (now-last)/1000
+    )
+  );
+
+  last=now;
+
+  update(dt);
+  draw();
+
+  requestAnimationFrame(loop);
+}
+
+resize();
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>
