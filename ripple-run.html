@@ -1217,12 +1217,12 @@ function spawnHazard(){
         rand(-.55,.55);
 
     const speed =
-        rand(130,200) +
+        rand(175,300) +
         wave*4;
 
     const kind =
         Math.random() <
-        Math.min(.28,wave*.012)
+        Math.min(.45,wave*.035)
             ? "seeker"
             : "drifter";
 
