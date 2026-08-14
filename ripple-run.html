@@ -1227,9 +1227,11 @@ function spawnHazard(){
         vx:Math.cos(angle)*speed,
         vy:Math.sin(angle)*speed,
 
-        r:rand(8,15),
+        r:rand(15,25),
 
         kind,
+
+        baseSpeed: speed,
 
         freeze:0,
 
@@ -1416,6 +1418,14 @@ function hitHazard(h){
 
     if(h.freeze > 0){
         return;
+    } else {
+        if(h.freeze > -0.01 && h.freeze <= 0){  // Just unfroze this frame
+        // Restore movement toward player
+        const angle = Math.atan2(player.y-h.y, player.x-h.x);
+        const targetSpeed = h.kind === "seeker" ? 165 : 120;
+        h.vx = Math.cos(angle) * targetSpeed;
+        h.vy = Math.sin(angle) * targetSpeed;
+    }
     }
 
     h.freeze = freezeTime;
