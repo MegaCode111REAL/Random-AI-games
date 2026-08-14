@@ -916,6 +916,8 @@ bestMenu.textContent = best;
 
 function resetWorld(){
 
+    console.log('reset world')
+
     orbs = [];
     hazards = [];
     particles = [];
@@ -974,6 +976,8 @@ function resetWorld(){
 
 function start(){
 
+    console.log('game start')
+
     menu.classList.add("hidden");
     gameover.classList.add("hidden");
     upgrade.classList.add("hidden");
@@ -1030,6 +1034,8 @@ function hidePause(){
 }
 
 function endRun(){
+
+    console.log('end run')
 
     state = "over";
 
@@ -1168,6 +1174,8 @@ function applyUpgrade(u){
 ========================================================= */
 
 function spawnHazard(){
+
+    console.log('spawn hazard')
 
     const edge =
         Math.floor(
@@ -1853,6 +1861,8 @@ function update(dt){
                 "HIT"
             );
 
+            console.log('hit')
+
             sound(
                 "die",
                 .7
@@ -1861,6 +1871,7 @@ function update(dt){
             lives--;
             score -= 100;
             if (lives = 0) {
+                console.log('ending run')
                 endRun();
             }
 
