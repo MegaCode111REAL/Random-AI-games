@@ -1929,6 +1929,9 @@ function draw(){
     ctx.fillStyle = "#080b12";
     ctx.fillRect(0,0,W,H);
 
+    if(!player){return;}
+    if(!stars){return;}
+    
     /* Stars */
     ctx.fillStyle = "#fff";
     for(const s of stars){
@@ -2168,6 +2171,8 @@ document.getElementById("startBtn")
 
 document.getElementById("againBtn")
     .addEventListener("click", start);
+
+resetWorld();
 
 requestAnimationFrame(frame);
 
