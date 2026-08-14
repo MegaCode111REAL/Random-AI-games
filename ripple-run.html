@@ -999,40 +999,6 @@ function start(){
     sound("start");
 }
 
-function endRun(){
-
-    console.log('end run');
-
-    state = "over";
-
-    hud.style.display = "none";
-
-    finalScore.textContent =
-        Math.floor(score);
-
-    finalWave.textContent = wave;
-
-    if(score > best){
-
-        best = score;
-
-        localStorage.setItem(
-            "rippleRunBest",
-            best
-        );
-
-    }
-
-    bestFinal.textContent =
-        Math.floor(best);
-
-    gameover.classList
-        .remove("hidden");
-
-    sound("die",.5);
-
-}
-
 function togglePause(){
 
     if(state !== "play"){
@@ -1041,62 +1007,173 @@ function togglePause(){
 
     paused = !paused;
 
-    hud.style.opacity =
-        paused ? .5 : 1;
-
-}
-
-/* =========================================================
-   PARTICLES
-========================================================= */
-
-function burst(x,y,count,speed){
-
-    for(let i=0;i<count;i++){
-
-        const angle =
-            Math.random()*TAU;
-
-        particles.push({
-
-            x,
-            y,
-
-            vx:
-                Math.cos(angle)*
-                speed*
-                rand(.5,1),
-
-            vy:
-                Math.sin(angle)*
-                speed*
-                rand(.5,1),
-
-            life:.4,
-
-            color:"#b8f0ff"
-
-        });
-
+    if(paused){
+        state = "pause";
+        showPause();
+    }
+    else{
+        state = "play";
+        hidePause();
     }
 
 }
 
-function addText(x,y,text){
+function showPause(){
 
     texts.push({
+        x:W/2,
+        y:H/2-30,
+        t:"PAUSED",
+        life:999,
+        ttl:999,
+        big:true
+    });
 
-        x,
-        y,
+}
 
-        text,
+function hidePause(){
 
-        life:.8,
+    texts =
+        texts.filter(
+            t => !t.big
+        );
 
-        vy:40
+}
+
+function endRun(){
+
+    console.log('end run')
+
+    state = "over";
+
+    sound("die",1.5);
+
+    best =
+        Math.max(
+            best,
+            Math.floor(score)
+        );
+
+    localStorage.setItem(
+        "rippleRunBest",
+        best
+    );
+
+    bestFinal.textContent = best;
+
+    finalScore.textContent =
+        Math.floor(score);
+
+    finalWave.textContent =
+        wave;
+
+    gameover.classList.remove(
+        "hidden"
+    );
+
+    hud.style.display = "none";
+}
+
+/* =========================================================
+   MUTATION SELECTION
+========================================================= */
+
+function chooseUpgrade(){
+
+    state = "upgrade";
+
+    upgrade.classList.remove(
+        "hidden"
+    );
+
+    choices.innerHTML = "";
+
+    const pool =
+        [...upgrades]
+            .sort(() => Math.random()-.5)
+            .slice(0,3);
+
+    pool.forEach(u => {
+
+        const button =
+            document.createElement("button");
+
+        button.className = "choice";
+
+        button.innerHTML =
+            "<strong>" +
+            u[0] +
+            "</strong>" +
+            "<p>" +
+            u[1] +
+            "</p>";
+
+        button.onclick =
+            () => applyUpgrade(u);
+
+        choices.appendChild(button);
 
     });
 
+}
+
+function applyUpgrade(u){
+
+    const type = u[2];
+    const value = u[3];
+
+    if(type === "radius"){
+        pulseMax += value / 100;
+    }
+
+    if(type === "charge"){
+        pulseCooldown *= 1 - value;
+    }
+
+    if(type === "freeze"){
+        freezeTime *= 1 + value;
+    }
+
+    if(type === "speed"){
+        speedMult *= 1 + value;
+        coreR *= .88;
+        player.r = coreR;
+    }
+
+    if(type === "chain"){
+        chainBonus += value;
+    }
+
+    if(type === "refund"){
+        refund += value;
+    }
+
+    if(type === "streak"){
+        soft = true;
+    }
+
+    if(type === "magnet"){
+        magnet += value;
+    }
+
+    if(type === "danger"){
+        danger += value;
+    }
+
+    if(type === "bloom"){
+        bloom += value;
+    }
+
+    upgrade.classList.add(
+        "hidden"
+    );
+
+    state = "play";
+
+    waveTimer = 0;
+    spawnTimer = .15;
+
+    sound("collect",1.2);
 }
 
 /* =========================================================
@@ -1264,15 +1341,16 @@ function emitRipple(){
 
             vx:
                 Math.cos(angle) *
-                rand(80,160),
+                rand(50,170),
 
             vy:
                 Math.sin(angle) *
-                rand(80,160),
+                rand(50,170),
 
-            life:.5,
+            life:.4,
+            ttl:.4,
 
-            color:"#7ee7ff"
+            r:rand(1,3)
 
         });
 
@@ -1281,45 +1359,123 @@ function emitRipple(){
 }
 
 /* =========================================================
-   HIT HAZARD
+   EFFECTS
+========================================================= */
+
+function addText(x,y,t){
+
+    texts.push({
+
+        x,
+        y,
+        t,
+
+        life:.9,
+        ttl:.9
+
+    });
+
+}
+
+function burst(
+    x,
+    y,
+    n=12,
+    boost=1
+){
+
+    for(let i=0;i<n;i++){
+
+        const angle =
+            rand(0,TAU);
+
+        const speed =
+            rand(30,180) *
+            boost;
+
+        particles.push({
+
+            x,
+            y,
+
+            vx:
+                Math.cos(angle) *
+                speed,
+
+            vy:
+                Math.sin(angle) *
+                speed,
+
+            life:rand(.35,.7),
+            ttl:.6,
+
+            r:rand(1,3)
+
+        });
+
+    }
+
+}
+
+/* =========================================================
+   RIPPLE HITS
 ========================================================= */
 
 function hitHazard(h){
 
+    if(h.freeze > 0){
+        return;
+    } else {
+        if(h.freeze > -0.01 && h.freeze <= 0){  // Just unfroze this frame
+        // Restore movement toward player
+        const angle = Math.atan2(player.y-h.y, player.x-h.x);
+        const targetSpeed = h.kind === "seeker" ? 165 : 120;
+        h.vx = Math.cos(angle) * targetSpeed;
+        h.vy = Math.sin(angle) * targetSpeed;
+    }
+    }
+
     h.freeze = freezeTime;
 
-    sound("hit",.8);
+    h.vx *= .04;
+    h.vy *= .04;
 
-    burst(h.x,h.y,12,1);
-
-    const hitScore =
+    const points =
         Math.round(
-            50*
-            (
-                1+
-                chainBonus+
-                streak*.05
-            )
+            35 *
+            scoreMult *
+            (1+chainBonus)
         );
 
-    score += hitScore;
+    score += points;
 
     streak++;
-
-    streakEl.textContent =
-        "x"+streak;
 
     addText(
         h.x,
         h.y,
-        hitScore
+        "+" + points
     );
 
+    burst(
+        h.x,
+        h.y,
+        10,
+        1
+    );
+
+    sound("hit");
+
     if(
-        Math.random() < refund
+        Math.random() <
+        .14 + refund
     ){
 
-        pulse = 1;
+        pulse =
+            Math.min(
+                1,
+                pulse+.35
+            );
 
         addText(
             h.x,
@@ -1478,71 +1634,118 @@ function update(dt){
                 ay
             );
 
+        ax /= length;
+        ay /= length;
+
         player.vx +=
-            ax/length *
-            450*dt*
+            ax *
+            520 *
+            dt *
             speedMult;
 
         player.vy +=
-            ay/length *
-            450*dt*
+            ay *
+            520 *
+            dt *
             speedMult;
 
     }
-
-    const speed =
-        Math.hypot(
-            player.vx,
-            player.vy
-        );
-
-    if(speed > 250*speedMult){
+    else{
 
         player.vx *=
-            250*speedMult/speed;
+            Math.pow(
+                .001,
+                dt
+            );
 
         player.vy *=
-            250*speedMult/speed;
+            Math.pow(
+                .001,
+                dt
+            );
 
     }
 
-    player.vx *=
-        Math.pow(
-            .85,
-            dt
+    if(
+        pointer.down &&
+        pointer.id !== null &&
+        innerWidth < 800
+    ){
+        moveTouch(pointer);
+    }
+
+    player.vx =
+        clamp(
+            player.vx,
+            -260*speedMult,
+            260*speedMult
         );
 
-    player.vy *=
-        Math.pow(
-            .85,
-            dt
+    player.vy =
+        clamp(
+            player.vy,
+            -260*speedMult,
+            260*speedMult
         );
 
     player.x +=
-        player.vx*dt;
+        player.vx * dt;
 
     player.y +=
-        player.vy*dt;
+        player.vy * dt;
 
-    player.x =
-        clamp(
-            player.x,
-            player.r,
-            W-player.r
+    const pad =
+        player.r + 5;
+
+    if(player.x < pad){
+
+        player.x = pad;
+
+        player.vx =
+            Math.abs(
+                player.vx
+            )*.55;
+
+    }
+
+    if(player.x > W-pad){
+
+        player.x = W-pad;
+
+        player.vx =
+            -Math.abs(
+                player.vx
+            )*.55;
+
+    }
+
+    if(player.y < pad+30){
+
+        player.y = pad+30;
+
+        player.vy =
+            Math.abs(
+                player.vy
+            )*.55;
+
+    }
+
+    if(player.y > H-pad){
+
+        player.y = H-pad;
+
+        player.vy =
+            -Math.abs(
+                player.vy
+            )*.55;
+
+    }
+
+    player.inv =
+        Math.max(
+            0,
+            player.inv-dt
         );
-
-    player.y =
-        clamp(
-            player.y,
-            player.r,
-            H-player.r
-        );
-
-    player.inv -=
-        dt;
-
-    pulseBar.style.width =
-        pulse*100 + "%";
 
     /* -----------------------------------------------------
        HAZARDS
@@ -1576,51 +1779,21 @@ function update(dt){
 
             if(h.kind === "seeker"){
 
-                const currentSpeed =
-                    Math.hypot(
-                        h.vx,
-                        h.vy
+                const angle =
+                    Math.atan2(
+                        player.y-h.y,
+                        player.x-h.x
                     );
 
-                /* Only accelerate if barely moving */
-                if(currentSpeed < 50){
+                h.vx +=
+                    Math.cos(angle) *
+                    30 *
+                    dt;
 
-                    const angle =
-                        Math.atan2(
-                            player.y-h.y,
-                            player.x-h.x
-                        );
-
-                    h.vx +=
-                        Math.cos(angle) *
-                        80 *
-                        dt;
-
-                    h.vy +=
-                        Math.sin(angle) *
-                        80 *
-                        dt;
-
-                }
-                else{
-
-                    const angle =
-                        Math.atan2(
-                            player.y-h.y,
-                            player.x-h.x
-                        );
-
-                    h.vx +=
-                        Math.cos(angle) *
-                        30 *
-                        dt;
-
-                    h.vy +=
-                        Math.sin(angle) *
-                        30 *
-                        dt;
-
-                }
+                h.vy +=
+                    Math.sin(angle) *
+                    30 *
+                    dt;
 
                 const speed =
                     Math.hypot(
@@ -1790,76 +1963,89 @@ function update(dt){
 
     for(const o of orbs){
 
+        o.p += dt*3;
+
         o.life -= dt;
 
-        o.p += dt;
+        if(magnet){
 
-        o.x +=
-            Math.sin(o.p*1.5) *
-            75 * dt;
+            const d =
+                dist(
+                    o.x,
+                    o.y,
+                    player.x,
+                    player.y
+                );
 
-        const magDir =
-            Math.atan2(
-                player.y - o.y,
-                player.x - o.x
-            );
+            if(d < magnet){
 
-        const magDist =
-            dist(
-                player.x,
-                player.y,
-                o.x,
-                o.y
-            );
+                o.x +=
+                    (player.x-o.x) *
+                    dt *
+                    1.8;
 
-        if(
-            magDist <
-            80 + magnet
-        ){
+                o.y +=
+                    (player.y-o.y) *
+                    dt *
+                    1.8;
 
-            o.x +=
-                Math.cos(magDir) *
-                150 * dt;
-
-            o.y +=
-                Math.sin(magDir) *
-                150 * dt;
+            }
 
         }
 
         if(
             dist(
-                player.x,
-                player.y,
                 o.x,
-                o.y
-            ) < 25
+                o.y,
+                player.x,
+                player.y
+            ) <
+            player.r+o.r+6
         ){
 
             o.dead = true;
 
-            score += 10;
+            const points =
+                Math.round(
+                    100 *
+                    scoreMult *
+                    (
+                        1+
+                        Math.min(
+                            2,
+                            streak*.03
+                        )
+                    )
+                );
+
+            score += points;
+
+            streak++;
+
+            addText(
+                o.x,
+                o.y,
+                "+" + points
+            );
 
             burst(
                 o.x,
                 o.y,
                 8,
-                1
+                1.4
             );
 
-            sound("collect",.5);
+            sound("collect");
 
-        }
-
-        if(o.life <= 0){
-            o.dead = true;
         }
 
     }
 
     orbs =
         orbs.filter(
-            o => !o.dead
+            o =>
+                !o.dead &&
+                o.life > 0
         );
 
     /* -----------------------------------------------------
@@ -1870,18 +2056,21 @@ function update(dt){
 
         p.life -= dt;
 
-        p.x += p.vx*dt;
-        p.y += p.vy*dt;
+        p.x +=
+            p.vx*dt;
+
+        p.y +=
+            p.vy*dt;
 
         p.vx *=
             Math.pow(
-                .7,
+                .05,
                 dt
             );
 
         p.vy *=
             Math.pow(
-                .7,
+                .05,
                 dt
             );
 
@@ -1900,10 +2089,8 @@ function update(dt){
 
         t.life -= dt;
 
-        t.y -= t.vy*dt;
-
-        t.vy -=
-            320*dt;
+        t.y -=
+            22*dt;
 
     }
 
@@ -1912,11 +2099,26 @@ function update(dt){
             t => t.life > 0
         );
 
+    /* -----------------------------------------------------
+       SCORE
+    ----------------------------------------------------- */
+
+    score +=
+        dt *
+        (2+wave*.5) *
+        scoreMult;
+
     scoreEl.textContent =
         Math.floor(score);
 
-    waveEl.textContent = wave;
+    waveEl.textContent =
+        wave;
 
+    streakEl.textContent =
+        "x" + streak;
+
+    pulseBar.style.width =
+        (pulse*100) + "%";
 }
 
 /* =========================================================
@@ -1925,259 +2127,535 @@ function update(dt){
 
 function draw(){
 
-    /* Background */
-    ctx.fillStyle = "#080b12";
-    ctx.fillRect(0,0,W,H);
+    ctx.clearRect(
+        0,
+        0,
+        W,
+        H
+    );
 
-    if(!player){return;}
-    if(!stars){return;}
-    
-    /* Stars */
-    ctx.fillStyle = "#fff";
+    /*
+       Background.
+    */
+
+    const background =
+        ctx.createRadialGradient(
+            W*.5,
+            H*.45,
+            30,
+            W*.5,
+            H*.45,
+            Math.max(W,H)*.75
+        );
+
+    background.addColorStop(
+        0,
+        "#111a2c"
+    );
+
+    background.addColorStop(
+        1,
+        "#070a11"
+    );
+
+    ctx.fillStyle =
+        background;
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+    /*
+       Background field particles.
+    */
+
     for(const s of stars){
-        ctx.globalAlpha = s.a;
+
+        ctx.globalAlpha =
+            s.a;
+
+        ctx.fillStyle =
+            "#b8c9e8";
+
         ctx.beginPath();
-        ctx.arc(s.x,s.y,s.r,0,TAU);
+
+        ctx.arc(
+            s.x,
+            s.y,
+            s.r,
+            0,
+            TAU
+        );
+
         ctx.fill();
+
     }
+
     ctx.globalAlpha = 1;
 
-    /* Hazards */
+    /* -----------------------------------------------------
+       COLLECTIBLES
+    ----------------------------------------------------- */
+
+    for(const o of orbs){
+
+        ctx.save();
+
+        ctx.translate(
+            o.x,
+            o.y
+        );
+
+        ctx.rotate(
+            o.p
+        );
+
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = "#8de7ff";
+
+        ctx.strokeStyle =
+            "#aeeeff";
+
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            0,
+            -o.r*1.8
+        );
+
+        ctx.lineTo(
+            o.r*1.2,
+            0
+        );
+
+        ctx.lineTo(
+            0,
+            o.r*1.8
+        );
+
+        ctx.lineTo(
+            -o.r*1.2,
+            0
+        );
+
+        ctx.closePath();
+
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+    /* -----------------------------------------------------
+       RIPPLES
+    ----------------------------------------------------- */
+
+    for(const r of ripples){
+
+        ctx.globalAlpha =
+            Math.max(
+                0,
+                1-r.r/r.max
+            );
+
+        ctx.strokeStyle =
+            "#9cecff";
+
+        ctx.lineWidth = 3;
+
+        ctx.shadowBlur = 18;
+
+        ctx.shadowColor =
+            "#79ddff";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            r.x,
+            r.y,
+            r.r,
+            0,
+            TAU
+        );
+
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+
+    }
+
+    ctx.globalAlpha = 1;
+
+    /* -----------------------------------------------------
+       HAZARDS
+    ----------------------------------------------------- */
+
     for(const h of hazards){
 
         ctx.save();
 
-        ctx.translate(h.x,h.y);
-        ctx.rotate(h.rot);
+        ctx.translate(
+            h.x,
+            h.y
+        );
 
-        if(h.freeze > 0){
-            const t = h.freeze/freezeTime;
-            ctx.fillStyle =
-                `rgba(126,231,255,${
-                    .4+t*.4
-                })`;
-        }
-        else{
-            ctx.fillStyle = "#ff6b9d";
-        }
+        ctx.rotate(
+            h.rot
+        );
+
+        const frozen =
+            h.freeze > 0;
+
+        ctx.shadowBlur =
+            frozen
+                ? 18
+                : 8;
+
+        ctx.shadowColor =
+            frozen
+                ? "#d9c8ff"
+                : "#ff668c";
+
+        ctx.fillStyle =
+            frozen
+                ? "#d7c8ff"
+                : "#ff557e";
+
+        ctx.strokeStyle =
+            frozen
+                ? "#fff"
+                : "#ff9ab3";
+
+        ctx.lineWidth = 2;
 
         ctx.beginPath();
+
+        const points =
+            h.kind === "seeker"
+                ? 4
+                : 6;
+
+        for(let i=0;i<points;i++){
+
+            const angle =
+                i*TAU/points;
+
+            const radius =
+                h.r *
+                (
+                    i%2
+                        ? .65
+                        : 1.15
+                );
+
+            if(i === 0){
+                ctx.moveTo(
+                    Math.cos(angle)*radius,
+                    Math.sin(angle)*radius
+                );
+            }
+            else{
+                ctx.lineTo(
+                    Math.cos(angle)*radius,
+                    Math.sin(angle)*radius
+                );
+            }
+
+        }
+
+        ctx.closePath();
+
+        ctx.fill();
+        ctx.stroke();
+
+        /*
+           Frozen core.
+        */
+
+        if(frozen){
+
+            ctx.globalAlpha = .75;
+
+            ctx.fillStyle =
+                "#ffffff";
+
+            ctx.beginPath();
+
+            ctx.arc(
+                0,
+                0,
+                h.r*.25,
+                0,
+                TAU
+            );
+
+            ctx.fill();
+
+        }
+
+        ctx.restore();
+
+    }
+
+    /* -----------------------------------------------------
+       PLAYER
+    ----------------------------------------------------- */
+
+    if(player){
+
+        ctx.save();
+
+        ctx.translate(
+            player.x,
+            player.y
+        );
+
+        const pulseRing =
+            10 +
+            Math.sin(
+                performance.now()/150
+            )*2;
+
+        ctx.globalAlpha = .15;
+
+        ctx.fillStyle =
+            "#83e9ff";
+
+        ctx.beginPath();
+
         ctx.arc(
             0,
             0,
-            h.r,
+            player.r+9+pulseRing,
             0,
             TAU
         );
+
+        ctx.fill();
+
+        ctx.globalAlpha = 1;
+
+        ctx.shadowBlur =
+            player.inv > 0
+                ? 28
+                : 18;
+
+        ctx.shadowColor =
+            "#8de7ff";
+
+        ctx.fillStyle =
+            "#e9fbff";
+
+        ctx.strokeStyle =
+            "#75dcff";
+
+        ctx.lineWidth = 3;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            0,
+            0,
+            player.r,
+            0,
+            TAU
+        );
+
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle =
+            "#6cdcff";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            0,
+            0,
+            4,
+            0,
+            TAU
+        );
+
         ctx.fill();
 
         ctx.restore();
 
     }
 
-    /* Player */
-    if(player.inv % .2 < .1){
-        ctx.fillStyle = "#b8f0ff";
+    /* -----------------------------------------------------
+       PARTICLES
+    ----------------------------------------------------- */
+
+    for(const p of particles){
+
+        ctx.globalAlpha =
+            clamp(
+                p.life/p.ttl,
+                0,
+                1
+            );
+
+        ctx.fillStyle =
+            "#bcefff";
+
         ctx.beginPath();
+
         ctx.arc(
-            player.x,
-            player.y,
-            player.r,
+            p.x,
+            p.y,
+            p.r,
             0,
             TAU
         );
+
         ctx.fill();
+
     }
 
-    /* Ripples */
-    ctx.strokeStyle = "#7ee7ff";
-    ctx.lineWidth = 2;
-    for(const r of ripples){
-        ctx.beginPath();
-        ctx.arc(r.x,r.y,r.r,0,TAU);
-        ctx.stroke();
-    }
-
-    /* Orbs */
-    ctx.fillStyle = "#ffd700";
-    for(const o of orbs){
-        ctx.beginPath();
-        ctx.arc(o.x,o.y,o.r,0,TAU);
-        ctx.fill();
-    }
-
-    /* Particles */
-    for(const p of particles){
-        ctx.globalAlpha = p.life/.4;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x,p.y,2,0,TAU);
-        ctx.fill();
-    }
     ctx.globalAlpha = 1;
 
-    /* Text */
-    ctx.font = "800 20px system-ui";
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#fff";
+    /* -----------------------------------------------------
+       FLOATING TEXT
+    ----------------------------------------------------- */
+
     for(const t of texts){
-        ctx.globalAlpha = t.life/.8;
-        ctx.fillText(t.text,t.x,t.y);
-    }
-    ctx.globalAlpha = 1;
 
-}
-
-/* =========================================================
-   UPGRADE SELECTION
-========================================================= */
-
-function chooseUpgrade(){
-
-    upgrade.classList
-        .remove("hidden");
-
-    state = "upgrade";
-
-    const selected = [];
-
-    while(selected.length < 3){
-
-        const u =
-            upgrades[
-                Math.floor(
-                    Math.random() *
-                    upgrades.length
-                )
-            ];
-
-        if(!selected.includes(u)){
-            selected.push(u);
-        }
-
-    }
-
-    choices.innerHTML = "";
-
-    for(const u of selected){
-
-        const button =
-            document.createElement(
-                "button"
+        ctx.globalAlpha =
+            clamp(
+                t.life/t.ttl,
+                0,
+                1
             );
 
-        button.className = "choice";
+        ctx.fillStyle =
+            "#dff8ff";
 
-        button.innerHTML = `
-            <strong>${u[0]}</strong>
-            <p>${u[1]}</p>
-        `;
+        ctx.font =
+            t.big
+                ? "800 30px system-ui"
+                : "800 13px system-ui";
 
-        button.addEventListener(
-            "click",
-            () => {
-                applyUpgrade(u);
-            }
+        ctx.textAlign =
+            "center";
+
+        ctx.fillText(
+            t.t,
+            t.x,
+            t.y
         );
 
-        choices.appendChild(button);
+    }
+
+    ctx.globalAlpha = 1;
+
+    /* -----------------------------------------------------
+       PAUSE SCREEN
+    ----------------------------------------------------- */
+
+    if(state === "pause"){
+
+        ctx.fillStyle =
+            "rgba(4,6,12,.52)";
+
+        ctx.fillRect(
+            0,
+            0,
+            W,
+            H
+        );
+
+        ctx.fillStyle =
+            "#eef3ff";
+
+        ctx.textAlign =
+            "center";
+
+        ctx.font =
+            "900 44px system-ui";
+
+        ctx.fillText(
+            "PAUSED",
+            W/2,
+            H/2
+        );
+
+        ctx.font =
+            "500 14px system-ui";
+
+        ctx.fillStyle =
+            "#aebbd3";
+
+        ctx.fillText(
+            "Press P to continue",
+            W/2,
+            H/2+30
+        );
 
     }
 
-}
-
-function applyUpgrade(u){
-
-    const type = u[2];
-    const value = u[3];
-
-    if(type === "radius"){
-        pulseMax += value / 100;
-    }
-
-    if(type === "charge"){
-        pulseCooldown *= 1 - value;
-    }
-
-    if(type === "freeze"){
-        freezeTime *= 1 + value;
-    }
-
-    if(type === "speed"){
-        speedMult *= 1 + value;
-        coreR *= .88;
-        player.r = coreR;
-    }
-
-    if(type === "chain"){
-        chainBonus += value;
-    }
-
-    if(type === "refund"){
-        refund += value;
-    }
-
-    if(type === "streak"){
-        soft = true;
-    }
-
-    if(type === "magnet"){
-        magnet += value;
-    }
-
-    if(type === "danger"){
-        danger += value;
-    }
-
-    if(type === "bloom"){
-        bloom += value;
-    }
-
-    upgrade.classList.add(
-        "hidden"
+    requestAnimationFrame(
+        draw
     );
-
-    state = "play";
-
-    waveTimer = 0;
-    spawnTimer = .15;
-
-    sound("collect",1.2);
 }
 
 /* =========================================================
-   MAIN LOOP
+   GAME LOOP
 ========================================================= */
 
-let lastTime = performance.now();
+let last =
+    performance.now();
 
-function frame(now){
+function loop(time){
 
-    const dt = (now-lastTime)/1000;
-    lastTime = now;
+    const dt =
+        (time-last)/1000;
+
+    last = time;
 
     if(!paused){
         update(dt);
     }
 
-    draw();
-
-    requestAnimationFrame(frame);
-
+    requestAnimationFrame(
+        loop
+    );
 }
 
-document.getElementById("startBtn")
-    .addEventListener("click", start);
+/* =========================================================
+   BUTTONS
+========================================================= */
 
-document.getElementById("againBtn")
-    .addEventListener("click", start);
+document
+    .getElementById("startBtn")
+    .addEventListener(
+        "click",
+        start
+    );
 
-resetWorld();
+document
+    .getElementById("againBtn")
+    .addEventListener(
+        "click",
+        start
+    );
 
-requestAnimationFrame(frame);
+/* =========================================================
+   START RENDERING
+========================================================= */
+
+draw();
+
+requestAnimationFrame(
+    loop
+);
 
 })();
-
 </script>
 
 </body>
