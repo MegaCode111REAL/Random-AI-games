@@ -1250,6 +1250,8 @@ function spawnHazard(){
         r:rand(15,25),
 
         kind,
+        
+        freezeHits: 0,
 
         baseSpeed: speed,
 
@@ -1439,7 +1441,26 @@ function hitHazard(h){
     if(h.freeze > 0){
         return;
     }
+    
+    // Count how many times this enemy has been frozen
+    h.freezeHits++;
 
+    // After being frozen 5 times, remove it.
+    // No bonus, no extra score, no streak increase.
+    if(h.freezeHits >= 3){
+
+        h.dead = true;
+
+        burst(
+            h.x,
+            h.y,
+            12,
+            .8
+        );
+
+        return;
+    }
+    
     h.freeze = freezeTime;
 
     h.vx *= .04;
