@@ -1165,6 +1165,10 @@ function applyUpgrade(u){
         bloom += value;
     }
 
+	if(type === "lives"){
+		lives += value;
+	}
+
     upgrade.classList.add(
         "hidden"
     );
