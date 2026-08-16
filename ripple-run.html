@@ -313,6 +313,11 @@ canvas{
                 <div class="label">Streak</div>
                 <div class="value" id="streak">x1</div>
             </div>
+            
+            <div class="stat pill">
+                <div class="label">Lives</div>
+                <div class="value" id="lives">♥♥</div>
+            </div>
 
         </div>
 
@@ -513,6 +518,9 @@ const waveEl =
 
 const streakEl =
     document.getElementById("streak");
+
+const livesEl =
+    document.getElementById("lives");
 
 const pulseBar =
     document.getElementById("pulseBar");
@@ -2120,6 +2128,9 @@ function update(dt){
 
     streakEl.textContent =
         "x" + streak;
+    
+    livesEl.textContent =
+        "♥".repeat(Math.max(0, lives));
 
     pulseBar.style.width =
         (pulse*100) + "%";
