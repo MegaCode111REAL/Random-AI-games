@@ -669,6 +669,10 @@ addEventListener(
         ].includes(key)){
             e.preventDefault();
         }
+	
+	if(key === " " && !e.repeat){
+            emitRipple();
+        }
 
         if(key === "p"){
             togglePause();
@@ -737,10 +741,7 @@ canvas.addEventListener(
             e.pointerId
         );
 
-        if(
-            state === "play" &&
-            e.pointerType !== "mouse"
-        ){
+        if(state === "play"){
             emitRipple();
         }
 
@@ -1425,14 +1426,6 @@ function hitHazard(h){
 
     if(h.freeze > 0){
         return;
-    } else {
-        if(h.freeze > -0.01 && h.freeze <= 0){  // Just unfroze this frame
-        // Restore movement toward player
-        const angle = Math.atan2(player.y-h.y, player.x-h.x);
-        const targetSpeed = h.kind === "seeker" ? 165 : 120;
-        h.vx = Math.cos(angle) * targetSpeed;
-        h.vy = Math.sin(angle) * targetSpeed;
-    }
     }
 
     h.freeze = freezeTime;
@@ -1809,8 +1802,15 @@ function update(dt){
                     h.vy *=
                         165/speed;
 
-                }
-
+                }} else {
+        if(h.freeze > -0.1 && h.freeze < 0.1){  // Just unfroze this frame
+        // Restore movement toward player
+        const angle = Math.atan2(player.y-h.y, player.x-h.x);
+        const targetSpeed = h.kind === "seeker" ? 185 : 160;
+        h.vx = Math.cos(angle) * targetSpeed;
+        h.vy = Math.sin(angle) * targetSpeed;
+	h.freeze = -1
+    }
             }
 
             h.x +=
@@ -1878,7 +1878,7 @@ function update(dt){
                 "HIT"
             );
 
-            console.log(`hit, lives: ${lives} die? ${lives==0?'yes':'no'}`)
+	    console.log("hit, lives:", lives, "die?", lives == 0 ? "yes" : "no");
 
             sound(
                 "die",
@@ -2654,7 +2654,6 @@ draw();
 requestAnimationFrame(
     loop
 );
-
 })();
 </script>
 
