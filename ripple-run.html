@@ -305,6 +305,43 @@ canvas{
     display:none!important;
 }
 
+.boss-health{
+    position:absolute;
+    top:92px;
+    left:50%;
+    transform:translateX(-50%);
+    width:min(520px,70vw);
+    display:none;
+    text-align:center;
+}
+
+.boss-name{
+    font-size:13px;
+    font-weight:950;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    margin-bottom:6px;
+    color:#ffb4c8;
+    text-shadow:0 0 15px #ff557e66;
+}
+
+.boss-bar{
+    height:13px;
+    border-radius:20px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,120,160,.28);
+    overflow:hidden;
+    box-shadow:0 0 25px rgba(255,50,110,.12);
+}
+
+#bossBarFill{
+    height:100%;
+    width:100%;
+    background:linear-gradient(90deg,#ff557e,#ff9a66);
+    box-shadow:0 0 18px #ff557e99;
+    transition:width .12s linear;
+}
+
 @media(max-width:600px){
 
     .panel{
@@ -338,6 +375,11 @@ canvas{
 
     .pill{
         min-width:70px;
+    }
+
+    .boss-health{
+        top:105px;
+        width:75vw;
     }
 }
 </style>
@@ -382,6 +424,13 @@ canvas{
 
         </div>
 
+    </div>
+
+    <div class="boss-health" id="bossHealth">
+        <div class="boss-name" id="bossName">FIELD COLOSSUS</div>
+        <div class="boss-bar">
+            <div id="bossBarFill"></div>
+        </div>
     </div>
 
     <div class="bottom">
@@ -517,50 +566,36 @@ const DEBUG = true;
 const DEBUG_PREFIX = "[RIPPLE DEBUG]";
 
 function debug(...args){
-
     if(!DEBUG) return;
-
-    console.log(
-        DEBUG_PREFIX,
-        ...args
-    );
+    console.log(DEBUG_PREFIX,...args);
 }
 
 function debugWarn(...args){
-
     if(!DEBUG) return;
-
-    console.warn(
-        DEBUG_PREFIX,
-        ...args
-    );
+    console.warn(DEBUG_PREFIX,...args);
 }
 
 function debugError(...args){
-
-    console.error(
-        DEBUG_PREFIX,
-        ...args
-    );
+    console.error(DEBUG_PREFIX,...args);
 }
 
 function debugState(reason){
 
-    debug(
-        "STATE SNAPSHOT:",
-        {
-            reason,
-            state,
-            paused,
-            wave,
-            waveTarget,
-            waveSpawned,
-            waveDefeated,
-            activeEnemies:hazards.length,
-            spawnTimer,
-            upgradePoints
-        }
-    );
+    debug("STATE SNAPSHOT:",{
+        reason,
+        state,
+        paused,
+        wave,
+        waveTarget,
+        waveSpawned,
+        waveDefeated,
+        activeEnemies:hazards.length,
+        bosses:hazards.filter(h=>h.boss).length,
+        spawnTimer,
+        upgradePoints,
+        score,
+        lives
+    });
 }
 
 /* =========================================================
@@ -582,23 +617,16 @@ function resize(){
     W = innerWidth;
     H = innerHeight;
 
-    dpr =
-        Math.min(
-            2,
-            devicePixelRatio || 1
-        );
+    dpr = Math.min(
+        2,
+        devicePixelRatio || 1
+    );
 
     canvas.width =
-        Math.max(
-            1,
-            Math.floor(W*dpr)
-        );
+        Math.max(1,Math.floor(W*dpr));
 
     canvas.height =
-        Math.max(
-            1,
-            Math.floor(H*dpr)
-        );
+        Math.max(1,Math.floor(H*dpr));
 
     ctx.setTransform(
         dpr,
@@ -609,14 +637,7 @@ function resize(){
         0
     );
 
-    debug(
-        "RESIZE",
-        {
-            W,
-            H,
-            dpr
-        }
-    );
+    debug("RESIZE",{W,H,dpr});
 }
 
 addEventListener(
@@ -682,29 +703,31 @@ const upgradePointsEl =
 const nextWaveEl =
     document.getElementById("nextWave");
 
+const bossHealth =
+    document.getElementById("bossHealth");
+
+const bossName =
+    document.getElementById("bossName");
+
+const bossBarFill =
+    document.getElementById("bossBarFill");
+
 /* =========================================================
    UTILITIES
 ========================================================= */
 
-const TAU =
-    Math.PI*2;
+const TAU = Math.PI*2;
 
 function rand(a,b){
     return Math.random()*(b-a)+a;
 }
 
 function clamp(v,a,b){
-    return Math.max(
-        a,
-        Math.min(b,v)
-    );
+    return Math.max(a,Math.min(b,v));
 }
 
 function dist(a,b,c,d){
-    return Math.hypot(
-        a-c,
-        b-d
-    );
+    return Math.hypot(a-c,b-d);
 }
 
 /* =========================================================
@@ -753,6 +776,10 @@ function sound(type,p=1){
             frequency = 70;
         else if(type === "wave")
             frequency = 240;
+        else if(type === "boss")
+            frequency = 55;
+        else if(type === "bossHit")
+            frequency = 110;
         else
             frequency = 320;
 
@@ -762,7 +789,7 @@ function sound(type,p=1){
         );
 
         oscillator.frequency.exponentialRampToValueAtTime(
-            frequency *
+            frequency*
             (type === "die" ? .35 : 1.7),
             audio.currentTime+.12
         );
@@ -807,8 +834,7 @@ function sound(type,p=1){
    INPUT
 ========================================================= */
 
-const keys =
-    new Set();
+const keys = new Set();
 
 addEventListener(
     "keydown",
@@ -874,11 +900,7 @@ addEventListener(
 addEventListener(
     "keyup",
     e => {
-
-        keys.delete(
-            e.key.toLowerCase()
-        );
-
+        keys.delete(e.key.toLowerCase());
     }
 );
 
@@ -904,8 +926,7 @@ canvas.addEventListener(
     "pointerdown",
     e => {
 
-        const p =
-            pointerPos(e);
+        const p = pointerPos(e);
 
         pointer.x = p.x;
         pointer.y = p.y;
@@ -929,7 +950,6 @@ canvas.addEventListener(
         if(state === "play"){
             emitRipple();
         }
-
     }
 );
 
@@ -937,8 +957,7 @@ canvas.addEventListener(
     "pointermove",
     e => {
 
-        const p =
-            pointerPos(e);
+        const p = pointerPos(e);
 
         pointer.x = p.x;
         pointer.y = p.y;
@@ -948,35 +967,24 @@ canvas.addEventListener(
             state === "play" &&
             e.pointerType !== "mouse"
         ){
-
             moveTouch(p);
-
         }
-
     }
 );
 
 canvas.addEventListener(
     "pointerup",
     () => {
-
         pointer.down = false;
-
-        debug(
-            "POINTER UP"
-        );
+        debug("POINTER UP");
     }
 );
 
 canvas.addEventListener(
     "pointercancel",
     () => {
-
         pointer.down = false;
-
-        debug(
-            "POINTER CANCEL"
-        );
+        debug("POINTER CANCEL");
     }
 );
 
@@ -1085,14 +1093,10 @@ function resetUpgradeLevels(){
     upgradeLevels = {};
 
     for(const u of upgrades){
-
         upgradeLevels[u.type] = 0;
-
     }
 
-    debug(
-        "UPGRADE LEVELS RESET"
-    );
+    debug("UPGRADE LEVELS RESET");
 }
 
 function getUpgradeCost(u){
@@ -1101,13 +1105,12 @@ function getUpgradeCost(u){
         upgradeLevels[u.type] || 0;
 
     return (
-        u.baseCost +
+        u.baseCost+
         Math.floor(level*.45)
     );
 }
 
 function getUpgradeLevel(u){
-
     return upgradeLevels[u.type] || 0;
 }
 
@@ -1168,6 +1171,1113 @@ let texts = [];
 let ripples = [];
 let stars = [];
 
+let completingWave = false;
+
+/* =========================================================
+   BOSS SYSTEM
+========================================================= */
+
+/*
+    Boss every 5th wave.
+
+    Bosses:
+      - have a large health/hit pool
+      - require multiple ripple contacts
+      - move toward the player
+      - occasionally dash
+      - give a large score reward
+      - give extra upgrade points
+      - are globally accessible through dev.spawnBoss()
+*/
+
+const BOSS_EVERY = 5;
+
+const BOSS_NAMES = [
+    "FIELD COLOSSUS",
+    "RIPPLE EATER",
+    "VOID ENGINE",
+    "THE DISTORTION",
+    "WAVE BREAKER"
+];
+
+function isBossWave(w){
+    return w > 0 && w % BOSS_EVERY === 0;
+}
+
+function getBossHits(w){
+    return Math.floor(
+        12+
+        w*2.5
+    );
+}
+
+function getBossScore(w){
+    return Math.floor(
+        1000+
+        w*175
+    );
+}
+
+function getBoss(){
+
+    return hazards.find(
+        h => h.boss && !h.dead
+    ) || null;
+}
+
+function spawnBoss(force=false){
+
+    if(!player){
+        debugWarn(
+            "spawnBoss() FAILED: PLAYER DOES NOT EXIST"
+        );
+        return null;
+    }
+
+    const existing = getBoss();
+
+    if(existing && !existing.dead){
+
+        debugWarn(
+            "spawnBoss() IGNORED: BOSS ALREADY EXISTS",
+            existing.id
+        );
+
+        return existing;
+    }
+
+    const bossWave =
+        Math.max(
+            1,
+            force
+                ? wave
+                : wave
+        );
+
+    const side =
+        Math.floor(
+            Math.random()*4
+        );
+
+    let x;
+    let y;
+
+    if(side === 0){
+        x = -100;
+        y = H/2;
+    }
+    else if(side === 1){
+        x = W+100;
+        y = H/2;
+    }
+    else if(side === 2){
+        x = W/2;
+        y = -100;
+    }
+    else{
+        x = W/2;
+        y = H+100;
+    }
+
+    const maxHP =
+        getBossHits(bossWave);
+
+    const id =
+        `BOSS:${bossWave}:${Date.now()}`;
+
+    const boss = {
+
+        id,
+
+        boss:true,
+
+        bossName:
+            BOSS_NAMES[
+                (
+                    Math.floor(
+                        bossWave/BOSS_EVERY
+                    )-1
+                ) %
+                BOSS_NAMES.length
+            ],
+
+        x,
+        y,
+
+        vx:0,
+        vy:0,
+
+        r:
+            46+
+            Math.min(
+                25,
+                bossWave*1.2
+            ),
+
+        maxHP,
+
+        hp:maxHP,
+
+        freeze:0,
+
+        freezeHits:0,
+
+        rot:0,
+
+        spin:.55,
+
+        dashTimer:
+            rand(2,4),
+
+        dead:false,
+
+        phase:1,
+
+        baseSpeed:
+            75+
+            bossWave*2
+
+    };
+
+    hazards.push(boss);
+
+    waveTarget =
+        Math.max(
+            waveTarget,
+            waveSpawned+1
+        );
+
+    waveSpawned++;
+
+    bossHealth.style.display =
+        "block";
+
+    bossName.textContent =
+        boss.bossName;
+
+    bossBarFill.style.width =
+        "100%";
+
+    waveBanner = 2.5;
+
+    waveBannerText =
+        "BOSS WAVE";
+
+    debug(
+        "========== BOSS SPAWNED ==========",
+        {
+            id,
+            wave:bossWave,
+            name:boss.bossName,
+            hp:maxHP,
+            x,
+            y
+        }
+    );
+
+    burst(
+        W/2,
+        H/2,
+        60,
+        2
+    );
+
+    sound(
+        "boss",
+        2
+    );
+
+    return boss;
+}
+
+function damageBoss(boss){
+
+    if(
+        boss.dead ||
+        boss.hp <= 0
+    ){
+        return;
+    }
+
+    boss.hp--;
+
+    boss.freeze =
+        Math.max(
+            .12,
+            freezeTime*.35
+        );
+
+    boss.freezeHits++;
+
+    const points =
+        Math.floor(
+            75*
+            scoreMult*
+            (1+chainBonus)
+        );
+
+    score += points;
+
+    streak++;
+
+    addText(
+        boss.x,
+        boss.y-boss.r-12,
+        "+"+points
+    );
+
+    burst(
+        boss.x,
+        boss.y,
+        12,
+        1.4
+    );
+
+    sound(
+        "bossHit",
+        .8
+    );
+
+    debug(
+        "BOSS DAMAGED",
+        {
+            id:boss.id,
+            hp:boss.hp,
+            maxHP:boss.maxHP,
+            hitsTaken:boss.freezeHits,
+            points
+        }
+    );
+
+    bossBarFill.style.width =
+        clamp(
+            boss.hp/boss.maxHP,
+            0,
+            1
+        )*100+"%";
+
+    if(
+        boss.hp <=
+        boss.maxHP*.5 &&
+        boss.phase === 1
+    ){
+
+        boss.phase = 2;
+
+        boss.baseSpeed *= 1.3;
+
+        debug(
+            "BOSS ENTERED PHASE 2",
+            boss.id
+        );
+
+        addText(
+            boss.x,
+            boss.y-boss.r-30,
+            "PHASE 2"
+        );
+
+        burst(
+            boss.x,
+            boss.y,
+            35,
+            1.8
+        );
+
+        sound(
+            "boss",
+            1.5
+        );
+    }
+
+    if(boss.hp <= 0){
+
+        killBoss(boss);
+    }
+}
+
+function killBoss(boss){
+
+    if(boss.dead){
+        return;
+    }
+
+    boss.dead = true;
+
+    const reward =
+        getBossScore(wave);
+
+    const pointReward =
+        8+
+        Math.floor(wave/5);
+
+    score += reward;
+
+    upgradePoints += pointReward;
+
+    waveDefeated++;
+
+    bossHealth.style.display =
+        "none";
+
+    addText(
+        boss.x,
+        boss.y,
+        "BOSS DESTROYED"
+    );
+
+    addText(
+        boss.x,
+        boss.y+25,
+        "+"+reward
+    );
+
+    burst(
+        boss.x,
+        boss.y,
+        100,
+        2.5
+    );
+
+    sound(
+        "boss",
+        3
+    );
+
+    debug(
+        "========== BOSS DESTROYED ==========",
+        {
+            id:boss.id,
+            wave,
+            scoreReward:reward,
+            upgradeReward:pointReward,
+            totalUpgradePoints:upgradePoints
+        }
+    );
+
+    setTimeout(
+        () => {
+
+            debug(
+                "BOSS DESTRUCTION CLEANUP"
+            );
+
+            hazards =
+                hazards.filter(
+                    h => !h.dead
+                );
+
+            updateHUD();
+
+        },
+        0
+    );
+}
+
+/* =========================================================
+   DEV / CHEAT FUNCTIONS
+========================================================= */
+
+function devSetHealth(value){
+
+    const old = lives;
+
+    value =
+        Math.max(
+            0,
+            Math.floor(
+                Number(value)
+            )
+        );
+
+    lives = value;
+
+    if(lives > 0){
+        player.inv = 999999;
+    }
+
+    debug(
+        "[DEV] setHealth",
+        {
+            old,
+            new:lives
+        }
+    );
+
+    updateHUD();
+
+    return lives;
+}
+
+function devSetWave(value){
+
+    value =
+        Math.max(
+            1,
+            Math.floor(
+                Number(value)
+            )
+        );
+
+    const old = wave;
+
+    wave = value;
+
+    waveTarget =
+        calculateWaveTarget();
+
+    waveSpawned = 0;
+    waveDefeated = 0;
+
+    hazards = [];
+
+    bossHealth.style.display =
+        "none";
+
+    completingWave = false;
+
+    spawnTimer = .2;
+
+    waveBanner = 2.5;
+
+    waveBannerText =
+        isBossWave(wave)
+            ? "BOSS WAVE"
+            : "WAVE "+wave;
+
+    if(state === "menu" || state === "over"){
+
+        hud.style.display =
+            "block";
+
+        menu.classList.add("hidden");
+        gameover.classList.add("hidden");
+
+        state = "play";
+        paused = false;
+
+        if(!player){
+            resetWorld();
+        }
+    }
+
+    if(state === "upgrade"){
+        upgrade.classList.add("hidden");
+        state = "play";
+        paused = false;
+    }
+
+    debug(
+        "[DEV] setWave",
+        {
+            old,
+            new:wave,
+            target:waveTarget,
+            bossWave:isBossWave(wave)
+        }
+    );
+
+    if(isBossWave(wave)){
+        spawnBoss();
+    }
+
+    updateHUD();
+
+    return wave;
+}
+
+function devSetScore(value){
+
+    const old = score;
+
+    score =
+        Number.isFinite(
+            Number(value)
+        )
+            ? Number(value)
+            : 0;
+
+    score =
+        Math.max(
+            0,
+            score
+        );
+
+    debug(
+        "[DEV] setScore",
+        {
+            old,
+            new:score
+        }
+    );
+
+    updateHUD();
+
+    return score;
+}
+
+function devAddScore(value){
+
+    value =
+        Number(value) || 0;
+
+    const old = score;
+
+    score += value;
+
+    score =
+        Math.max(
+            0,
+            score
+        );
+
+    debug(
+        "[DEV] addScore",
+        {
+            old,
+            amount:value,
+            new:score
+        }
+    );
+
+    updateHUD();
+
+    return score;
+}
+
+function devSetUpgradePoints(value){
+
+    const old =
+        upgradePoints;
+
+    upgradePoints =
+        Math.max(
+            0,
+            Math.floor(
+                Number(value) || 0
+            )
+        );
+
+    debug(
+        "[DEV] setUpgradePoints",
+        {
+            old,
+            new:upgradePoints
+        }
+    );
+
+    upgradePointsEl.textContent =
+        upgradePoints;
+
+    return upgradePoints;
+}
+
+function devAddUpgradePoints(value){
+
+    value =
+        Math.floor(
+            Number(value) || 0
+        );
+
+    const old =
+        upgradePoints;
+
+    upgradePoints =
+        Math.max(
+            0,
+            upgradePoints+value
+        );
+
+    debug(
+        "[DEV] addUpgradePoints",
+        {
+            old,
+            amount:value,
+            new:upgradePoints
+        }
+    );
+
+    upgradePointsEl.textContent =
+        upgradePoints;
+
+    return upgradePoints;
+}
+
+function devKillEnemies(){
+
+    let killed = 0;
+
+    for(const h of hazards){
+
+        if(!h.boss && !h.dead){
+
+            h.dead = true;
+
+            waveDefeated++;
+
+            killed++;
+        }
+    }
+
+    hazards =
+        hazards.filter(
+            h =>
+                !h.dead
+        );
+
+    debug(
+        "[DEV] killEnemies",
+        {
+            killed,
+            remaining:hazards.length,
+            waveDefeated,
+            waveSpawned,
+            waveTarget
+        }
+    );
+
+    return killed;
+}
+
+function devKillBoss(){
+
+    const boss =
+        getBoss();
+
+    if(!boss){
+
+        debugWarn(
+            "[DEV] killBoss: no boss"
+        );
+
+        return false;
+    }
+
+    boss.hp = 0;
+
+    killBoss(boss);
+
+    return true;
+}
+
+function devSpawnBoss(){
+
+    return spawnBoss(true);
+}
+
+function devNextWave(){
+
+    const old =
+        wave;
+
+    wave++;
+
+    waveTarget =
+        calculateWaveTarget();
+
+    waveSpawned = 0;
+    waveDefeated = 0;
+
+    hazards = [];
+
+    completingWave = false;
+
+    spawnTimer = .2;
+
+    bossHealth.style.display =
+        "none";
+
+    waveBanner = 2.5;
+
+    waveBannerText =
+        isBossWave(wave)
+            ? "BOSS WAVE"
+            : "WAVE "+wave;
+
+    if(state === "menu" || state === "over"){
+
+        resetWorld();
+
+        wave = old+1;
+
+        waveTarget =
+            calculateWaveTarget();
+
+        hud.style.display =
+            "block";
+
+        menu.classList.add("hidden");
+        gameover.classList.add("hidden");
+
+        state = "play";
+        paused = false;
+    }
+
+    if(state === "upgrade"){
+        upgrade.classList.add("hidden");
+        state = "play";
+        paused = false;
+    }
+
+    if(isBossWave(wave)){
+        spawnBoss();
+    }
+
+    debug(
+        "[DEV] nextWave",
+        {
+            old,
+            new:wave,
+            bossWave:isBossWave(wave)
+        }
+    );
+
+    updateHUD();
+
+    return wave;
+}
+
+function devRefillPulse(){
+
+    pulse = 1;
+
+    debug(
+        "[DEV] refillPulse"
+    );
+
+    updateHUD();
+
+    return pulse;
+}
+
+function devGodMode(enabled=true){
+
+    if(
+        typeof enabled === "string"
+    ){
+
+        enabled =
+            !(
+                enabled === "false" ||
+                enabled === "0" ||
+                enabled === "off"
+            );
+    }
+
+    enabled = Boolean(enabled);
+
+    dev.godMode = enabled;
+
+    if(enabled){
+        lives = 999999;
+        player.inv = 999999;
+    }
+    else{
+        player.inv = Math.min(
+            player.inv,
+            .8
+        );
+    }
+
+    debug(
+        "[DEV] godMode",
+        enabled
+    );
+
+    updateHUD();
+
+    return enabled;
+}
+
+function devClearField(){
+
+    const before =
+        hazards.length;
+
+    hazards = [];
+
+    bossHealth.style.display =
+        "none";
+
+    debug(
+        "[DEV] clearField",
+        {
+            before,
+            after:0
+        }
+    );
+
+    return true;
+}
+
+function devSpawnEnemy(count=1){
+
+    count =
+        Math.max(
+            1,
+            Math.floor(
+                Number(count) || 1
+            )
+        );
+
+    let created = 0;
+
+    for(let i=0;i<count;i++){
+
+        if(
+            spawnHazard()
+        ){
+            created++;
+        }
+    }
+
+    debug(
+        "[DEV] spawnEnemy",
+        {
+            requested:count,
+            created
+        }
+    );
+
+    return created;
+}
+
+function devSetPulse(value){
+
+    pulse =
+        clamp(
+            Number(value) || 0,
+            0,
+            1
+        );
+
+    debug(
+        "[DEV] setPulse",
+        pulse
+    );
+
+    updateHUD();
+
+    return pulse;
+}
+
+function devSetLives(value){
+    return devSetHealth(value);
+}
+
+function devSetStreak(value){
+
+    streak =
+        Math.max(
+            1,
+            Math.floor(
+                Number(value) || 1
+            )
+        );
+
+    debug(
+        "[DEV] setStreak",
+        streak
+    );
+
+    updateHUD();
+
+    return streak;
+}
+
+function devSetBossHealth(value){
+
+    const boss =
+        getBoss();
+
+    if(!boss){
+
+        debugWarn(
+            "[DEV] setBossHealth: no boss exists"
+        );
+
+        return null;
+    }
+
+    const old =
+        boss.hp;
+
+    boss.hp =
+        clamp(
+            Math.floor(
+                Number(value) || 0
+            ),
+            0,
+            boss.maxHP
+        );
+
+    debug(
+        "[DEV] setBossHealth",
+        {
+            old,
+            new:boss.hp,
+            max:boss.maxHP
+        }
+    );
+
+    bossBarFill.style.width =
+        boss.hp/boss.maxHP*100+"%";
+
+    if(boss.hp <= 0){
+        killBoss(boss);
+    }
+
+    return boss.hp;
+}
+
+function devShowState(){
+
+    debugState(
+        "DEV SHOW STATE"
+    );
+
+    return {
+        state,
+        paused,
+        score,
+        wave,
+        waveTarget,
+        waveSpawned,
+        waveDefeated,
+        upgradePoints,
+        lives,
+        pulse,
+        streak,
+        enemies:hazards.length,
+        boss:getBoss(),
+        upgrades:{
+            ...upgradeLevels
+        }
+    };
+}
+
+const dev = {
+
+    setHealth:devSetHealth,
+    setLives:devSetLives,
+
+    setWave:devSetWave,
+    nextWave:devNextWave,
+
+    setScore:devSetScore,
+    addScore:devAddScore,
+
+    setUpgradePoints:devSetUpgradePoints,
+    addUpgradePoints:devAddUpgradePoints,
+
+    setStreak:devSetStreak,
+
+    setPulse:devSetPulse,
+    refillPulse:devRefillPulse,
+
+    killEnemies:devKillEnemies,
+    killBoss:devKillBoss,
+    clearField:devClearField,
+
+    spawnEnemy:devSpawnEnemy,
+    spawnBoss:devSpawnBoss,
+
+    setBossHealth:devSetBossHealth,
+
+    godMode:devGodMode,
+
+    showState:devShowState,
+
+    godMode:false
+};
+
+/*
+    GLOBAL DEV API.
+
+    Examples in console:
+
+        dev.setHealth(999)
+        dev.setWave(20)
+        dev.setScore(100000)
+        dev.addScore(50000)
+        dev.setUpgradePoints(999)
+        dev.addUpgradePoints(100)
+        dev.setStreak(50)
+        dev.refillPulse()
+        dev.killEnemies()
+        dev.spawnEnemy(10)
+        dev.spawnBoss()
+        dev.setBossHealth(1)
+        dev.killBoss()
+        dev.nextWave()
+        dev.clearField()
+        dev.godMode()
+        dev.godMode(false)
+        dev.showState()
+
+    Also exposed individually:
+
+        setHealth(999)
+        setWave(20)
+        setScore(100000)
+        setUpgradePoints(999)
+        spawnBoss()
+        killBoss()
+*/
+
+window.dev = dev;
+
+window.setHealth = devSetHealth;
+window.setLives = devSetLives;
+window.setWave = devSetWave;
+window.nextWave = devNextWave;
+window.setScore = devSetScore;
+window.addScore = devAddScore;
+window.setUpgradePoints = devSetUpgradePoints;
+window.addUpgradePoints = devAddUpgradePoints;
+window.setStreak = devSetStreak;
+window.setPulse = devSetPulse;
+window.refillPulse = devRefillPulse;
+window.killEnemies = devKillEnemies;
+window.killBoss = devKillBoss;
+window.clearField = devClearField;
+window.spawnEnemy = devSpawnEnemy;
+window.spawnBoss = devSpawnBoss;
+window.setBossHealth = devSetBossHealth;
+window.godMode = devGodMode;
+window.showGameState = devShowState;
+
+globalThis.dev = dev;
+
+globalThis.setHealth = devSetHealth;
+globalThis.setLives = devSetLives;
+globalThis.setWave = devSetWave;
+globalThis.nextWave = devNextWave;
+globalThis.setScore = devSetScore;
+globalThis.addScore = devAddScore;
+globalThis.setUpgradePoints = devSetUpgradePoints;
+globalThis.addUpgradePoints = devAddUpgradePoints;
+globalThis.setStreak = devSetStreak;
+globalThis.setPulse = devSetPulse;
+globalThis.refillPulse = devRefillPulse;
+globalThis.killEnemies = devKillEnemies;
+globalThis.killBoss = devKillBoss;
+globalThis.clearField = devClearField;
+globalThis.spawnEnemy = devSpawnEnemy;
+globalThis.spawnBoss = devSpawnBoss;
+globalThis.setBossHealth = devSetBossHealth;
+globalThis.godMode = devGodMode;
+globalThis.showGameState = devShowState;
+
+debug(
+    "GLOBAL DEV API INSTALLED",
+    Object.keys(dev)
+);
+
+/* =========================================================
+   INITIAL VARIABLES
+========================================================= */
+
 bestMenu.textContent = best;
 
 /* =========================================================
@@ -1200,8 +2310,8 @@ function calculateWaveTarget(){
 
     const target =
         Math.floor(
-            7 +
-            wave*2.2 +
+            7+
+            wave*2.2+
             danger*5
         );
 
@@ -1221,10 +2331,22 @@ function calculateMaxActive(){
 
     const max =
         Math.floor(
-            5 +
-            wave*.8 +
+            5+
+            wave*.8+
             danger*3
         );
+
+    /*
+       A boss is the main enemy on boss waves.
+       Normal enemies can still spawn, but cap them.
+    */
+
+    if(isBossWave(wave)){
+        return Math.min(
+            max,
+            5
+        );
+    }
 
     return max;
 }
@@ -1245,6 +2367,9 @@ function resetWorld(){
     texts = [];
     ripples = [];
     stars = [];
+
+    bossHealth.style.display =
+        "none";
 
     for(let i=0;i<90;i++){
 
@@ -1285,7 +2410,7 @@ function resetWorld(){
     danger = 0;
     bloom = 0;
 
-    lives = 2;
+    lives = 3;
 
     upgradePoints = 0;
 
@@ -1301,6 +2426,10 @@ function resetWorld(){
 
     waveBanner = 2.2;
     waveBannerText = "WAVE 1";
+
+    completingWave = false;
+
+    dev.godMode = false;
 
     debugState(
         "WORLD RESET COMPLETE"
@@ -1456,16 +2585,9 @@ function endRun(){
    WAVE COMPLETION
 ========================================================= */
 
-let completingWave = false;
-
 function checkWaveComplete(){
 
     if(completingWave){
-
-        debug(
-            "WAVE CHECK: ALREADY COMPLETING"
-        );
-
         return true;
     }
 
@@ -1484,7 +2606,9 @@ function checkWaveComplete(){
             waveDefeated,
             activeEnemies:hazards.length,
             allSpawned,
-            noEnemies
+            noEnemies,
+            bossWave:isBossWave(wave),
+            boss:getBoss()?.id || null
         }
     );
 
@@ -1526,10 +2650,6 @@ function completeWave(){
         "WAVE COMPLETION"
     );
 
-    /*
-       Force the accounting to match reality.
-    */
-
     waveDefeated =
         Math.max(
             waveDefeated,
@@ -1537,8 +2657,13 @@ function completeWave(){
         );
 
     const earned =
-        4 +
-        Math.floor(wave/3);
+        4+
+        Math.floor(wave/3)+
+        (
+            isBossWave(wave)
+                ? 3
+                : 0
+        );
 
     upgradePoints += earned;
 
@@ -1564,6 +2689,9 @@ function completeWave(){
     spawnTimer = 999999;
 
     hazards = [];
+
+    bossHealth.style.display =
+        "none";
 
     nextWaveEl.textContent =
         wave;
@@ -1625,7 +2753,9 @@ function continueAfterUpgrade(){
     waveBanner = 2.2;
 
     waveBannerText =
-        "WAVE " + wave;
+        isBossWave(wave)
+            ? "BOSS WAVE"
+            : "WAVE "+wave;
 
     setState(
         "play",
@@ -1636,6 +2766,18 @@ function continueAfterUpgrade(){
         "wave",
         .8
     );
+
+    if(isBossWave(wave)){
+
+        debug(
+            "NEXT WAVE IS A BOSS WAVE"
+        );
+
+        /*
+           Start the boss immediately.
+        */
+        spawnBoss();
+    }
 
     debugState(
         "NEXT WAVE STARTED"
@@ -1687,10 +2829,6 @@ function showUpgradeChoices(){
     );
 
     if(pool.length === 0){
-
-        debug(
-            "ALL UPGRADES MAXED"
-        );
 
         const button =
             document.createElement(
@@ -1765,10 +2903,6 @@ function showUpgradeChoices(){
         )
     ){
 
-        debug(
-            "NO OFFERED UPGRADES AFFORDABLE"
-        );
-
         const continueButton =
             document.createElement(
                 "button"
@@ -1806,34 +2940,14 @@ function applyUpgrade(u){
     const level =
         getUpgradeLevel(u);
 
-    if(
-        level >=
-        MAX_UPGRADE_LEVEL
-    ){
-
-        debugWarn(
-            "UPGRADE MAXED"
-        );
-
+    if(level >= MAX_UPGRADE_LEVEL){
         return;
     }
 
     const cost =
         getUpgradeCost(u);
 
-    if(
-        upgradePoints <
-        cost
-    ){
-
-        debugWarn(
-            "UPGRADE NOT AFFORDABLE",
-            {
-                cost,
-                points:upgradePoints
-            }
-        );
-
+    if(upgradePoints < cost){
         return;
     }
 
@@ -1842,11 +2956,8 @@ function applyUpgrade(u){
     upgradeLevels[u.type] =
         level+1;
 
-    const value =
-        u.value;
-
-    const type =
-        u.type;
+    const value = u.value;
+    const type = u.type;
 
     if(type === "radius")
         pulseMax *= 1+value;
@@ -1895,23 +3006,19 @@ function applyUpgrade(u){
 }
 
 /* =========================================================
-   SPAWN
+   SPAWN NORMAL ENEMY
 ========================================================= */
 
 function spawnHazard(){
 
-    if(
-        waveSpawned >=
-        waveTarget
-    ){
+    /*
+       Never spawn ordinary enemies after the boss has
+       already appeared unless there is still room.
+    */
 
-        debug(
-            "SPAWN BLOCKED: TARGET ALREADY REACHED",
-            {
-                waveSpawned,
-                waveTarget
-            }
-        );
+    if(
+        waveSpawned >= waveTarget
+    ){
 
         return false;
     }
@@ -1925,28 +3032,20 @@ function spawnHazard(){
     let y;
 
     if(edge === 0){
-
         x = -45;
         y = rand(50,H-40);
-
     }
     else if(edge === 1){
-
         x = W+45;
         y = rand(50,H-40);
-
     }
     else if(edge === 2){
-
         x = rand(40,W-40);
         y = -45;
-
     }
     else{
-
         x = rand(40,W-40);
         y = H+45;
-
     }
 
     const angle =
@@ -1962,10 +3061,7 @@ function spawnHazard(){
 
     const kind =
         Math.random() <
-        Math.min(
-            .45,
-            wave*.035
-        )
+        Math.min(.45,wave*.035)
             ? "seeker"
             : "drifter";
 
@@ -1975,6 +3071,8 @@ function spawnHazard(){
     hazards.push({
 
         id,
+
+        boss:false,
 
         x,
         y,
@@ -2035,17 +3133,8 @@ function spawnOrb(){
 
     do{
 
-        x =
-            rand(
-                45,
-                W-45
-            );
-
-        y =
-            rand(
-                55,
-                H-45
-            );
+        x = rand(45,W-45);
+        y = rand(55,H-45);
 
     }
     while(
@@ -2126,8 +3215,7 @@ function emitRipple(){
 
         r:bloom ? 12 : 8,
 
-        max:
-            190*pulseMax,
+        max:190*pulseMax,
 
         speed:
             (bloom ? 310 : 250)*
@@ -2141,9 +3229,7 @@ function emitRipple(){
 
     };
 
-    ripples.push(
-        ripple
-    );
+    ripples.push(ripple);
 
     debug(
         "RIPPLE CREATED",
@@ -2197,12 +3283,7 @@ function addText(x,y,t){
     });
 }
 
-function burst(
-    x,
-    y,
-    n=12,
-    boost=1
-){
+function burst(x,y,n=12,boost=1){
 
     for(let i=0;i<n;i++){
 
@@ -2218,15 +3299,12 @@ function burst(
             y,
 
             vx:
-                Math.cos(angle)*
-                speed,
+                Math.cos(angle)*speed,
 
             vy:
-                Math.sin(angle)*
-                speed,
+                Math.sin(angle)*speed,
 
-            life:
-                rand(.35,.7),
+            life:rand(.35,.7),
 
             ttl:.6,
 
@@ -2237,10 +3315,22 @@ function burst(
 }
 
 /* =========================================================
-   HAZARD HIT
+   NORMAL ENEMY HIT
 ========================================================= */
 
 function hitHazard(h){
+
+    if(h.boss){
+
+        /*
+           Bosses use HP instead of normal enemy
+           freeze-hit death logic.
+        */
+
+        damageBoss(h);
+
+        return;
+    }
 
     debug(
         "HIT HAZARD",
@@ -2252,46 +3342,44 @@ function hitHazard(h){
     );
 
     if(h.dead){
-
-        debug(
-            "HIT IGNORED: ALREADY DEAD",
-            h.id
-        );
-
         return;
     }
 
     if(h.freeze > 0){
-
-        debug(
-            "HIT IGNORED: ALREADY FROZEN",
-            {
-                id:h.id,
-                freeze:h.freeze
-            }
-        );
-
         return;
     }
 
     h.freezeHits++;
 
+    /*
+       Hits needed = 3 + wave/2, rounded up.
+       Example:
+         Wave 1 -> 4
+         Wave 2 -> 4
+         Wave 3 -> 5
+         Wave 4 -> 5
+         Wave 5 -> 6
+    */
+
+    const hitsNeeded =
+        Math.ceil(
+            2+
+            wave/2
+        );
+
     debug(
-        "FREEZE COUNT INCREASED",
+        "ENEMY HIT",
         {
             id:h.id,
-            freezeHits:h.freezeHits
+            hits:h.freezeHits,
+            hitsNeeded,
+            wave
         }
     );
 
-    /*
-       FIVE FREEZES = DEATH.
-       This is purely anti-farming.
-    */
-    let hitsNeeded = Math.ceil(2 + wave / 2);
-
     if(
-        h.freezeHits >= hitsNeeded
+        h.freezeHits >=
+        hitsNeeded
     ){
 
         h.dead = true;
@@ -2299,7 +3387,7 @@ function hitHazard(h){
         waveDefeated++;
 
         debug(
-            "!!! ENEMY KILLED BY FIVE FREEZES !!!",
+            "!!! ENEMY KILLED !!!",
             {
                 id:h.id,
                 wave,
@@ -2325,6 +3413,37 @@ function hitHazard(h){
         sound(
             "hit",
             .7
+        );
+
+        /*
+           Normal enemy death gives a larger reward
+           than an individual freeze.
+        */
+
+        const points =
+            Math.round(
+                100*
+                scoreMult*
+                (1+chainBonus)
+            );
+
+        score += points;
+
+        streak++;
+
+        addText(
+            h.x,
+            h.y-17,
+            "+"+points
+        );
+
+        debug(
+            "ENEMY DEATH SCORE",
+            {
+                id:h.id,
+                points,
+                score
+            }
         );
 
         return;
@@ -2402,10 +3521,7 @@ function moveTouch(p){
         p.y-player.y;
 
     const d =
-        Math.hypot(
-            dx,
-            dy
-        );
+        Math.hypot(dx,dy);
 
     if(d > 15){
 
@@ -2416,7 +3532,6 @@ function moveTouch(p){
         player.vy +=
             dy/d*
             650/60;
-
     }
 }
 
@@ -2424,10 +3539,7 @@ function moveTouch(p){
    OFFSCREEN ENEMIES
 ========================================================= */
 
-function manageOffscreenEnemy(
-    h,
-    dt
-){
+function manageOffscreenEnemy(h,dt){
 
     const outside =
         h.x < -90 ||
@@ -2450,16 +3562,6 @@ function manageOffscreenEnemy(
         .65
     ){
 
-        debug(
-            "OFFSCREEN ENEMY REDIRECTED",
-            {
-                id:h.id,
-                x:h.x,
-                y:h.y,
-                time:h.offscreenTime
-            }
-        );
-
         const targetAngle =
             Math.atan2(
                 player.y-h.y,
@@ -2468,7 +3570,9 @@ function manageOffscreenEnemy(
 
         const returnSpeed =
             Math.max(
-                210,
+                h.boss
+                    ? h.baseSpeed
+                    : 210,
                 h.baseSpeed
             );
 
@@ -2504,38 +3608,251 @@ function manageOffscreenEnemy(
                 );
 
             if(side === 0){
-
                 h.x = -55;
-                h.y =
-                    rand(50,H-50);
-
+                h.y = rand(50,H-50);
             }
             else if(side === 1){
-
                 h.x = W+55;
-                h.y =
-                    rand(50,H-50);
-
+                h.y = rand(50,H-50);
             }
             else if(side === 2){
-
-                h.x =
-                    rand(50,W-50);
-
+                h.x = rand(50,W-50);
                 h.y = -55;
-
             }
             else{
-
-                h.x =
-                    rand(50,W-50);
-
+                h.x = rand(50,W-50);
                 h.y = H+55;
-
             }
 
             h.everEntered = false;
         }
+    }
+}
+
+/* =========================================================
+   BOSS UPDATE
+========================================================= */
+
+function updateBoss(boss,dt){
+
+    if(boss.dead){
+        return;
+    }
+
+    if(boss.freeze > 0){
+
+        boss.freeze -= dt;
+
+        boss.vx *=
+            Math.pow(.02,dt);
+
+        boss.vy *=
+            Math.pow(.02,dt);
+
+        boss.rot +=
+            boss.spin*
+            dt*
+            .2;
+
+    }
+    else{
+
+        const dx =
+            player.x-boss.x;
+
+        const dy =
+            player.y-boss.y;
+
+        const d =
+            Math.max(
+                1,
+                Math.hypot(dx,dy)
+            );
+
+        const speed =
+            boss.baseSpeed*
+            (
+                boss.phase === 2
+                    ? 1.25
+                    : 1
+            );
+
+        boss.vx +=
+            dx/d*
+            speed*
+            .7*
+            dt;
+
+        boss.vy +=
+            dy/d*
+            speed*
+            .7*
+            dt;
+
+        const currentSpeed =
+            Math.hypot(
+                boss.vx,
+                boss.vy
+            );
+
+        if(
+            currentSpeed >
+            speed
+        ){
+
+            boss.vx *=
+                speed/currentSpeed;
+
+            boss.vy *=
+                speed/currentSpeed;
+        }
+
+        boss.x +=
+            boss.vx*dt;
+
+        boss.y +=
+            boss.vy*dt;
+
+        boss.rot +=
+            boss.spin*dt;
+    }
+
+    boss.dashTimer -= dt;
+
+    if(
+        boss.dashTimer <= 0 &&
+        boss.freeze <= 0
+    ){
+
+        const dx =
+            player.x-boss.x;
+
+        const dy =
+            player.y-boss.y;
+
+        const d =
+            Math.max(
+                1,
+                Math.hypot(dx,dy)
+            );
+
+        const dashPower =
+            boss.phase === 2
+                ? 500
+                : 350;
+
+        boss.vx +=
+            dx/d*
+            dashPower;
+
+        boss.vy +=
+            dy/d*
+            dashPower;
+
+        boss.dashTimer =
+            boss.phase === 2
+                ? rand(1.2,2.3)
+                : rand(2,3.5);
+
+        debug(
+            "BOSS DASH",
+            {
+                id:boss.id,
+                phase:boss.phase
+            }
+        );
+
+        burst(
+            boss.x,
+            boss.y,
+            18,
+            1
+        );
+
+        sound(
+            "boss",
+            .5
+        );
+    }
+
+    manageOffscreenEnemy(
+        boss,
+        dt
+    );
+
+    if(
+        !dev.godMode &&
+        player.inv <= 0 &&
+        boss.freeze <= 0 &&
+        dist(
+            player.x,
+            player.y,
+            boss.x,
+            boss.y
+        ) <
+        player.r+
+        boss.r
+    ){
+
+        debug(
+            "PLAYER HIT BY BOSS",
+            {
+                boss:boss.id,
+                livesBefore:lives
+            }
+        );
+
+        player.inv = .8;
+
+        burst(
+            player.x,
+            player.y,
+            30,
+            1.5
+        );
+
+        score =
+            Math.max(
+                0,
+                score-150
+            );
+
+        streak =
+            soft
+                ? Math.max(1,streak-2)
+                : 1;
+
+        lives--;
+
+        addText(
+            player.x,
+            player.y-25,
+            "BOSS HIT"
+        );
+
+        sound(
+            "die",
+            1
+        );
+
+        if(lives <= 0){
+            endRun();
+            return;
+        }
+
+        const pushAngle =
+            Math.atan2(
+                player.y-boss.y,
+                player.x-boss.x
+            );
+
+        player.vx =
+            Math.cos(pushAngle)*
+            450;
+
+        player.vy =
+            Math.sin(pushAngle)*
+            450;
     }
 }
 
@@ -2550,9 +3867,7 @@ function update(dt){
 
     frameCounter++;
 
-    if(
-        state !== "play"
-    ){
+    if(state !== "play"){
         return;
     }
 
@@ -2561,12 +3876,6 @@ function update(dt){
             dt,
             .035
         );
-
-    /*
-       Periodic diagnostic logging.
-       Only once every ~2 seconds so the console isn't
-       completely flooded.
-    */
 
     if(
         performance.now()-
@@ -2587,6 +3896,7 @@ function update(dt){
                 spawned:waveSpawned,
                 defeated:waveDefeated,
                 active:hazards.length,
+                bosses:hazards.filter(h=>h.boss).length,
                 spawnTimer,
                 pulse,
                 lives
@@ -2595,9 +3905,7 @@ function update(dt){
     }
 
     if(waveBanner > 0){
-
         waveBanner -= dt;
-
     }
 
     pulse =
@@ -2611,16 +3919,41 @@ function update(dt){
        SPAWNING
     ===================================================== */
 
+    const currentBoss =
+        getBoss();
+
+    const bossWave =
+        isBossWave(wave);
+
+    /*
+       Boss waves:
+       Boss is spawned immediately by continueAfterUpgrade.
+       We don't keep spawning normal enemies forever.
+    */
+
+    if(
+        bossWave &&
+        !currentBoss &&
+        waveSpawned === 0 &&
+        !completingWave
+    ){
+
+        debug(
+            "BOSS WAVE WITHOUT BOSS — SPAWNING NOW"
+        );
+
+        spawnBoss();
+    }
+
     const maxActive =
         calculateMaxActive();
 
     let spawnedThisFrame = 0;
 
     while(
-        waveSpawned <
-            waveTarget &&
-        hazards.length <
-            maxActive &&
+        !bossWave &&
+        waveSpawned < waveTarget &&
+        hazards.length < maxActive &&
         spawnTimer <= 0
     ){
 
@@ -2628,11 +3961,6 @@ function update(dt){
             spawnHazard();
 
         if(!didSpawn){
-
-            debugError(
-                "SPAWN LOOP COULD NOT SPAWN"
-            );
-
             break;
         }
 
@@ -2643,11 +3971,6 @@ function update(dt){
                 .24,
                 .72-wave*.018
             );
-
-        /*
-           Hard safety against an accidental infinite
-           while-loop.
-        */
 
         if(
             spawnedThisFrame >
@@ -2662,6 +3985,44 @@ function update(dt){
         }
     }
 
+    /*
+       On boss waves, spawn a few normal enemies alongside
+       the boss until the target is reached.
+    */
+
+    while(
+        bossWave &&
+        waveSpawned < waveTarget &&
+        hazards.filter(h=>!h.boss && !h.dead).length <
+            Math.min(
+                4,
+                Math.floor(wave/4)
+            ) &&
+        spawnTimer <= 0
+    ){
+
+        if(
+            !spawnHazard()
+        ){
+            break;
+        }
+
+        spawnedThisFrame++;
+
+        spawnTimer =
+            Math.max(
+                .7,
+                1.1-wave*.01
+            );
+
+        if(
+            spawnedThisFrame >
+            10
+        ){
+            break;
+        }
+    }
+
     spawnTimer -= dt;
 
     if(
@@ -2670,9 +4031,7 @@ function update(dt){
         (.30+wave*.018) &&
         orbs.length < 4
     ){
-
         spawnOrb();
-
     }
 
     /* =====================================================
@@ -2754,9 +4113,7 @@ function update(dt){
         pointer.id !== null &&
         innerWidth < 800
     ){
-
         moveTouch(pointer);
-
     }
 
     player.vx =
@@ -2841,6 +4198,16 @@ function update(dt){
             continue;
         }
 
+        if(h.boss){
+
+            updateBoss(
+                h,
+                dt
+            );
+
+            continue;
+        }
+
         if(h.freeze > 0){
 
             h.freeze -= dt;
@@ -2892,9 +4259,7 @@ function update(dt){
                     targetSpeed;
             }
 
-            if(
-                h.kind === "seeker"
-            ){
+            if(h.kind === "seeker"){
 
                 const angle =
                     Math.atan2(
@@ -2944,6 +4309,7 @@ function update(dt){
         );
 
         if(
+            !dev.godMode &&
             player.inv <= 0 &&
             h.freeze <= 0 &&
             dist(
@@ -2976,7 +4342,7 @@ function update(dt){
             score =
                 Math.max(
                     0,
-                    score-50
+                    score-150
                 );
 
             streak =
@@ -3000,12 +4366,6 @@ function update(dt){
 
             lives--;
 
-            score =
-                Math.max(
-                    0,
-                    score-100
-                );
-
             debug(
                 "PLAYER LIFE LOST",
                 {
@@ -3025,9 +4385,9 @@ function update(dt){
         }
     }
 
-    /*
-       Remove dead enemies AFTER processing all collisions.
-    */
+    /* =====================================================
+       REMOVE DEAD HAZARDS
+    ===================================================== */
 
     const beforeRemoval =
         hazards.length;
@@ -3066,13 +4426,8 @@ function update(dt){
         r.r +=
             r.speed*dt;
 
-        if(
-            r.r >
-            r.max
-        ){
-
+        if(r.r > r.max){
             r.dead = true;
-
         }
 
         for(const h of hazards){
@@ -3081,9 +4436,7 @@ function update(dt){
                 continue;
             }
 
-            if(
-                r.hit.has(h)
-            ){
+            if(r.hit.has(h)){
                 continue;
             }
 
@@ -3162,7 +4515,18 @@ function update(dt){
 
             o.dead = true;
 
-            const points = Math.max(100, Math.round(score / 5));
+            /*
+               Minimum reward = +100.
+               Otherwise reward scales with current score.
+            */
+
+            const points =
+                Math.max(
+                    100,
+                    Math.round(
+                        Math.abs(score)/15
+                    )
+                );
 
             score += points;
 
@@ -3183,6 +4547,14 @@ function update(dt){
 
             sound("collect");
 
+            debug(
+                "COLLECTIBLE REWARD",
+                {
+                    scoreBefore:score-points,
+                    points,
+                    scoreAfter:score
+                }
+            );
         }
     }
 
@@ -3222,8 +4594,7 @@ function update(dt){
 
     particles =
         particles.filter(
-            p =>
-                p.life > 0
+            p => p.life > 0
         );
 
     /* =====================================================
@@ -3240,9 +4611,40 @@ function update(dt){
 
     texts =
         texts.filter(
-            t =>
-                t.life > 0
+            t => t.life > 0
         );
+
+    /* =====================================================
+       BOSS UI
+    ===================================================== */
+
+    const activeBoss =
+        getBoss();
+
+    if(activeBoss){
+
+        bossHealth.style.display =
+            "block";
+
+        bossName.textContent =
+            activeBoss.bossName+
+            " • PHASE "+
+            activeBoss.phase;
+
+        bossBarFill.style.width =
+            clamp(
+                activeBoss.hp/
+                activeBoss.maxHP,
+                0,
+                1
+            )*100+"%";
+
+    }
+    else{
+
+        bossHealth.style.display =
+            "none";
+    }
 
     /* =====================================================
        WAVE COMPLETION
@@ -3286,10 +4688,22 @@ function updateHUD(){
     waveEl.textContent =
         wave;
 
-    enemyCountEl.textContent =
-        hazards.length+
-        " / "+
-        waveTarget;
+    const activeBoss =
+        getBoss();
+
+    if(activeBoss){
+
+        enemyCountEl.textContent =
+            "BOSS";
+
+    }
+    else{
+
+        enemyCountEl.textContent =
+            waveDefeated +
+            " / "+
+            waveTarget;
+    }
 
     streakEl.textContent =
         "x"+streak;
@@ -3298,14 +4712,18 @@ function updateHUD(){
         "♥".repeat(
             Math.max(
                 0,
-                lives
+                Math.min(
+                    lives,
+                    20
+                )
             )
         );
 
     pulseBar.style.width =
-        (
-            pulse*100
-        )+"%";
+        pulse*100+"%";
+
+    upgradePointsEl.textContent =
+        upgradePoints;
 }
 
 /* =========================================================
@@ -3403,7 +4821,9 @@ function draw(){
             "center";
 
         ctx.fillStyle =
-            "#eef8ff";
+            isBossWave(wave)
+                ? "#ff91ad"
+                : "#eef8ff";
 
         ctx.font =
             "950 42px system-ui";
@@ -3421,10 +4841,8 @@ function draw(){
             "#a9bdd8";
 
         ctx.fillText(
-            wave+
-            " • "+
             waveTarget+
-            " enemies",
+            " ENEMIES",
             W/2,
             H/2+18
         );
@@ -3527,6 +4945,13 @@ function draw(){
 
     for(const h of hazards){
 
+        if(h.boss){
+
+            drawBoss(h);
+
+            continue;
+        }
+
         ctx.save();
 
         ctx.translate(
@@ -3590,20 +5015,16 @@ function draw(){
             if(i === 0){
 
                 ctx.moveTo(
-                    Math.cos(angle)*
-                    radius,
-                    Math.sin(angle)*
-                    radius
+                    Math.cos(angle)*radius,
+                    Math.sin(angle)*radius
                 );
 
             }
             else{
 
                 ctx.lineTo(
-                    Math.cos(angle)*
-                    radius,
-                    Math.sin(angle)*
-                    radius
+                    Math.cos(angle)*radius,
+                    Math.sin(angle)*radius
                 );
 
             }
@@ -3830,6 +5251,242 @@ function draw(){
 }
 
 /* =========================================================
+   BOSS DRAW
+========================================================= */
+
+function drawBoss(h){
+
+    ctx.save();
+
+    ctx.translate(
+        h.x,
+        h.y
+    );
+
+    ctx.rotate(
+        h.rot
+    );
+
+    const phase2 =
+        h.phase === 2;
+
+    const pulseAmount =
+        Math.sin(
+            performance.now()/130
+        )*4;
+
+    /*
+       Outer aura
+    */
+
+    ctx.globalAlpha =
+        .13;
+
+    ctx.fillStyle =
+        "#ff557e";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        0,
+        h.r+
+        18+
+        pulseAmount,
+        0,
+        TAU
+    );
+
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+
+    /*
+       Boss outer spikes
+    */
+
+    ctx.shadowBlur =
+        h.freeze > 0
+            ? 35
+            : 25;
+
+    ctx.shadowColor =
+        h.freeze > 0
+            ? "#d7c8ff"
+            : "#ff416f";
+
+    ctx.fillStyle =
+        h.freeze > 0
+            ? "#d5c8ff"
+            : (
+                phase2
+                    ? "#ff426f"
+                    : "#c93464"
+            );
+
+    ctx.strokeStyle =
+        "#ffb0c4";
+
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+
+    const spikes = 12;
+
+    for(
+        let i=0;
+        i<spikes;
+        i++
+    ){
+
+        const angle =
+            i*TAU/spikes;
+
+        const radius =
+            i%2 === 0
+                ? h.r*1.2
+                : h.r*.82;
+
+        const px =
+            Math.cos(angle)*
+            radius;
+
+        const py =
+            Math.sin(angle)*
+            radius;
+
+        if(i === 0){
+            ctx.moveTo(px,py);
+        }
+        else{
+            ctx.lineTo(px,py);
+        }
+    }
+
+    ctx.closePath();
+
+    ctx.fill();
+    ctx.stroke();
+
+    /*
+       Inner core
+    */
+
+    ctx.shadowBlur = 15;
+
+    ctx.fillStyle =
+        phase2
+            ? "#ffdae4"
+            : "#f2d9ff";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        0,
+        h.r*.52,
+        0,
+        TAU
+    );
+
+    ctx.fill();
+
+    /*
+       Core eye
+    */
+
+    ctx.fillStyle =
+        "#24101a";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        0,
+        h.r*.2,
+        0,
+        TAU
+    );
+
+    ctx.fill();
+
+    ctx.fillStyle =
+        phase2
+            ? "#ff557e"
+            : "#8de7ff";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        0,
+        h.r*.1,
+        0,
+        TAU
+    );
+
+    ctx.fill();
+
+    /*
+       Freeze overlay
+    */
+
+    if(h.freeze > 0){
+
+        ctx.globalAlpha =
+            .45;
+
+        ctx.strokeStyle =
+            "#ffffff";
+
+        ctx.lineWidth = 4;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            0,
+            0,
+            h.r*1.3,
+            0,
+            TAU
+        );
+
+        ctx.stroke();
+
+        ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+
+    /*
+       Boss HP text above boss
+    */
+
+    ctx.save();
+
+    ctx.globalAlpha = .85;
+
+    ctx.fillStyle =
+        "#ffe7ee";
+
+    ctx.font =
+        "800 11px system-ui";
+
+    ctx.textAlign =
+        "center";
+
+    ctx.fillText(
+        Math.ceil(h.hp)+
+        " / "+
+        h.maxHP,
+        h.x,
+        h.y-h.r-10
+    );
+
+    ctx.restore();
+}
+
+/* =========================================================
    GAME LOOP
 ========================================================= */
 
@@ -3837,12 +5494,6 @@ let last =
     performance.now();
 
 function loop(time){
-
-    /*
-       Keep the next frame scheduled every time.
-       requestAnimationFrame is one-shot, so it must be
-       requested again for continuous animation.
-    */
 
     requestAnimationFrame(
         loop
@@ -3862,12 +5513,6 @@ function loop(time){
         }
         catch(error){
 
-            /*
-               CRITICAL:
-               Instead of silently killing the game loop,
-               dump the complete game state to the console.
-            */
-
             debugError(
                 "!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
             );
@@ -3876,9 +5521,7 @@ function loop(time){
                 "GAME UPDATE EXCEPTION"
             );
 
-            debugError(
-                error
-            );
+            debugError(error);
 
             debugError(
                 "STACK",
@@ -3892,11 +5535,6 @@ function loop(time){
             debugState(
                 "UPDATE EXCEPTION"
             );
-
-            /*
-               Do not permanently destroy the game state.
-               Stop updating until the user can inspect console.
-            */
 
             paused = true;
 
@@ -3951,15 +5589,19 @@ debug(
 );
 
 debug(
-    "RIPPLE//RUN DEBUG BUILD INITIALIZED"
-);
-
-debug(
     "Console logging is ENABLED."
 );
 
 debug(
-    "No debug UI is being created."
+    "GLOBAL DEV FUNCTIONS ARE ENABLED."
+);
+
+debug(
+    "Bosses occur every "+BOSS_EVERY+" waves."
+);
+
+debug(
+    "Enemy hits needed = ceil(3 + wave/2)."
 );
 
 debug(
