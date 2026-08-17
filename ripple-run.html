@@ -6,9 +6,7 @@
 <title>RIPPLE//RUN</title>
 
 <style>
-*{
-    box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 html,body{
     margin:0;
@@ -20,9 +18,7 @@ html,body{
     font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
 
-body{
-    touch-action:none;
-}
+body{touch-action:none}
 
 #wrap{
     position:fixed;
@@ -51,10 +47,11 @@ canvas{
     display:flex;
     justify-content:space-between;
     align-items:flex-start;
+    gap:8px;
 }
 
 .stat{
-    background:rgba(9,13,22,.78);
+    background:rgba(9,13,22,.82);
     border:1px solid rgba(180,205,255,.16);
     padding:8px 12px;
     border-radius:12px;
@@ -79,6 +76,8 @@ canvas{
 .right{
     display:flex;
     gap:8px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
 }
 
 .pill{
@@ -133,10 +132,12 @@ canvas{
 }
 
 .panel{
-    width:min(680px,calc(100vw - 32px));
+    width:min(720px,calc(100vw - 32px));
+    max-height:calc(100vh - 32px);
+    overflow:auto;
     padding:34px;
     border-radius:26px;
-    background:rgba(10,14,24,.91);
+    background:rgba(10,14,24,.94);
     border:1px solid rgba(189,211,255,.18);
     box-shadow:0 25px 90px rgba(0,0,0,.55);
     text-align:center;
@@ -200,9 +201,7 @@ canvas{
     background:#b8f0ff;
     cursor:pointer;
     box-shadow:0 8px 28px rgba(126,231,255,.18);
-    transition:
-        .15s transform,
-        .15s filter;
+    transition:.15s transform,.15s filter;
 }
 
 .btn:hover{
@@ -228,6 +227,7 @@ canvas{
 }
 
 .choice{
+    position:relative;
     text-align:left;
     padding:16px;
     border-radius:16px;
@@ -235,23 +235,70 @@ canvas{
     border:1px solid rgba(255,255,255,.1);
     cursor:pointer;
     color:#eef3ff;
+    transition:.15s transform,.15s border-color,.15s background;
 }
 
-.choice:hover{
+.choice:hover:not(:disabled){
+    transform:translateY(-2px);
     border-color:#9feaff88;
     background:#151e30;
+}
+
+.choice:disabled{
+    cursor:not-allowed;
+    opacity:.38;
 }
 
 .choice strong{
     display:block;
     font-size:16px;
+    padding-right:45px;
 }
 
 .choice p{
     font-size:12px;
     opacity:.62;
     line-height:1.4;
-    margin:7px 0 0;
+    margin:7px 0 10px;
+}
+
+.choice-meta{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:11px;
+    opacity:.75;
+}
+
+.cost{
+    font-weight:900;
+    color:#aeeeff;
+}
+
+.level{
+    opacity:.55;
+}
+
+.wave-card{
+    margin:18px 0 4px;
+    padding:14px;
+    border-radius:15px;
+    background:rgba(255,255,255,.035);
+    border:1px solid rgba(255,255,255,.08);
+}
+
+.wave-title{
+    font-size:12px;
+    font-weight:900;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    opacity:.65;
+}
+
+.wave-number{
+    font-size:36px;
+    font-weight:950;
+    margin:2px 0;
 }
 
 .hidden{
@@ -259,6 +306,7 @@ canvas{
 }
 
 @media(max-width:600px){
+
     .panel{
         padding:25px;
     }
@@ -282,6 +330,14 @@ canvas{
 
     .meter{
         width:115px;
+    }
+
+    .right{
+        gap:4px;
+    }
+
+    .pill{
+        min-width:70px;
     }
 }
 </style>
@@ -310,10 +366,15 @@ canvas{
             </div>
 
             <div class="stat pill">
+                <div class="label">Enemies</div>
+                <div class="value" id="enemyCount">0 / 8</div>
+            </div>
+
+            <div class="stat pill">
                 <div class="label">Streak</div>
                 <div class="value" id="streak">x1</div>
             </div>
-            
+
             <div class="stat pill">
                 <div class="label">Lives</div>
                 <div class="value" id="lives">♥♥</div>
@@ -357,23 +418,17 @@ canvas{
 
             <div class="card">
                 <b>MOVE</b>
-                <span>
-                    WASD, arrows, or drag on touch
-                </span>
+                <span>WASD, arrows, or drag on touch</span>
             </div>
 
             <div class="card">
                 <b>RIPPLE</b>
-                <span>
-                    Space / tap to emit a growing shockwave
-                </span>
+                <span>Space / tap to emit a growing shockwave</span>
             </div>
 
             <div class="card">
-                <b>CHAIN</b>
-                <span>
-                    Freeze threats and turn dangerous moments into points
-                </span>
+                <b>SURVIVE</b>
+                <span>Clear each wave before the field overwhelms you</span>
             </div>
 
         </div>
@@ -399,13 +454,17 @@ canvas{
             WAVE CLEARED
         </div>
 
-        <h2 style="font-size:34px;margin:7px 0 0">
-            Choose a mutation
-        </h2>
+        <div class="wave-card">
+            <div class="wave-title">Next wave</div>
+            <div class="wave-number" id="nextWave">2</div>
+            <div class="small" style="margin-top:4px">
+                Choose an upgrade. Every upgrade has a cost and a maximum level of 15.
+            </div>
+        </div>
 
-        <div class="sub" style="margin-bottom:10px">
-            Your next field is tougher.
-            Pick one rule to bend.
+        <div class="sub" style="margin-bottom:5px">
+            Upgrade points:
+            <b id="upgradePoints">0</b>
         </div>
 
         <div class="choices" id="choices"></div>
@@ -450,11 +509,69 @@ canvas{
 "use strict";
 
 /* =========================================================
+   DEBUG LOGGER
+========================================================= */
+
+const DEBUG = true;
+
+const DEBUG_PREFIX = "[RIPPLE DEBUG]";
+
+function debug(...args){
+
+    if(!DEBUG) return;
+
+    console.log(
+        DEBUG_PREFIX,
+        ...args
+    );
+}
+
+function debugWarn(...args){
+
+    if(!DEBUG) return;
+
+    console.warn(
+        DEBUG_PREFIX,
+        ...args
+    );
+}
+
+function debugError(...args){
+
+    console.error(
+        DEBUG_PREFIX,
+        ...args
+    );
+}
+
+function debugState(reason){
+
+    debug(
+        "STATE SNAPSHOT:",
+        {
+            reason,
+            state,
+            paused,
+            wave,
+            waveTarget,
+            waveSpawned,
+            waveDefeated,
+            activeEnemies:hazards.length,
+            spawnTimer,
+            upgradePoints
+        }
+    );
+}
+
+/* =========================================================
    CANVAS
 ========================================================= */
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas =
+    document.getElementById("game");
+
+const ctx =
+    canvas.getContext("2d");
 
 let W = innerWidth;
 let H = innerHeight;
@@ -465,17 +582,23 @@ function resize(){
     W = innerWidth;
     H = innerHeight;
 
-    dpr = Math.min(2, devicePixelRatio || 1);
+    dpr =
+        Math.min(
+            2,
+            devicePixelRatio || 1
+        );
 
-    canvas.width = Math.max(
-        1,
-        Math.floor(W * dpr)
-    );
+    canvas.width =
+        Math.max(
+            1,
+            Math.floor(W*dpr)
+        );
 
-    canvas.height = Math.max(
-        1,
-        Math.floor(H * dpr)
-    );
+    canvas.height =
+        Math.max(
+            1,
+            Math.floor(H*dpr)
+        );
 
     ctx.setTransform(
         dpr,
@@ -484,6 +607,15 @@ function resize(){
         dpr,
         0,
         0
+    );
+
+    debug(
+        "RESIZE",
+        {
+            W,
+            H,
+            dpr
+        }
     );
 }
 
@@ -499,7 +631,8 @@ resize();
    DOM
 ========================================================= */
 
-const hud = document.getElementById("hud");
+const hud =
+    document.getElementById("hud");
 
 const menu =
     document.getElementById("menu");
@@ -515,6 +648,9 @@ const scoreEl =
 
 const waveEl =
     document.getElementById("wave");
+
+const enemyCountEl =
+    document.getElementById("enemyCount");
 
 const streakEl =
     document.getElementById("streak");
@@ -540,22 +676,35 @@ const bestFinal =
 const choices =
     document.getElementById("choices");
 
+const upgradePointsEl =
+    document.getElementById("upgradePoints");
+
+const nextWaveEl =
+    document.getElementById("nextWave");
+
 /* =========================================================
    UTILITIES
 ========================================================= */
 
-const TAU = Math.PI * 2;
+const TAU =
+    Math.PI*2;
 
 function rand(a,b){
-    return Math.random() * (b-a) + a;
+    return Math.random()*(b-a)+a;
 }
 
 function clamp(v,a,b){
-    return Math.max(a,Math.min(b,v));
+    return Math.max(
+        a,
+        Math.min(b,v)
+    );
 }
 
 function dist(a,b,c,d){
-    return Math.hypot(a-c,b-d);
+    return Math.hypot(
+        a-c,
+        b-d
+    );
 }
 
 /* =========================================================
@@ -576,6 +725,7 @@ function sound(type,p=1){
                     window.webkitAudioContext
                 )();
 
+            debug("AUDIO CREATED");
         }
 
         if(audio.state === "suspended"){
@@ -593,21 +743,18 @@ function sound(type,p=1){
 
         let frequency;
 
-        if(type === "hit"){
+        if(type === "hit")
             frequency = 150;
-        }
-        else if(type === "pulse"){
+        else if(type === "pulse")
             frequency = 90;
-        }
-        else if(type === "collect"){
+        else if(type === "collect")
             frequency = 620;
-        }
-        else if(type === "die"){
+        else if(type === "die")
             frequency = 70;
-        }
-        else{
+        else if(type === "wave")
+            frequency = 240;
+        else
             frequency = 320;
-        }
 
         oscillator.frequency.setValueAtTime(
             frequency,
@@ -615,10 +762,9 @@ function sound(type,p=1){
         );
 
         oscillator.frequency.exponentialRampToValueAtTime(
-            frequency * (
-                type === "die" ? .35 : 1.7
-            ),
-            audio.currentTime + .12
+            frequency *
+            (type === "die" ? .35 : 1.7),
+            audio.currentTime+.12
         );
 
         oscillator.type =
@@ -632,24 +778,28 @@ function sound(type,p=1){
         );
 
         gain.gain.exponentialRampToValueAtTime(
-            .045 * p,
-            audio.currentTime + .008
+            .045*p,
+            audio.currentTime+.008
         );
 
         gain.gain.exponentialRampToValueAtTime(
             .0001,
-            audio.currentTime + .16
+            audio.currentTime+.16
         );
 
         oscillator.start();
 
         oscillator.stop(
-            audio.currentTime + .18
+            audio.currentTime+.18
         );
 
     }
     catch(e){
-        /* Audio is optional. */
+
+        debugWarn(
+            "AUDIO ERROR",
+            e
+        );
     }
 }
 
@@ -657,7 +807,8 @@ function sound(type,p=1){
    INPUT
 ========================================================= */
 
-const keys = new Set();
+const keys =
+    new Set();
 
 addEventListener(
     "keydown",
@@ -668,6 +819,16 @@ addEventListener(
 
         keys.add(key);
 
+        debug(
+            "KEYDOWN",
+            key,
+            {
+                state,
+                wave,
+                paused
+            }
+        );
+
         if([
             " ",
             "arrowup",
@@ -677,8 +838,11 @@ addEventListener(
         ].includes(key)){
             e.preventDefault();
         }
-	
-	if(key === " " && !e.repeat){
+
+        if(
+            key === " " &&
+            !e.repeat
+        ){
             emitRipple();
         }
 
@@ -710,15 +874,17 @@ addEventListener(
 addEventListener(
     "keyup",
     e => {
+
         keys.delete(
             e.key.toLowerCase()
         );
+
     }
 );
 
 let pointer = {
-    x: W / 2,
-    y: H / 2,
+    x:W/2,
+    y:H/2,
     down:false,
     id:null
 };
@@ -729,8 +895,8 @@ function pointerPos(e){
         canvas.getBoundingClientRect();
 
     return {
-        x:e.clientX - rect.left,
-        y:e.clientY - rect.top
+        x:e.clientX-rect.left,
+        y:e.clientY-rect.top
     };
 }
 
@@ -738,7 +904,8 @@ canvas.addEventListener(
     "pointerdown",
     e => {
 
-        const p = pointerPos(e);
+        const p =
+            pointerPos(e);
 
         pointer.x = p.x;
         pointer.y = p.y;
@@ -747,6 +914,16 @@ canvas.addEventListener(
 
         canvas.setPointerCapture(
             e.pointerId
+        );
+
+        debug(
+            "POINTER DOWN",
+            {
+                x:p.x,
+                y:p.y,
+                type:e.pointerType,
+                state
+            }
         );
 
         if(state === "play"){
@@ -760,7 +937,8 @@ canvas.addEventListener(
     "pointermove",
     e => {
 
-        const p = pointerPos(e);
+        const p =
+            pointerPos(e);
 
         pointer.x = p.x;
         pointer.y = p.y;
@@ -770,7 +948,9 @@ canvas.addEventListener(
             state === "play" &&
             e.pointerType !== "mouse"
         ){
+
             moveTouch(p);
+
         }
 
     }
@@ -779,14 +959,24 @@ canvas.addEventListener(
 canvas.addEventListener(
     "pointerup",
     () => {
+
         pointer.down = false;
+
+        debug(
+            "POINTER UP"
+        );
     }
 );
 
 canvas.addEventListener(
     "pointercancel",
     () => {
+
         pointer.down = false;
+
+        debug(
+            "POINTER CANCEL"
+        );
     }
 );
 
@@ -794,86 +984,132 @@ canvas.addEventListener(
    UPGRADES
 ========================================================= */
 
+const MAX_UPGRADE_LEVEL = 15;
+
 const upgrades = [
 
-    [
-        "Wider Pulse",
-        "Ripple radius +28%.",
-        "radius",
-        28
-    ],
+    {
+        name:"Wider Pulse",
+        desc:"Ripple maximum radius +28%.",
+        type:"radius",
+        value:.28,
+        baseCost:2
+    },
 
-    [
-        "Quick Charge",
-        "Ripple recharge 18% faster.",
-        "charge",
-        .18
-    ],
+    {
+        name:"Quick Charge",
+        desc:"Ripple recharge is 8% faster.",
+        type:"charge",
+        value:.08,
+        baseCost:2
+    },
 
-    [
-        "Long Fuse",
-        "Frozen hazards last 22% longer.",
-        "freeze",
-        .22
-    ],
+    {
+        name:"Long Freeze",
+        desc:"Frozen enemies remain frozen 12% longer.",
+        type:"freeze",
+        value:.12,
+        baseCost:2
+    },
 
-    [
-        "Glass Cannon",
-        "You move 18% faster, but your core is 12% smaller.",
-        "speed",
-        .18
-    ],
+    {
+        name:"Fleet Core",
+        desc:"Move 8% faster.",
+        type:"speed",
+        value:.08,
+        baseCost:2
+    },
 
-    [
-        "Echo Score",
-        "Ripple hits are worth 35% more.",
-        "chain",
-        .35
-    ],
+    {
+        name:"Echo Score",
+        desc:"Ripple hits are worth 15% more.",
+        type:"chain",
+        value:.15,
+        baseCost:3
+    },
 
-    [
-        "Second Beat",
-        "Ripple hits have a chance to refund charge.",
-        "refund",
-        .20
-    ],
+    {
+        name:"Second Beat",
+        desc:"Ripple hits have a chance to refund charge.",
+        type:"refund",
+        value:.10,
+        baseCost:3
+    },
 
-    [
-        "Soft Landing",
-        "Taking a hit only partially damages your streak.",
-        "streak",
-        1
-    ],
+    {
+        name:"Soft Landing",
+        desc:"Taking a hit reduces your streak less severely.",
+        type:"streak",
+        value:1,
+        baseCost:3
+    },
 
-    [
-        "Magnetic Dust",
-        "Collectibles drift toward you from farther away.",
-        "magnet",
-        55
-    ],
+    {
+        name:"Magnetic Dust",
+        desc:"Collectibles are attracted from farther away.",
+        type:"magnet",
+        value:35,
+        baseCost:2
+    },
 
-    [
-        "Crowded Sky",
-        "More enemies, but enemies are worth more.",
-        "danger",
-        .15
-    ],
+    {
+        name:"Risk / Reward",
+        desc:"More enemies spawn, but they are worth more points.",
+        type:"danger",
+        value:.08,
+        baseCost:3
+    },
 
-    [
-        "Pulse Bloom",
-        "Ripples start larger and expand faster.",
-        "bloom",
-        .35
-    ],
+    {
+        name:"Pulse Bloom",
+        desc:"Ripples start larger and expand faster.",
+        type:"bloom",
+        value:.15,
+        baseCost:3
+    },
 
-    [
-        "Extra Life",
-        "Get an extra life!",
-        "lives",
-        1
-    ]
+    {
+        name:"Extra Life",
+        desc:"Gain one additional life.",
+        type:"lives",
+        value:1,
+        baseCost:5
+    }
 
 ];
+
+let upgradeLevels = {};
+
+function resetUpgradeLevels(){
+
+    upgradeLevels = {};
+
+    for(const u of upgrades){
+
+        upgradeLevels[u.type] = 0;
+
+    }
+
+    debug(
+        "UPGRADE LEVELS RESET"
+    );
+}
+
+function getUpgradeCost(u){
+
+    const level =
+        upgradeLevels[u.type] || 0;
+
+    return (
+        u.baseCost +
+        Math.floor(level*.45)
+    );
+}
+
+function getUpgradeLevel(u){
+
+    return upgradeLevels[u.type] || 0;
+}
 
 /* =========================================================
    GAME STATE
@@ -892,9 +1128,6 @@ let best =
             "rippleRunBest"
         ) || 0
     );
-
-let waveTimer = 0;
-let spawnTimer = 0;
 
 let pulse = 1;
 let pulseMax = 1;
@@ -915,8 +1148,19 @@ let soft = false;
 let danger = 0;
 let bloom = 0;
 
+let upgradePoints = 0;
+
+let waveTarget = 8;
+let waveSpawned = 0;
+let waveDefeated = 0;
+
+let spawnTimer = 0;
+let waveBanner = 0;
+let waveBannerText = "";
+
 let player;
 let lives = 0;
+
 let orbs = [];
 let hazards = [];
 let particles = [];
@@ -927,12 +1171,73 @@ let stars = [];
 bestMenu.textContent = best;
 
 /* =========================================================
+   STATE TRANSITION
+========================================================= */
+
+function setState(newState,reason){
+
+    const oldState = state;
+
+    state = newState;
+
+    debug(
+        "STATE CHANGE:",
+        oldState,
+        "->",
+        newState,
+        "|",
+        reason
+    );
+
+    debugState(reason);
+}
+
+/* =========================================================
+   WAVE CALCULATIONS
+========================================================= */
+
+function calculateWaveTarget(){
+
+    const target =
+        Math.floor(
+            7 +
+            wave*2.2 +
+            danger*5
+        );
+
+    debug(
+        "CALCULATE WAVE TARGET",
+        {
+            wave,
+            danger,
+            target
+        }
+    );
+
+    return target;
+}
+
+function calculateMaxActive(){
+
+    const max =
+        Math.floor(
+            5 +
+            wave*.8 +
+            danger*3
+        );
+
+    return max;
+}
+
+/* =========================================================
    WORLD RESET
 ========================================================= */
 
 function resetWorld(){
 
-    console.log('reset world')
+    debug(
+        "========== RESET WORLD =========="
+    );
 
     orbs = [];
     hazards = [];
@@ -957,16 +1262,13 @@ function resetWorld(){
         y:H/2,
         vx:0,
         vy:0,
-        r:coreR,
+        r:12,
         inv:1
     };
 
     score = 0;
     wave = 1;
     streak = 1;
-
-    waveTimer = 0;
-    spawnTimer = .3;
 
     pulse = 1;
 
@@ -984,15 +1286,38 @@ function resetWorld(){
     bloom = 0;
 
     lives = 2;
+
+    upgradePoints = 0;
+
+    resetUpgradeLevels();
+
+    waveTarget =
+        calculateWaveTarget();
+
+    waveSpawned = 0;
+    waveDefeated = 0;
+
+    spawnTimer = .4;
+
+    waveBanner = 2.2;
+    waveBannerText = "WAVE 1";
+
+    debugState(
+        "WORLD RESET COMPLETE"
+    );
+
+    updateHUD();
 }
 
 /* =========================================================
-   START / END
+   START
 ========================================================= */
 
 function start(){
 
-    console.log('game start')
+    debug(
+        "========== START =========="
+    );
 
     menu.classList.add("hidden");
     gameover.classList.add("hidden");
@@ -1001,61 +1326,101 @@ function start(){
     hud.style.display = "block";
 
     paused = false;
-    state = "play";
 
     resetWorld();
+
+    setState(
+        "play",
+        "game started"
+    );
 
     sound("start");
 }
 
+/* =========================================================
+   PAUSE
+========================================================= */
+
 function togglePause(){
 
-    if(state !== "play"){
+    debug(
+        "TOGGLE PAUSE REQUEST",
+        {
+            state,
+            paused
+        }
+    );
+
+    if(
+        state !== "play" &&
+        state !== "pause"
+    ){
+
+        debug(
+            "PAUSE IGNORED: INVALID STATE"
+        );
+
         return;
     }
 
-    paused = !paused;
+    if(state === "play"){
 
-    if(paused){
-        state = "pause";
-        showPause();
-    }
-    else{
-        state = "play";
-        hidePause();
-    }
+        paused = true;
 
-}
-
-function showPause(){
-
-    texts.push({
-        x:W/2,
-        y:H/2-30,
-        t:"PAUSED",
-        life:999,
-        ttl:999,
-        big:true
-    });
-
-}
-
-function hidePause(){
-
-    texts =
-        texts.filter(
-            t => !t.big
+        setState(
+            "pause",
+            "player pressed P"
         );
 
+        texts.push({
+            x:W/2,
+            y:H/2-30,
+            t:"PAUSED",
+            life:999,
+            ttl:999,
+            big:true
+        });
+
+    }
+    else{
+
+        paused = false;
+
+        setState(
+            "play",
+            "player resumed"
+        );
+
+        texts =
+            texts.filter(
+                t => !t.big
+            );
+    }
 }
+
+/* =========================================================
+   GAME OVER
+========================================================= */
 
 function endRun(){
 
-    console.log('end run')
+    debug(
+        "========== END RUN =========="
+    );
 
-    state = "over";
+    debugState(
+        "END RUN CALLED"
+    );
 
-    sound("die",1.5);
+    setState(
+        "over",
+        "player lost all lives"
+    );
+
+    sound(
+        "die",
+        1.5
+    );
 
     best =
         Math.max(
@@ -1069,7 +1434,6 @@ function endRun(){
     );
 
     bestFinal.textContent = best;
-
     finalScore.textContent =
         Math.floor(score);
 
@@ -1080,122 +1444,477 @@ function endRun(){
         "hidden"
     );
 
-    hud.style.display = "none";
+    hud.style.display =
+        "none";
+
+    debug(
+        "GAME OVER UI SHOWN"
+    );
 }
 
 /* =========================================================
-   MUTATION SELECTION
+   WAVE COMPLETION
 ========================================================= */
 
-function chooseUpgrade(){
+let completingWave = false;
 
-    state = "upgrade";
+function checkWaveComplete(){
+
+    if(completingWave){
+
+        debug(
+            "WAVE CHECK: ALREADY COMPLETING"
+        );
+
+        return true;
+    }
+
+    const allSpawned =
+        waveSpawned >= waveTarget;
+
+    const noEnemies =
+        hazards.length === 0;
+
+    debug(
+        "WAVE CHECK",
+        {
+            wave,
+            waveTarget,
+            waveSpawned,
+            waveDefeated,
+            activeEnemies:hazards.length,
+            allSpawned,
+            noEnemies
+        }
+    );
+
+    if(
+        allSpawned &&
+        noEnemies
+    ){
+
+        debug(
+            "******** WAVE COMPLETE CONDITION MET ********"
+        );
+
+        completeWave();
+
+        return true;
+    }
+
+    return false;
+}
+
+function completeWave(){
+
+    if(completingWave){
+
+        debugWarn(
+            "completeWave() CALLED TWICE — IGNORED"
+        );
+
+        return;
+    }
+
+    completingWave = true;
+
+    debug(
+        "========== COMPLETE WAVE =========="
+    );
+
+    debugState(
+        "WAVE COMPLETION"
+    );
+
+    /*
+       Force the accounting to match reality.
+    */
+
+    waveDefeated =
+        Math.max(
+            waveDefeated,
+            waveSpawned
+        );
+
+    const earned =
+        4 +
+        Math.floor(wave/3);
+
+    upgradePoints += earned;
+
+    debug(
+        "AWARDED UPGRADE POINTS",
+        {
+            earned,
+            total:upgradePoints
+        }
+    );
+
+    const completedWave =
+        wave;
+
+    wave++;
+
+    waveTarget =
+        calculateWaveTarget();
+
+    waveSpawned = 0;
+    waveDefeated = 0;
+
+    spawnTimer = 999999;
+
+    hazards = [];
+
+    nextWaveEl.textContent =
+        wave;
+
+    upgradePointsEl.textContent =
+        upgradePoints;
+
+    sound(
+        "wave",
+        1.3
+    );
+
+    setState(
+        "upgrade",
+        `wave ${completedWave} cleared`
+    );
 
     upgrade.classList.remove(
         "hidden"
     );
 
-    choices.innerHTML = "";
+    debug(
+        "UPGRADE SCREEN OPEN",
+        {
+            completedWave,
+            nextWave:wave,
+            nextTarget:waveTarget,
+            points:upgradePoints
+        }
+    );
 
-    const pool =
-        [...upgrades]
-            .sort(() => Math.random()-.5)
-            .slice(0,3);
-
-    pool.forEach(u => {
-
-        const button =
-            document.createElement("button");
-
-        button.className = "choice";
-
-        button.innerHTML =
-            "<strong>" +
-            u[0] +
-            "</strong>" +
-            "<p>" +
-            u[1] +
-            "</p>";
-
-        button.onclick =
-            () => applyUpgrade(u);
-
-        choices.appendChild(button);
-
-    });
-
+    showUpgradeChoices();
 }
 
-function applyUpgrade(u){
+/* =========================================================
+   CONTINUE AFTER UPGRADE
+========================================================= */
 
-    const type = u[2];
-    const value = u[3];
+function continueAfterUpgrade(){
 
-    if(type === "radius"){
-        pulseMax += value / 100;
-    }
-
-    if(type === "charge"){
-        pulseCooldown *= 1 - value;
-    }
-
-    if(type === "freeze"){
-        freezeTime *= 1 + value;
-    }
-
-    if(type === "speed"){
-        speedMult *= 1 + value;
-        coreR *= .88;
-        player.r = coreR;
-    }
-
-    if(type === "chain"){
-        chainBonus += value;
-    }
-
-    if(type === "refund"){
-        refund += value;
-    }
-
-    if(type === "streak"){
-        soft = true;
-    }
-
-    if(type === "magnet"){
-        magnet += value;
-    }
-
-    if(type === "danger"){
-        danger += value;
-    }
-
-    if(type === "bloom"){
-        bloom += value;
-    }
-
-	if(type === "lives"){
-		lives += value;
-	}
+    debug(
+        "========== CONTINUE AFTER UPGRADE =========="
+    );
 
     upgrade.classList.add(
         "hidden"
     );
 
-    state = "play";
+    completingWave = false;
 
-    waveTimer = 0;
-    spawnTimer = .15;
+    waveSpawned = 0;
+    waveDefeated = 0;
 
-    sound("collect",1.2);
+    waveTarget =
+        calculateWaveTarget();
+
+    spawnTimer = .35;
+
+    waveBanner = 2.2;
+
+    waveBannerText =
+        "WAVE " + wave;
+
+    setState(
+        "play",
+        "upgrade finished"
+    );
+
+    sound(
+        "wave",
+        .8
+    );
+
+    debugState(
+        "NEXT WAVE STARTED"
+    );
+
+    updateHUD();
 }
 
 /* =========================================================
-   SPAWNING
+   UPGRADE UI
+========================================================= */
+
+function showUpgradeChoices(){
+
+    debug(
+        "GENERATING UPGRADE CHOICES",
+        {
+            points:upgradePoints
+        }
+    );
+
+    choices.innerHTML = "";
+
+    const available =
+        upgrades.filter(
+            u =>
+                getUpgradeLevel(u) <
+                MAX_UPGRADE_LEVEL
+        );
+
+    const pool =
+        [...available]
+            .sort(
+                () =>
+                    Math.random()-.5
+            )
+            .slice(0,3);
+
+    debug(
+        "UPGRADE POOL",
+        pool.map(
+            u => ({
+                type:u.type,
+                name:u.name,
+                level:getUpgradeLevel(u),
+                cost:getUpgradeCost(u)
+            })
+        )
+    );
+
+    if(pool.length === 0){
+
+        debug(
+            "ALL UPGRADES MAXED"
+        );
+
+        const button =
+            document.createElement(
+                "button"
+            );
+
+        button.className =
+            "btn";
+
+        button.textContent =
+            "CONTINUE";
+
+        button.onclick =
+            continueAfterUpgrade;
+
+        choices.appendChild(
+            button
+        );
+
+        return;
+    }
+
+    for(const u of pool){
+
+        const level =
+            getUpgradeLevel(u);
+
+        const cost =
+            getUpgradeCost(u);
+
+        const button =
+            document.createElement(
+                "button"
+            );
+
+        button.className =
+            "choice";
+
+        const canBuy =
+            upgradePoints >= cost;
+
+        button.disabled =
+            !canBuy;
+
+        button.innerHTML =
+            `
+            <strong>${u.name}</strong>
+            <p>${u.desc}</p>
+            <div class="choice-meta">
+                <span class="level">
+                    Lv. ${level}/${MAX_UPGRADE_LEVEL}
+                </span>
+                <span class="cost">
+                    ${cost} POINT${cost === 1 ? "" : "S"}
+                </span>
+            </div>
+            `;
+
+        button.onclick =
+            () => applyUpgrade(u);
+
+        choices.appendChild(
+            button
+        );
+    }
+
+    if(
+        pool.every(
+            u =>
+                upgradePoints <
+                getUpgradeCost(u)
+        )
+    ){
+
+        debug(
+            "NO OFFERED UPGRADES AFFORDABLE"
+        );
+
+        const continueButton =
+            document.createElement(
+                "button"
+            );
+
+        continueButton.className =
+            "btn";
+
+        continueButton.textContent =
+            "SAVE POINTS & CONTINUE";
+
+        continueButton.style.marginTop =
+            "4px";
+
+        continueButton.onclick =
+            continueAfterUpgrade;
+
+        choices.appendChild(
+            continueButton
+        );
+    }
+}
+
+function applyUpgrade(u){
+
+    debug(
+        "UPGRADE CLICKED",
+        {
+            name:u.name,
+            type:u.type,
+            points:upgradePoints
+        }
+    );
+
+    const level =
+        getUpgradeLevel(u);
+
+    if(
+        level >=
+        MAX_UPGRADE_LEVEL
+    ){
+
+        debugWarn(
+            "UPGRADE MAXED"
+        );
+
+        return;
+    }
+
+    const cost =
+        getUpgradeCost(u);
+
+    if(
+        upgradePoints <
+        cost
+    ){
+
+        debugWarn(
+            "UPGRADE NOT AFFORDABLE",
+            {
+                cost,
+                points:upgradePoints
+            }
+        );
+
+        return;
+    }
+
+    upgradePoints -= cost;
+
+    upgradeLevels[u.type] =
+        level+1;
+
+    const value =
+        u.value;
+
+    const type =
+        u.type;
+
+    if(type === "radius")
+        pulseMax *= 1+value;
+
+    if(type === "charge")
+        pulseCooldown *= 1-value;
+
+    if(type === "freeze")
+        freezeTime *= 1+value;
+
+    if(type === "speed")
+        speedMult *= 1+value;
+
+    if(type === "chain")
+        chainBonus += value;
+
+    if(type === "refund")
+        refund += value;
+
+    if(type === "streak")
+        soft = true;
+
+    if(type === "magnet")
+        magnet += value;
+
+    if(type === "danger")
+        danger += value;
+
+    if(type === "bloom")
+        bloom += value;
+
+    if(type === "lives")
+        lives += value;
+
+    debug(
+        "UPGRADE APPLIED",
+        {
+            name:u.name,
+            type,
+            newLevel:upgradeLevels[type],
+            remainingPoints:upgradePoints
+        }
+    );
+
+    continueAfterUpgrade();
+}
+
+/* =========================================================
+   SPAWN
 ========================================================= */
 
 function spawnHazard(){
 
-    console.log('spawn hazard')
+    if(
+        waveSpawned >=
+        waveTarget
+    ){
+
+        debug(
+            "SPAWN BLOCKED: TARGET ALREADY REACHED",
+            {
+                waveSpawned,
+                waveTarget
+            }
+        );
+
+        return false;
+    }
 
     const edge =
         Math.floor(
@@ -1206,54 +1925,73 @@ function spawnHazard(){
     let y;
 
     if(edge === 0){
-        x = -30;
-        y = rand(30,H-30);
+
+        x = -45;
+        y = rand(50,H-40);
+
     }
     else if(edge === 1){
-        x = W+30;
-        y = rand(30,H-30);
+
+        x = W+45;
+        y = rand(50,H-40);
+
     }
     else if(edge === 2){
-        x = rand(30,W-30);
-        y = -30;
+
+        x = rand(40,W-40);
+        y = -45;
+
     }
     else{
-        x = rand(30,W-30);
-        y = H+30;
+
+        x = rand(40,W-40);
+        y = H+45;
+
     }
 
     const angle =
         Math.atan2(
             player.y-y,
             player.x-x
-        ) +
+        )+
         rand(-.55,.55);
 
     const speed =
-        rand(175,300) +
+        rand(175,300)+
         wave*4;
 
     const kind =
         Math.random() <
-        Math.min(.45,wave*.035)
+        Math.min(
+            .45,
+            wave*.035
+        )
             ? "seeker"
             : "drifter";
 
+    const id =
+        `${wave}:${waveSpawned+1}:${Math.random().toString(36).slice(2,7)}`;
+
     hazards.push({
+
+        id,
 
         x,
         y,
 
-        vx:Math.cos(angle)*speed,
-        vy:Math.sin(angle)*speed,
+        vx:
+            Math.cos(angle)*speed,
+
+        vy:
+            Math.sin(angle)*speed,
 
         r:rand(15,25),
 
         kind,
-        
-        freezeHits: 0,
 
-        baseSpeed: speed,
+        freezeHits:0,
+
+        baseSpeed:speed,
 
         freeze:0,
 
@@ -1261,13 +1999,34 @@ function spawnHazard(){
 
         spin:rand(-2,2),
 
-        hit:false,
+        dead:false,
 
-        dead:false
+        everEntered:false,
+
+        offscreenTime:0
 
     });
 
+    waveSpawned++;
+
+    debug(
+        "ENEMY SPAWNED",
+        {
+            id,
+            wave,
+            spawned:waveSpawned,
+            target:waveTarget,
+            active:hazards.length,
+            kind
+        }
+    );
+
+    return true;
 }
+
+/* =========================================================
+   ORBS
+========================================================= */
 
 function spawnOrb(){
 
@@ -1276,8 +2035,17 @@ function spawnOrb(){
 
     do{
 
-        x = rand(45,W-45);
-        y = rand(55,H-45);
+        x =
+            rand(
+                45,
+                W-45
+            );
+
+        y =
+            rand(
+                55,
+                H-45
+            );
 
     }
     while(
@@ -1304,6 +2072,13 @@ function spawnOrb(){
 
     });
 
+    debug(
+        "ORB SPAWNED",
+        {
+            x,
+            y
+        }
+    );
 }
 
 /* =========================================================
@@ -1312,10 +2087,31 @@ function spawnOrb(){
 
 function emitRipple(){
 
+    debug(
+        "RIPPLE REQUEST",
+        {
+            state,
+            pulse,
+            wave
+        }
+    );
+
     if(
         state !== "play" ||
         pulse < 1
     ){
+
+        debug(
+            "RIPPLE DENIED",
+            {
+                reason:
+                    state !== "play"
+                        ? "not playing"
+                        : "not charged",
+                pulse
+            }
+        );
+
         return;
     }
 
@@ -1323,17 +2119,18 @@ function emitRipple(){
 
     sound("pulse",1);
 
-    ripples.push({
+    const ripple = {
 
         x:player.x,
         y:player.y,
 
         r:bloom ? 12 : 8,
 
-        max:190*pulseMax,
+        max:
+            190*pulseMax,
 
         speed:
-            (bloom ? 310 : 250) *
+            (bloom ? 310 : 250)*
             (1+bloom),
 
         hit:new Set(),
@@ -1342,7 +2139,21 @@ function emitRipple(){
 
         dead:false
 
-    });
+    };
+
+    ripples.push(
+        ripple
+    );
+
+    debug(
+        "RIPPLE CREATED",
+        {
+            max:ripple.max,
+            speed:ripple.speed,
+            x:ripple.x,
+            y:ripple.y
+        }
+    );
 
     for(let i=0;i<18;i++){
 
@@ -1355,11 +2166,11 @@ function emitRipple(){
             y:player.y,
 
             vx:
-                Math.cos(angle) *
+                Math.cos(angle)*
                 rand(50,170),
 
             vy:
-                Math.sin(angle) *
+                Math.sin(angle)*
                 rand(50,170),
 
             life:.4,
@@ -1368,9 +2179,7 @@ function emitRipple(){
             r:rand(1,3)
 
         });
-
     }
-
 }
 
 /* =========================================================
@@ -1380,16 +2189,12 @@ function emitRipple(){
 function addText(x,y,t){
 
     texts.push({
-
         x,
         y,
         t,
-
         life:.9,
         ttl:.9
-
     });
-
 }
 
 function burst(
@@ -1405,8 +2210,7 @@ function burst(
             rand(0,TAU);
 
         const speed =
-            rand(30,180) *
-            boost;
+            rand(30,180)*boost;
 
         particles.push({
 
@@ -1414,62 +2218,128 @@ function burst(
             y,
 
             vx:
-                Math.cos(angle) *
+                Math.cos(angle)*
                 speed,
 
             vy:
-                Math.sin(angle) *
+                Math.sin(angle)*
                 speed,
 
-            life:rand(.35,.7),
+            life:
+                rand(.35,.7),
+
             ttl:.6,
 
             r:rand(1,3)
 
         });
-
     }
-
 }
 
 /* =========================================================
-   RIPPLE HITS
+   HAZARD HIT
 ========================================================= */
 
 function hitHazard(h){
 
-    if(h.freeze > 0){
-        return;
-    }
-    
-    // Count how many times this enemy has been frozen
-    h.freezeHits++;
+    debug(
+        "HIT HAZARD",
+        {
+            id:h.id,
+            freezeHits:h.freezeHits,
+            freeze:h.freeze
+        }
+    );
 
-    // After being frozen 5 times, remove it.
-    // No bonus, no extra score, no streak increase.
-    if(h.freezeHits >= 3){
+    if(h.dead){
 
-        h.dead = true;
-
-        burst(
-            h.x,
-            h.y,
-            12,
-            .8
+        debug(
+            "HIT IGNORED: ALREADY DEAD",
+            h.id
         );
 
         return;
     }
-    
-    h.freeze = freezeTime;
+
+    if(h.freeze > 0){
+
+        debug(
+            "HIT IGNORED: ALREADY FROZEN",
+            {
+                id:h.id,
+                freeze:h.freeze
+            }
+        );
+
+        return;
+    }
+
+    h.freezeHits++;
+
+    debug(
+        "FREEZE COUNT INCREASED",
+        {
+            id:h.id,
+            freezeHits:h.freezeHits
+        }
+    );
+
+    /*
+       FIVE FREEZES = DEATH.
+       This is purely anti-farming.
+    */
+    let hitsNeeded = Math.ceil(2 + wave / 2);
+
+    if(
+        h.freezeHits >= hitsNeeded
+    ){
+
+        h.dead = true;
+
+        waveDefeated++;
+
+        debug(
+            "!!! ENEMY KILLED BY FIVE FREEZES !!!",
+            {
+                id:h.id,
+                wave,
+                waveDefeated,
+                waveSpawned,
+                target:waveTarget
+            }
+        );
+
+        burst(
+            h.x,
+            h.y,
+            18,
+            1
+        );
+
+        addText(
+            h.x,
+            h.y,
+            "BREAK"
+        );
+
+        sound(
+            "hit",
+            .7
+        );
+
+        return;
+    }
+
+    h.freeze =
+        freezeTime;
 
     h.vx *= .04;
     h.vy *= .04;
 
     const points =
         Math.round(
-            35 *
-            scoreMult *
+            35*
+            scoreMult*
             (1+chainBonus)
         );
 
@@ -1480,7 +2350,7 @@ function hitHazard(h){
     addText(
         h.x,
         h.y,
-        "+" + points
+        "+"+points
     );
 
     burst(
@@ -1494,7 +2364,7 @@ function hitHazard(h){
 
     if(
         Math.random() <
-        .14 + refund
+        .14+refund
     ){
 
         pulse =
@@ -1509,12 +2379,18 @@ function hitHazard(h){
             "RIPPLE REFUND"
         );
 
+        debug(
+            "RIPPLE REFUND",
+            {
+                id:h.id,
+                pulse
+            }
+        );
     }
-
 }
 
 /* =========================================================
-   TOUCH MOVEMENT
+   TOUCH
 ========================================================= */
 
 function moveTouch(p){
@@ -1534,24 +2410,149 @@ function moveTouch(p){
     if(d > 15){
 
         player.vx +=
-            dx/d *
+            dx/d*
             650/60;
 
         player.vy +=
-            dy/d *
+            dy/d*
             650/60;
 
     }
+}
 
+/* =========================================================
+   OFFSCREEN ENEMIES
+========================================================= */
+
+function manageOffscreenEnemy(
+    h,
+    dt
+){
+
+    const outside =
+        h.x < -90 ||
+        h.x > W+90 ||
+        h.y < -90 ||
+        h.y > H+90;
+
+    if(!outside){
+
+        h.everEntered = true;
+        h.offscreenTime = 0;
+
+        return;
+    }
+
+    h.offscreenTime += dt;
+
+    if(
+        h.offscreenTime >
+        .65
+    ){
+
+        debug(
+            "OFFSCREEN ENEMY REDIRECTED",
+            {
+                id:h.id,
+                x:h.x,
+                y:h.y,
+                time:h.offscreenTime
+            }
+        );
+
+        const targetAngle =
+            Math.atan2(
+                player.y-h.y,
+                player.x-h.x
+            );
+
+        const returnSpeed =
+            Math.max(
+                210,
+                h.baseSpeed
+            );
+
+        h.vx =
+            Math.cos(targetAngle)*
+            returnSpeed;
+
+        h.vy =
+            Math.sin(targetAngle)*
+            returnSpeed;
+
+        h.offscreenTime = 0;
+
+        if(
+            h.x < -350 ||
+            h.x > W+350 ||
+            h.y < -350 ||
+            h.y > H+350
+        ){
+
+            debugWarn(
+                "ENEMY EXTREMELY FAR OFFSCREEN — RESETTING",
+                {
+                    id:h.id,
+                    x:h.x,
+                    y:h.y
+                }
+            );
+
+            const side =
+                Math.floor(
+                    Math.random()*4
+                );
+
+            if(side === 0){
+
+                h.x = -55;
+                h.y =
+                    rand(50,H-50);
+
+            }
+            else if(side === 1){
+
+                h.x = W+55;
+                h.y =
+                    rand(50,H-50);
+
+            }
+            else if(side === 2){
+
+                h.x =
+                    rand(50,W-50);
+
+                h.y = -55;
+
+            }
+            else{
+
+                h.x =
+                    rand(50,W-50);
+
+                h.y = H+55;
+
+            }
+
+            h.everEntered = false;
+        }
+    }
 }
 
 /* =========================================================
    UPDATE
 ========================================================= */
 
+let frameCounter = 0;
+let lastUpdateLog = 0;
+
 function update(dt){
 
-    if(state !== "play"){
+    frameCounter++;
+
+    if(
+        state !== "play"
+    ){
         return;
     }
 
@@ -1561,65 +2562,122 @@ function update(dt){
             .035
         );
 
-    waveTimer += dt;
+    /*
+       Periodic diagnostic logging.
+       Only once every ~2 seconds so the console isn't
+       completely flooded.
+    */
 
-    spawnTimer -= dt;
+    if(
+        performance.now()-
+        lastUpdateLog >
+        2000
+    ){
+
+        lastUpdateLog =
+            performance.now();
+
+        debug(
+            "PERIODIC GAME STATUS",
+            {
+                frame:frameCounter,
+                state,
+                wave,
+                target:waveTarget,
+                spawned:waveSpawned,
+                defeated:waveDefeated,
+                active:hazards.length,
+                spawnTimer,
+                pulse,
+                lives
+            }
+        );
+    }
+
+    if(waveBanner > 0){
+
+        waveBanner -= dt;
+
+    }
 
     pulse =
         Math.min(
             1,
-            pulse +
+            pulse+
             dt/pulseCooldown
         );
 
-    /*
-       Every 18 seconds the current wave is complete.
-    */
+    /* =====================================================
+       SPAWNING
+    ===================================================== */
 
-    if(waveTimer > 18){
+    const maxActive =
+        calculateMaxActive();
 
-        wave++;
-
-        waveTimer = 0;
-
-        chooseUpgrade();
-
-        return;
-    }
-
-    const desired =
-        6 +
-        wave*1.25 +
-        danger*5;
+    let spawnedThisFrame = 0;
 
     while(
-        hazards.length < desired &&
+        waveSpawned <
+            waveTarget &&
+        hazards.length <
+            maxActive &&
         spawnTimer <= 0
     ){
 
-        spawnHazard();
+        const didSpawn =
+            spawnHazard();
+
+        if(!didSpawn){
+
+            debugError(
+                "SPAWN LOOP COULD NOT SPAWN"
+            );
+
+            break;
+        }
+
+        spawnedThisFrame++;
 
         spawnTimer =
             Math.max(
-                .22,
-                .9-wave*.025
+                .24,
+                .72-wave*.018
             );
 
+        /*
+           Hard safety against an accidental infinite
+           while-loop.
+        */
+
+        if(
+            spawnedThisFrame >
+            20
+        ){
+
+            debugError(
+                "SAFETY BREAK: TOO MANY SPAWNS IN ONE FRAME"
+            );
+
+            break;
+        }
     }
+
+    spawnTimer -= dt;
 
     if(
         Math.random() <
-        dt *
-        (.35+wave*.025)
+        dt*
+        (.30+wave*.018) &&
+        orbs.length < 4
     ){
 
         spawnOrb();
 
     }
 
-    /* -----------------------------------------------------
-       MOVEMENT
-    ----------------------------------------------------- */
+    /* =====================================================
+       PLAYER MOVEMENT
+    ===================================================== */
 
     let ax = 0;
     let ay = 0;
@@ -1664,15 +2722,15 @@ function update(dt){
         ay /= length;
 
         player.vx +=
-            ax *
-            520 *
-            dt *
+            ax*
+            520*
+            dt*
             speedMult;
 
         player.vy +=
-            ay *
-            520 *
-            dt *
+            ay*
+            520*
+            dt*
             speedMult;
 
     }
@@ -1689,7 +2747,6 @@ function update(dt){
                 .001,
                 dt
             );
-
     }
 
     if(
@@ -1697,7 +2754,9 @@ function update(dt){
         pointer.id !== null &&
         innerWidth < 800
     ){
+
         moveTouch(pointer);
+
     }
 
     player.vx =
@@ -1715,13 +2774,13 @@ function update(dt){
         );
 
     player.x +=
-        player.vx * dt;
+        player.vx*dt;
 
     player.y +=
-        player.vy * dt;
+        player.vy*dt;
 
     const pad =
-        player.r + 5;
+        player.r+5;
 
     if(player.x < pad){
 
@@ -1731,40 +2790,39 @@ function update(dt){
             Math.abs(
                 player.vx
             )*.55;
-
     }
 
     if(player.x > W-pad){
 
-        player.x = W-pad;
+        player.x =
+            W-pad;
 
         player.vx =
             -Math.abs(
                 player.vx
             )*.55;
-
     }
 
     if(player.y < pad+30){
 
-        player.y = pad+30;
+        player.y =
+            pad+30;
 
         player.vy =
             Math.abs(
                 player.vy
             )*.55;
-
     }
 
     if(player.y > H-pad){
 
-        player.y = H-pad;
+        player.y =
+            H-pad;
 
         player.vy =
             -Math.abs(
                 player.vy
             )*.55;
-
     }
 
     player.inv =
@@ -1773,11 +2831,15 @@ function update(dt){
             player.inv-dt
         );
 
-    /* -----------------------------------------------------
+    /* =====================================================
        HAZARDS
-    ----------------------------------------------------- */
+    ===================================================== */
 
     for(const h of hazards){
+
+        if(h.dead){
+            continue;
+        }
 
         if(h.freeze > 0){
 
@@ -1796,14 +2858,43 @@ function update(dt){
                 );
 
             h.rot +=
-                h.spin *
-                dt *
+                h.spin*
+                dt*
                 .3;
 
         }
         else{
 
-            if(h.kind === "seeker"){
+            if(
+                h.freeze <= 0 &&
+                h.vx*h.vx+
+                h.vy*h.vy <
+                40
+            ){
+
+                const angle =
+                    Math.atan2(
+                        player.y-h.y,
+                        player.x-h.x
+                    );
+
+                const targetSpeed =
+                    h.kind === "seeker"
+                        ? 185
+                        : 160;
+
+                h.vx =
+                    Math.cos(angle)*
+                    targetSpeed;
+
+                h.vy =
+                    Math.sin(angle)*
+                    targetSpeed;
+            }
+
+            if(
+                h.kind === "seeker"
+            ){
 
                 const angle =
                     Math.atan2(
@@ -1812,13 +2903,13 @@ function update(dt){
                     );
 
                 h.vx +=
-                    Math.cos(angle) *
-                    30 *
+                    Math.cos(angle)*
+                    30*
                     dt;
 
                 h.vy +=
-                    Math.sin(angle) *
-                    30 *
+                    Math.sin(angle)*
+                    30*
                     dt;
 
                 const speed =
@@ -1834,16 +2925,7 @@ function update(dt){
 
                     h.vy *=
                         165/speed;
-
-                }} else {
-        if(h.freeze > -0.1 && h.freeze < 0.1){  // Just unfroze this frame
-        // Restore movement toward player
-        const angle = Math.atan2(player.y-h.y, player.x-h.x);
-        const targetSpeed = h.kind === "seeker" ? 185 : 160;
-        h.vx = Math.cos(angle) * targetSpeed;
-        h.vy = Math.sin(angle) * targetSpeed;
-	h.freeze = -1
-    }
+                }
             }
 
             h.x +=
@@ -1854,21 +2936,12 @@ function update(dt){
 
             h.rot +=
                 h.spin*dt;
-
         }
 
-        if(
-            h.x < -80 ||
-            h.x > W+80 ||
-            h.y < -80 ||
-            h.y > H+80
-        ){
-            h.dead = true;
-        }
-
-        /*
-           Frozen hazards cannot hurt the player.
-        */
+        manageOffscreenEnemy(
+            h,
+            dt
+        );
 
         if(
             player.inv <= 0 &&
@@ -1881,6 +2954,15 @@ function update(dt){
             ) <
             player.r+h.r
         ){
+
+            debug(
+                "PLAYER HIT",
+                {
+                    enemy:h.id,
+                    livesBefore:lives,
+                    wave
+                }
+            );
 
             player.inv = .8;
 
@@ -1911,35 +2993,71 @@ function update(dt){
                 "HIT"
             );
 
-	    console.log("hit, lives:", lives, "die?", lives == 0 ? "yes" : "no");
-
             sound(
                 "die",
                 .7
             );
 
             lives--;
-            score -= 100;
-            if (lives == 0) {
-                console.log('ending run')
+
+            score =
+                Math.max(
+                    0,
+                    score-100
+                );
+
+            debug(
+                "PLAYER LIFE LOST",
+                {
+                    livesRemaining:lives
+                }
+            );
+
+            if(lives <= 0){
+
                 endRun();
+
+                return;
             }
 
             player.vx *= -.8;
             player.vy *= -.8;
-
         }
-
     }
+
+    /*
+       Remove dead enemies AFTER processing all collisions.
+    */
+
+    const beforeRemoval =
+        hazards.length;
 
     hazards =
         hazards.filter(
             h => !h.dead
         );
 
-    /* -----------------------------------------------------
+    const removed =
+        beforeRemoval-
+        hazards.length;
+
+    if(removed > 0){
+
+        debug(
+            "DEAD ENEMIES REMOVED",
+            {
+                removed,
+                remaining:hazards.length,
+                waveSpawned,
+                waveDefeated,
+                waveTarget
+            }
+        );
+    }
+
+    /* =====================================================
        RIPPLES
-    ----------------------------------------------------- */
+    ===================================================== */
 
     for(const r of ripples){
 
@@ -1948,7 +3066,10 @@ function update(dt){
         r.r +=
             r.speed*dt;
 
-        if(r.r > r.max){
+        if(
+            r.r >
+            r.max
+        ){
 
             r.dead = true;
 
@@ -1956,7 +3077,13 @@ function update(dt){
 
         for(const h of hazards){
 
-            if(r.hit.has(h)){
+            if(h.dead){
+                continue;
+            }
+
+            if(
+                r.hit.has(h)
+            ){
                 continue;
             }
 
@@ -1978,11 +3105,8 @@ function update(dt){
                 r.hit.add(h);
 
                 hitHazard(h);
-
             }
-
         }
-
     }
 
     ripples =
@@ -1990,9 +3114,9 @@ function update(dt){
             r => !r.dead
         );
 
-    /* -----------------------------------------------------
-       COLLECTIBLES
-    ----------------------------------------------------- */
+    /* =====================================================
+       ORBS
+    ===================================================== */
 
     for(const o of orbs){
 
@@ -2013,17 +3137,15 @@ function update(dt){
             if(d < magnet){
 
                 o.x +=
-                    (player.x-o.x) *
-                    dt *
+                    (player.x-o.x)*
+                    dt*
                     1.8;
 
                 o.y +=
-                    (player.y-o.y) *
-                    dt *
+                    (player.y-o.y)*
+                    dt*
                     1.8;
-
             }
-
         }
 
         if(
@@ -2033,15 +3155,17 @@ function update(dt){
                 player.x,
                 player.y
             ) <
-            player.r+o.r+6
+            player.r+
+            o.r+
+            6
         ){
 
             o.dead = true;
 
             const points =
                 Math.round(
-                    100 *
-                    scoreMult *
+                    100*
+                    scoreMult*
                     (
                         1+
                         Math.min(
@@ -2058,7 +3182,7 @@ function update(dt){
             addText(
                 o.x,
                 o.y,
-                "+" + points
+                "+"+points
             );
 
             burst(
@@ -2071,7 +3195,6 @@ function update(dt){
             sound("collect");
 
         }
-
     }
 
     orbs =
@@ -2081,9 +3204,9 @@ function update(dt){
                 o.life > 0
         );
 
-    /* -----------------------------------------------------
+    /* =====================================================
        PARTICLES
-    ----------------------------------------------------- */
+    ===================================================== */
 
     for(const p of particles){
 
@@ -2106,17 +3229,17 @@ function update(dt){
                 .05,
                 dt
             );
-
     }
 
     particles =
         particles.filter(
-            p => p.life > 0
+            p =>
+                p.life > 0
         );
 
-    /* -----------------------------------------------------
-       FLOATING TEXT
-    ----------------------------------------------------- */
+    /* =====================================================
+       TEXT
+    ===================================================== */
 
     for(const t of texts){
 
@@ -2124,22 +3247,49 @@ function update(dt){
 
         t.y -=
             22*dt;
-
     }
 
     texts =
         texts.filter(
-            t => t.life > 0
+            t =>
+                t.life > 0
         );
 
-    /* -----------------------------------------------------
+    /* =====================================================
+       WAVE COMPLETION
+    ===================================================== */
+
+    if(
+        checkWaveComplete()
+    ){
+
+        debug(
+            "UPDATE STOPPED BECAUSE WAVE COMPLETED"
+        );
+
+        return;
+    }
+
+    /* =====================================================
        SCORE
-    ----------------------------------------------------- */
+    ===================================================== */
 
     score +=
-        dt *
-        (2+wave*.5) *
+        dt*
+        (
+            2+
+            wave*.5
+        )*
         scoreMult;
+
+    updateHUD();
+}
+
+/* =========================================================
+   HUD
+========================================================= */
+
+function updateHUD(){
 
     scoreEl.textContent =
         Math.floor(score);
@@ -2147,14 +3297,26 @@ function update(dt){
     waveEl.textContent =
         wave;
 
+    enemyCountEl.textContent =
+        hazards.length+
+        " / "+
+        waveTarget;
+
     streakEl.textContent =
-        "x" + streak;
-    
+        "x"+streak;
+
     livesEl.textContent =
-        "♥".repeat(Math.max(0, lives));
+        "♥".repeat(
+            Math.max(
+                0,
+                lives
+            )
+        );
 
     pulseBar.style.width =
-        (pulse*100) + "%";
+        (
+            pulse*100
+        )+"%";
 }
 
 /* =========================================================
@@ -2169,10 +3331,6 @@ function draw(){
         W,
         H
     );
-
-    /*
-       Background.
-    */
 
     const background =
         ctx.createRadialGradient(
@@ -2204,9 +3362,7 @@ function draw(){
         H
     );
 
-    /*
-       Background field particles.
-    */
+    /* BACKGROUND */
 
     for(const s of stars){
 
@@ -2227,14 +3383,67 @@ function draw(){
         );
 
         ctx.fill();
-
     }
 
     ctx.globalAlpha = 1;
 
-    /* -----------------------------------------------------
-       COLLECTIBLES
-    ----------------------------------------------------- */
+    /* WAVE BANNER */
+
+    if(
+        waveBanner > 0 &&
+        state === "play"
+    ){
+
+        const fade =
+            Math.min(
+                1,
+                waveBanner,
+                2.2-waveBanner+.4
+            );
+
+        ctx.save();
+
+        ctx.globalAlpha =
+            clamp(
+                fade,
+                0,
+                1
+            );
+
+        ctx.textAlign =
+            "center";
+
+        ctx.fillStyle =
+            "#eef8ff";
+
+        ctx.font =
+            "950 42px system-ui";
+
+        ctx.fillText(
+            waveBannerText,
+            W/2,
+            H/2-15
+        );
+
+        ctx.font =
+            "700 13px system-ui";
+
+        ctx.fillStyle =
+            "#a9bdd8";
+
+        ctx.fillText(
+            wave+
+            " • "+
+            waveTarget+
+            " enemies",
+            W/2,
+            H/2+18
+        );
+
+        ctx.restore();
+    }
+
+    /* ORBS */
 
     for(const o of orbs){
 
@@ -2250,7 +3459,9 @@ function draw(){
         );
 
         ctx.shadowBlur = 18;
-        ctx.shadowColor = "#8de7ff";
+
+        ctx.shadowColor =
+            "#8de7ff";
 
         ctx.strokeStyle =
             "#aeeeff";
@@ -2284,12 +3495,9 @@ function draw(){
         ctx.stroke();
 
         ctx.restore();
-
     }
 
-    /* -----------------------------------------------------
-       RIPPLES
-    ----------------------------------------------------- */
+    /* RIPPLES */
 
     for(const r of ripples){
 
@@ -2322,14 +3530,11 @@ function draw(){
         ctx.stroke();
 
         ctx.shadowBlur = 0;
-
     }
 
     ctx.globalAlpha = 1;
 
-    /* -----------------------------------------------------
-       HAZARDS
-    ----------------------------------------------------- */
+    /* HAZARDS */
 
     for(const h of hazards){
 
@@ -2376,13 +3581,17 @@ function draw(){
                 ? 4
                 : 6;
 
-        for(let i=0;i<points;i++){
+        for(
+            let i=0;
+            i<points;
+            i++
+        ){
 
             const angle =
                 i*TAU/points;
 
             const radius =
-                h.r *
+                h.r*
                 (
                     i%2
                         ? .65
@@ -2390,28 +3599,31 @@ function draw(){
                 );
 
             if(i === 0){
+
                 ctx.moveTo(
-                    Math.cos(angle)*radius,
-                    Math.sin(angle)*radius
+                    Math.cos(angle)*
+                    radius,
+                    Math.sin(angle)*
+                    radius
                 );
+
             }
             else{
-                ctx.lineTo(
-                    Math.cos(angle)*radius,
-                    Math.sin(angle)*radius
-                );
-            }
 
+                ctx.lineTo(
+                    Math.cos(angle)*
+                    radius,
+                    Math.sin(angle)*
+                    radius
+                );
+
+            }
         }
 
         ctx.closePath();
 
         ctx.fill();
         ctx.stroke();
-
-        /*
-           Frozen core.
-        */
 
         if(frozen){
 
@@ -2431,16 +3643,12 @@ function draw(){
             );
 
             ctx.fill();
-
         }
 
         ctx.restore();
-
     }
 
-    /* -----------------------------------------------------
-       PLAYER
-    ----------------------------------------------------- */
+    /* PLAYER */
 
     if(player){
 
@@ -2452,7 +3660,7 @@ function draw(){
         );
 
         const pulseRing =
-            10 +
+            10+
             Math.sin(
                 performance.now()/150
             )*2;
@@ -2467,7 +3675,9 @@ function draw(){
         ctx.arc(
             0,
             0,
-            player.r+9+pulseRing,
+            player.r+
+            9+
+            pulseRing,
             0,
             TAU
         );
@@ -2521,12 +3731,9 @@ function draw(){
         ctx.fill();
 
         ctx.restore();
-
     }
 
-    /* -----------------------------------------------------
-       PARTICLES
-    ----------------------------------------------------- */
+    /* PARTICLES */
 
     for(const p of particles){
 
@@ -2551,14 +3758,11 @@ function draw(){
         );
 
         ctx.fill();
-
     }
 
     ctx.globalAlpha = 1;
 
-    /* -----------------------------------------------------
-       FLOATING TEXT
-    ----------------------------------------------------- */
+    /* TEXT */
 
     for(const t of texts){
 
@@ -2585,14 +3789,11 @@ function draw(){
             t.x,
             t.y
         );
-
     }
 
     ctx.globalAlpha = 1;
 
-    /* -----------------------------------------------------
-       PAUSE SCREEN
-    ----------------------------------------------------- */
+    /* PAUSE */
 
     if(state === "pause"){
 
@@ -2632,7 +3833,6 @@ function draw(){
             W/2,
             H/2+30
         );
-
     }
 
     requestAnimationFrame(
@@ -2649,18 +3849,74 @@ let last =
 
 function loop(time){
 
+    /*
+       Keep the next frame scheduled every time.
+       requestAnimationFrame is one-shot, so it must be
+       requested again for continuous animation.
+    */
+
+    requestAnimationFrame(
+        loop
+    );
+
     const dt =
         (time-last)/1000;
 
     last = time;
 
     if(!paused){
-        update(dt);
-    }
 
-    requestAnimationFrame(
-        loop
-    );
+        try{
+
+            update(dt);
+
+        }
+        catch(error){
+
+            /*
+               CRITICAL:
+               Instead of silently killing the game loop,
+               dump the complete game state to the console.
+            */
+
+            debugError(
+                "!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+            );
+
+            debugError(
+                "GAME UPDATE EXCEPTION"
+            );
+
+            debugError(
+                error
+            );
+
+            debugError(
+                "STACK",
+                error?.stack
+            );
+
+            debugError(
+                "GAME STATE AT CRASH"
+            );
+
+            debugState(
+                "UPDATE EXCEPTION"
+            );
+
+            /*
+               Do not permanently destroy the game state.
+               Stop updating until the user can inspect console.
+            */
+
+            paused = true;
+
+            setState(
+                "pause",
+                "UPDATE EXCEPTION — CHECK CONSOLE"
+            );
+        }
+    }
 }
 
 /* =========================================================
@@ -2671,25 +3927,66 @@ document
     .getElementById("startBtn")
     .addEventListener(
         "click",
-        start
+        () => {
+
+            debug(
+                "START BUTTON CLICKED"
+            );
+
+            start();
+
+        }
     );
 
 document
     .getElementById("againBtn")
     .addEventListener(
         "click",
-        start
+        () => {
+
+            debug(
+                "AGAIN BUTTON CLICKED"
+            );
+
+            start();
+
+        }
     );
 
 /* =========================================================
-   START RENDERING
+   INITIALIZATION
 ========================================================= */
+
+debug(
+    "======================================"
+);
+
+debug(
+    "RIPPLE//RUN DEBUG BUILD INITIALIZED"
+);
+
+debug(
+    "Console logging is ENABLED."
+);
+
+debug(
+    "No debug UI is being created."
+);
+
+debug(
+    "======================================"
+);
+
+debugState(
+    "INITIAL PAGE LOAD"
+);
 
 draw();
 
 requestAnimationFrame(
     loop
 );
+
 })();
 </script>
 
