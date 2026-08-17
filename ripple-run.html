@@ -2310,7 +2310,7 @@ function calculateWaveTarget(){
 
     const target =
         Math.floor(
-            2+
+            7+
             wave*2.2+
             danger*5
         );
@@ -2500,15 +2500,6 @@ function togglePause(){
             "pause",
             "player pressed P"
         );
-
-        texts.push({
-            x:W/2,
-            y:H/2-30,
-            t:"PAUSED",
-            life:999,
-            ttl:999,
-            big:true
-        });
 
     }
     else{
