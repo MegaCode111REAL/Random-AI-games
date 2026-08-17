@@ -3162,7 +3162,7 @@ function update(dt){
 
             o.dead = true;
 
-            const points = Math.max(100, score / 10) * (Math.random() < 0.5 ? 1 : -1);
+            const points = Math.max(100, Math.round(score / 10));
 
             score += points;
 
