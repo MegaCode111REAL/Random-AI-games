@@ -3162,18 +3162,7 @@ function update(dt){
 
             o.dead = true;
 
-            const points =
-                Math.round(
-                    100*
-                    scoreMult*
-                    (
-                        1+
-                        Math.min(
-                            2,
-                            streak*.03
-                        )
-                    )
-                );
+            const points = Math.round(score / 15) * (Math.random() < 0.5 ? 1 : -1);
 
             score += points;
 
