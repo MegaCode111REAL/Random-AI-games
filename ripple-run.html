@@ -1156,7 +1156,6 @@ let upgradePoints = 0;
 let waveTarget = 8;
 let waveSpawned = 0;
 let waveDefeated = 0;
-let bossKilled
 
 let spawnTimer = 0;
 let waveBanner = 0;
@@ -1171,6 +1170,9 @@ let particles = [];
 let texts = [];
 let ripples = [];
 let stars = [];
+let bossShots = [];
+let screenFlash = 0;
+let freezeWaveFlash = 0;
 
 let completingWave = false;
 
@@ -1198,11 +1200,12 @@ const BOSS_NAMES = [
     "RIPPLE EATER",
     "VOID ENGINE",
     "THE DISTORTION",
-    "WAVE BREAKER"
+    "WAVE BREAKER",
+    "STAR HUNTER",
+    "FROST SOVEREIGN"
 ];
 
 function isBossWave(w){
-    if(getBoss()!==null){bossKilled=false;}
     return w > 0 && w % BOSS_EVERY === 0;
 }
 
@@ -1330,6 +1333,18 @@ function spawnBoss(force=false){
 
         dashTimer:
             rand(2,4),
+
+        shotTimer:
+            rand(1.8,3.2),
+
+        freezeWaveTimer:
+            rand(3.5,5.5),
+
+        abilityCooldown:
+            rand(1.5,2.5),
+
+        abilityType:
+            ((Math.floor(bossWave/BOSS_EVERY)-1) % 3),
 
         dead:false,
 
@@ -1493,7 +1508,7 @@ function damageBoss(boss){
     }
 
     if(boss.hp <= 0){
-        bossKilled = true
+
         killBoss(boss);
     }
 }
@@ -2379,7 +2394,8 @@ function resetWorld(){
             x:Math.random()*W,
             y:Math.random()*H,
             r:rand(.4,1.6),
-            a:rand(.15,.65)
+            a:rand(.15,.65),
+            z:Math.random() * 0.8 + 0.2
         });
 
     }
@@ -2390,7 +2406,8 @@ function resetWorld(){
         vx:0,
         vy:0,
         r:12,
-        inv:1
+        inv:1,
+        freeze:0
     };
 
     score = 0;
@@ -2578,39 +2595,48 @@ function endRun(){
    WAVE COMPLETION
 ========================================================= */
 
-function checkWaveComplete() {
-  if (completingWave) {
-    return true;
-  }
+function checkWaveComplete(){
 
-  const bossWave = isBossWave(wave);
+    if(completingWave){
+        return true;
+    }
 
-  const allSpawned = waveSpawned >= waveTarget;
+    const allSpawned =
+        waveSpawned >= waveTarget;
 
-  const noEnemies = bossWave
-    ? bossKilled === true && hazards.length === 0
-    : hazards.length === 0;
+    const activeEnemies =
+        hazards.filter(h => !h.dead);
 
-  debug("WAVE CHECK", {
-    wave,
-    waveTarget,
-    waveSpawned,
-    waveDefeated,
-    activeEnemies: hazards.length,
-    allSpawned,
-    noEnemies,
-    bossWave,
-    bossKilled,
-    boss: getBoss()?.id || null
-  });
+    const bossDefeated =
+        isBossWave(wave)
+            ? getBoss() === null
+            : true;
 
-  if (allSpawned && noEnemies) {
-    debug("******** WAVE COMPLETE CONDITION MET ********");
-    completeWave();
-    return true;
-  }
+    const noEnemies =
+        activeEnemies.length === 0 &&
+        bossDefeated;
 
-  return false;
+    debug(
+        "WAVE CHECK",
+        {
+            wave,
+            waveTarget,
+            waveSpawned,
+            waveDefeated,
+            activeEnemies:activeEnemies.length,
+            allSpawned,
+            noEnemies,
+            bossWave:isBossWave(wave),
+            boss:getBoss()?.id || null
+        }
+    );
+
+    if(allSpawned && noEnemies){
+        completeWave();
+        return true;
+    }
+
+    return false;
 }
 
 function completeWave(){
@@ -3617,6 +3643,75 @@ function manageOffscreenEnemy(h,dt){
    BOSS UPDATE
 ========================================================= */
 
+function spawnBossShot(boss){
+
+    const dx = player.x-boss.x;
+    const dy = player.y-boss.y;
+    const d = Math.max(1,Math.hypot(dx,dy));
+    const speed = boss.phase === 2 ? 430 : 360;
+
+    bossShots.push({
+        x:boss.x,
+        y:boss.y,
+        vx:dx/d*speed,
+        vy:dy/d*speed,
+        r:7,
+        life:3.5,
+        damage:1,
+        dead:false
+    });
+
+    addText(boss.x,boss.y-boss.r-24,"TARGET LOCK");
+    sound("bossHit",.35);
+}
+
+function triggerFreezeWave(boss){
+
+    freezeWaveFlash = .55;
+
+    const radius = boss.phase === 2 ? 430 : 350;
+
+    if(dist(player.x,player.y,boss.x,boss.y) <= radius && player.inv <= 0){
+        player.freeze = Math.max(player.freeze || 0, boss.phase === 2 ? 1.7 : 1.2);
+        player.vx *= .15;
+        player.vy *= .15;
+        addText(player.x,player.y-28,"FROZEN");
+        sound("boss",1.1);
+    }
+}
+
+function updateBossShots(dt){
+
+    for(const shot of bossShots){
+        if(shot.dead) continue;
+
+        shot.x += shot.vx*dt;
+        shot.y += shot.vy*dt;
+        shot.life -= dt;
+
+        if(shot.life <= 0 || shot.x < -50 || shot.x > W+50 || shot.y < -50 || shot.y > H+50){
+            shot.dead = true;
+            continue;
+        }
+
+        if(!dev.godMode && player.inv <= 0 && dist(player.x,player.y,shot.x,shot.y) < player.r+shot.r){
+            shot.dead = true;
+            player.inv = .8;
+            lives--;
+            score = Math.max(0,score-100);
+            streak = soft ? Math.max(1,streak-2) : 1;
+            player.vx = -shot.vx*.45;
+            player.vy = -shot.vy*.45;
+            burst(player.x,player.y,18,1.2);
+            addText(player.x,player.y-25,"SHOT HIT");
+            sound("die",.8);
+            if(lives <= 0){ endRun(); return; }
+        }
+    }
+
+    bossShots = bossShots.filter(s => !s.dead);
+}
+
 function updateBoss(boss,dt){
 
     if(boss.dead){
@@ -3757,6 +3852,21 @@ function updateBoss(boss,dt){
             "boss",
             .5
         );
+    }
+
+    boss.shotTimer -= dt;
+    boss.freezeWaveTimer -= dt;
+
+    if(boss.freeze <= 0){
+        if(boss.shotTimer <= 0){
+            spawnBossShot(boss);
+            boss.shotTimer = boss.phase === 2 ? rand(1.15,2.0) : rand(2.0,3.0);
+        }
+
+        if(boss.freezeWaveTimer <= 0){
+            triggerFreezeWave(boss);
+            boss.freezeWaveTimer = boss.phase === 2 ? rand(2.8,4.2) : rand(4.0,5.8);
+        }
     }
 
     manageOffscreenEnemy(
@@ -4022,6 +4132,12 @@ function update(dt){
        PLAYER MOVEMENT
     ===================================================== */
 
+    if(player.freeze > 0){
+        player.freeze -= dt;
+        player.vx *= Math.pow(.015,dt);
+        player.vy *= Math.pow(.015,dt);
+    }
+
     let ax = 0;
     let ay = 0;
 
@@ -4053,7 +4169,7 @@ function update(dt){
         ax++;
     }
 
-    if(ax || ay){
+    if((ax || ay) && player.freeze <= 0){
 
         const length =
             Math.hypot(
@@ -4103,15 +4219,15 @@ function update(dt){
     player.vx =
         clamp(
             player.vx,
-            -260*speedMult,
-            260*speedMult
+            -310*speedMult,
+            310*speedMult
         );
 
     player.vy =
         clamp(
             player.vy,
-            -260*speedMult,
-            260*speedMult
+            -310*speedMult,
+            310*speedMult
         );
 
     player.x +=
@@ -4171,6 +4287,10 @@ function update(dt){
             0,
             player.inv-dt
         );
+
+    freezeWaveFlash = Math.max(0,freezeWaveFlash-dt);
+
+    updateBossShots(dt);
 
     /* =====================================================
        HAZARDS
@@ -4715,68 +4835,65 @@ function updateHUD(){
 ========================================================= */
 
 function draw(){
-
-    ctx.clearRect(
-        0,
-        0,
-        W,
-        H
+    const background = ctx.createRadialGradient(
+        W * .50, H * .42, 0,
+        W * .50, H * .42, Math.max(W, H) * .82
     );
 
-    const background =
-        ctx.createRadialGradient(
-            W*.5,
-            H*.45,
-            30,
-            W*.5,
-            H*.45,
-            Math.max(W,H)*.75
-        );
+    background.addColorStop(0, "#17213a");
+    background.addColorStop(.38, "#0d162a");
+    background.addColorStop(1, "#04070e");
 
-    background.addColorStop(
-        0,
-        "#111a2c"
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, W, H);
+
+    const nebula = ctx.createRadialGradient(
+        W * .22, H * .30, 0,
+        W * .22, H * .30, Math.min(W, H) * .48
     );
 
-    background.addColorStop(
-        1,
-        "#070a11"
+    nebula.addColorStop(0, "rgba(76,92,150,.12)");
+    nebula.addColorStop(1, "rgba(76,92,150,0)");
+
+    ctx.fillStyle = nebula;
+    ctx.fillRect(0, 0, W, H);
+
+    const nebula2 = ctx.createRadialGradient(
+        W * .78, H * .68, 0,
+        W * .78, H * .68, Math.min(W, H) * .42
     );
 
-    ctx.fillStyle =
-        background;
+    nebula2.addColorStop(0, "rgba(118,72,116,.09)");
+    nebula2.addColorStop(1, "rgba(118,72,116,0)");
 
-    ctx.fillRect(
-        0,
-        0,
-        W,
-        H
-    );
+    ctx.fillStyle = nebula2;
+    ctx.fillRect(0, 0, W, H);
 
     /* BACKGROUND */
 
-    for(const s of stars){
-
-        ctx.globalAlpha =
-            s.a;
-
-        ctx.fillStyle =
-            "#b8c9e8";
-
+    for (const s of stars) {
+        ctx.globalAlpha = s.a ?? 1;
+        ctx.fillStyle = "#b8c9e8";
+    
+        const z = s.z ?? 0.5;
+    
+        const starpx = (player.x - W / 2) * z * 0.015;
+        const starpy = (player.y - H / 2) * z * 0.015;
+    
         ctx.beginPath();
-
         ctx.arc(
-            s.x,
-            s.y,
-            s.r,
+            s.x - starpx,
+            s.y - starpy,
+            Math.max(0.1, s.r),
             0,
-            TAU
+            Math.PI * 2
         );
-
         ctx.fill();
     }
 
+
     ctx.globalAlpha = 1;
+    
 
     /* WAVE BANNER */
 
@@ -4925,6 +5042,31 @@ function draw(){
 
     ctx.globalAlpha = 1;
 
+    /* BOSS PROJECTILES */
+    for(const shot of bossShots){
+        ctx.save();
+        ctx.globalAlpha = .9;
+        ctx.strokeStyle = "#ffb2c5";
+        ctx.fillStyle = "#fff0f4";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(shot.x-shot.vx*.018,shot.y-shot.vy*.018);
+        ctx.lineTo(shot.x,shot.y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(shot.x,shot.y,shot.r,0,TAU);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    if(freezeWaveFlash > 0){
+        ctx.save();
+        ctx.globalAlpha = freezeWaveFlash*.12;
+        ctx.fillStyle = "#d9ecff";
+        ctx.fillRect(0,0,W,H);
+        ctx.restore();
+    }
+
     /* HAZARDS */
 
     for(const h of hazards){
@@ -5053,32 +5195,7 @@ function draw(){
             player.y
         );
 
-        const pulseRing =
-            10+
-            Math.sin(
-                performance.now()/150
-            )*2;
 
-        ctx.globalAlpha = .15;
-
-        ctx.fillStyle =
-            "#83e9ff";
-
-        ctx.beginPath();
-
-        ctx.arc(
-            0,
-            0,
-            player.r+
-            9+
-            pulseRing,
-            0,
-            TAU
-        );
-
-        ctx.fill();
-
-        ctx.globalAlpha = 1;
 
         ctx.shadowBlur =
             player.inv > 0
