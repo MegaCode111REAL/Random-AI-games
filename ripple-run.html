@@ -1156,6 +1156,7 @@ let upgradePoints = 0;
 let waveTarget = 8;
 let waveSpawned = 0;
 let waveDefeated = 0;
+let bossKilled
 
 let spawnTimer = 0;
 let waveBanner = 0;
@@ -1201,6 +1202,7 @@ const BOSS_NAMES = [
 ];
 
 function isBossWave(w){
+    if(getBoss()!==null){bossKilled=false;}
     return w > 0 && w % BOSS_EVERY === 0;
 }
 
@@ -1491,7 +1493,7 @@ function damageBoss(boss){
     }
 
     if(boss.hp <= 0){
-
+        bossKilled = true
         killBoss(boss);
     }
 }
@@ -2583,10 +2585,19 @@ function checkWaveComplete(){
     }
 
     const allSpawned =
-        waveSpawned >= waveTarget;
+        if(!isBossWave(wave)){
+            return waveSpawned >= waveTarget;
+        }else{
+            return getBoss() !== null;
+        }
 
     const noEnemies =
-        hazards.length === 0;
+        if(!isBossWave(wave)){
+            return hazards.length === 0;
+        }else{
+            if(bossKilled==true){window.clearField();}
+            return bossKilled;
+        }
 
     debug(
         "WAVE CHECK",
