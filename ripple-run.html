@@ -2578,57 +2578,39 @@ function endRun(){
    WAVE COMPLETION
 ========================================================= */
 
-function checkWaveComplete(){
+function checkWaveComplete() {
+  if (completingWave) {
+    return true;
+  }
 
-    if(completingWave){
-        return true;
-    }
+  const bossWave = isBossWave(wave);
 
-    const allSpawned =
-        if(!isBossWave(wave)){
-            return waveSpawned >= waveTarget;
-        }else{
-            return getBoss() !== null;
-        }
+  const allSpawned = waveSpawned >= waveTarget;
 
-    const noEnemies =
-        if(!isBossWave(wave)){
-            return hazards.length === 0;
-        }else{
-            if(bossKilled==true){window.clearField();}
-            return bossKilled;
-        }
+  const noEnemies = bossWave
+    ? bossKilled === true && hazards.length === 0
+    : hazards.length === 0;
 
-    debug(
-        "WAVE CHECK",
-        {
-            wave,
-            waveTarget,
-            waveSpawned,
-            waveDefeated,
-            activeEnemies:hazards.length,
-            allSpawned,
-            noEnemies,
-            bossWave:isBossWave(wave),
-            boss:getBoss()?.id || null
-        }
-    );
+  debug("WAVE CHECK", {
+    wave,
+    waveTarget,
+    waveSpawned,
+    waveDefeated,
+    activeEnemies: hazards.length,
+    allSpawned,
+    noEnemies,
+    bossWave,
+    bossKilled,
+    boss: getBoss()?.id || null
+  });
 
-    if(
-        allSpawned &&
-        noEnemies
-    ){
+  if (allSpawned && noEnemies) {
+    debug("******** WAVE COMPLETE CONDITION MET ********");
+    completeWave();
+    return true;
+  }
 
-        debug(
-            "******** WAVE COMPLETE CONDITION MET ********"
-        );
-
-        completeWave();
-
-        return true;
-    }
-
-    return false;
+  return false;
 }
 
 function completeWave(){
