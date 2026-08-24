@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>The Fidget Shelf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#131318;
+    --peg:#24242e;
+    --panel:#1d1d25;
+    --panel-edge:rgba(255,255,255,.05);
+    --ink:#f3f1ea;
+    --ink-dim:#8d8a9c;
+    --coral:#ff6b5e;
+    --teal:#3ddad0;
+    --yellow:#ffcf56;
+    --violet:#b28dff;
+    --pink:#ff8fc7;
+    --blue:#6fb1ff;
+    --mint:#7ee6a8;
+    --sand:#d8b756;
+    --radius:26px;
+    --disp:'Fredoka', system-ui, sans-serif;
+    --mono:'JetBrains Mono', monospace;
+  }
+  *{ box-sizing:border-box; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  html,body{ margin:0; padding:0; height:100%; overflow:hidden; overscroll-behavior:none; }
+  body{
+    background-color:var(--bg);
+    background-image: radial-gradient(circle, var(--peg) 1.6px, transparent 1.7px);
+    background-size:28px 28px;
+    color:var(--ink);
+    font-family:var(--mono);
+    -webkit-tap-highlight-color: transparent;
+  }
+  ::selection{ background:var(--violet); color:#111; }
+
+  .page{ max-width:820px; margin:0 auto; padding:16px 18px; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+
+  .hero{
+    padding:14px 20px; margin-bottom:12px;
+    background:linear-gradient(155deg, #22222c, #17171d);
+    border:1px solid var(--panel-edge);
+    border-radius:24px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 20px 40px rgba(0,0,0,.35);
+    display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    flex:0 0 auto;
+  }
+  .hero h1{
+    font-family:var(--disp); font-weight:700; font-size:clamp(24px,5vw,36px);
+    margin:0; letter-spacing:.3px;
+    background:linear-gradient(90deg, var(--coral), var(--yellow) 40%, var(--teal) 70%, var(--violet));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .hero p{ margin:4px 0 0; color:var(--ink-dim); font-size:11.5px; max-width:42ch; line-height:1.4; }
+  .mute-btn{
+    font-family:var(--mono); font-size:12px; color:var(--ink);
+    background:var(--panel); border:1px solid var(--panel-edge); border-radius:999px;
+    padding:8px 14px; cursor:pointer; display:flex; align-items:center; gap:8px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 6px 14px rgba(0,0,0,.3);
+    transition: transform .15s ease;
+  }
+  .mute-btn:active{ transform: scale(.94); }
+
+  /* ---------- toy nav ---------- */
+  .toy-nav{
+    display:flex; gap:8px; overflow-x:auto; padding:2px 2px 12px;
+    scrollbar-width:none; flex:0 0 auto;
+  }
+  .toy-nav::-webkit-scrollbar{ display:none; }
+  .toy-pill{
+    flex:0 0 auto; font-family:var(--mono); font-size:11px; letter-spacing:.02em;
+    color:var(--ink-dim); background:var(--panel); border:1px solid var(--panel-edge);
+    border-radius:999px; padding:7px 13px 7px 9px; cursor:pointer; white-space:nowrap;
+    transition:.15s ease; display:flex; align-items:center; gap:6px;
+  }
+  .toy-pill .ic{ font-size:13px; line-height:1; }
+  .toy-pill.active{ color:#111; border-color:transparent; background:var(--accent); font-weight:700; }
+
+  /* ---------- stage ---------- */
+  .stage-row{ display:flex; align-items:stretch; gap:10px; flex:1; min-height:0; }
+  .stage-arrow{
+    flex:0 0 auto; width:40px; height:40px; align-self:center; border-radius:50%;
+    background:var(--panel); border:1px solid var(--panel-edge); color:var(--ink);
+    font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 14px rgba(0,0,0,.3);
+  }
+  .stage-arrow:active{ transform:scale(.9); }
+  .stage{ flex:1; min-width:0; min-height:0; position:relative; display:flex; }
+
+  .panel{
+    display:none; flex-direction:column; gap:12px; flex:1; min-height:0; width:100%;
+    background:var(--panel); border:1px solid var(--panel-edge); border-radius:var(--radius);
+    padding:20px 22px 18px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.45), 0 20px 40px rgba(0,0,0,.4);
+  }
+  .panel.active{ display:flex; animation: panelIn .32s ease; }
+  @keyframes panelIn{ from{ opacity:0; transform:translateY(10px) scale(.985); } to{ opacity:1; transform:none; } }
+
+  .tag{
+    align-self:flex-start; font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+    color:#111; padding:4px 9px; border-radius:6px; transform: rotate(-2deg); flex:0 0 auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,.35);
+  }
+  .panel h2{ font-family:var(--disp); font-weight:600; margin:0; font-size:19px; color:var(--ink); flex:0 0 auto; }
+  .panel .sub{ margin:-6px 0 0; color:var(--ink-dim); font-size:11.5px; flex:0 0 auto; }
+  .panel-body{ flex:1; min-height:0; display:flex; align-items:center; justify-content:center; width:100%; }
+  .panel-foot{ display:flex; justify-content:center; flex:0 0 auto; }
+
+  .ghost-btn{
+    font-family:var(--mono); font-size:11px; color:var(--ink-dim);
+    background:transparent; border:1px dashed var(--panel-edge); border-radius:10px;
+    padding:8px 14px; cursor:pointer; letter-spacing:.03em; transition:.15s ease;
+  }
+  .ghost-btn:hover{ color:var(--ink); border-color:var(--ink-dim); }
+  .ghost-btn:active{ transform:scale(.95); }
+
+  /* ---------- Bubble wrap ---------- */
+  .bubble-grid{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(46px,1fr));
+    gap:8px; width:100%; height:100%; align-content:center; touch-action:none; user-select:none;
+  }
+  .bubble{
+    aspect-ratio:1/1; border-radius:50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,.55), rgba(255,255,255,0) 40%),
+                radial-gradient(circle at 60% 65%, #2c2c38, #1a1a22 70%);
+    box-shadow: 0 3px 5px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.04);
+    cursor:pointer; transition: transform .08s ease, box-shadow .12s ease, background .15s ease;
+    transform: scale(var(--s,1));
+  }
+  .bubble.popped{
+    background: radial-gradient(circle at 50% 50%, #101015, #0b0b0f 70%);
+    box-shadow: inset 0 3px 6px rgba(0,0,0,.8); transform: scale(calc(var(--s,1) * 0.82));
+  }
+  .pop-particle{
+    position:fixed; width:5px; height:5px; border-radius:50%;
+    pointer-events:none; z-index:999; top:0; left:0;
+  }
+
+  /* ---------- Spinner + ripcord ---------- */
+  .spinner-col{ display:flex; flex-direction:column; align-items:center; gap:20px; }
+  .spinner-wrap{ position:relative; width:250px; height:250px; touch-action:none; }
+  .spinner{
+    width:100%; height:100%; border-radius:50%;
+    background: conic-gradient(from 0deg, var(--coral) 0 8%, #1a1a22 8% 17%,
+                var(--yellow) 17% 25%, #1a1a22 25% 34%, var(--teal) 34% 42%, #1a1a22 42% 51%,
+                var(--violet) 51% 59%, #1a1a22 59% 68%, var(--pink) 68% 76%, #1a1a22 76% 85%,
+                var(--blue) 85% 93%, #1a1a22 93% 100%);
+    box-shadow: 0 10px 24px rgba(0,0,0,.5), inset 0 0 0 6px #16161c, inset 0 0 0 8px rgba(255,255,255,.06);
+    cursor: grab; will-change: transform;
+  }
+  .spinner::after{
+    content:''; position:absolute; inset:0; margin:auto; width:44px; height:44px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #3a3a46, #16161c 70%);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.6);
+  }
+  .spinner.grabbing{ cursor:grabbing; }
+  .ripcord-wrap{ display:flex; flex-direction:column; align-items:center; gap:7px; }
+  .ripcord-track{
+    position:relative; width:280px; height:44px; border-radius:16px; background:#101014;
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.75); overflow:hidden; touch-action:none;
+  }
+  .ripcord-track::before{
+    content:''; position:absolute; inset:0;
+    background-image:repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 2px, transparent 2px 18px);
+  }
+  .ripcord-handle{
+    position:absolute; top:3px; left:3px; width:52px; height:38px; border-radius:12px;
+    background:linear-gradient(160deg,#eee,#9a9a9a); box-shadow:0 4px 10px rgba(0,0,0,.5);
+    cursor:grab; display:flex; align-items:center; justify-content:center; font-size:15px; color:#333;
+  }
+  .ripcord-handle.grabbing{ cursor:grabbing; }
+  .ripcord-hint{ font-size:10.5px; color:var(--ink-dim); letter-spacing:.03em; }
+
+  /* ---------- Switches ---------- */
+  .switch-row{ display:flex; flex-wrap:wrap; gap:14px; justify-content:center; max-width:400px; }
+  .switch{
+    width:58px; height:32px; border-radius:999px; padding:4px; cursor:pointer;
+    background:#111116; box-shadow: inset 0 2px 5px rgba(0,0,0,.7);
+    transition: background .18s ease; display:flex; align-items:center;
+  }
+  .switch .knob{
+    width:24px; height:24px; border-radius:50%; background:linear-gradient(160deg,#e9e7e0,#b8b5ac);
+    box-shadow:0 2px 4px rgba(0,0,0,.5); transition: transform .18s cubic-bezier(.5,1.8,.6,1);
+  }
+  .switch.on{ background:linear-gradient(160deg, var(--mint), #2fae6f); }
+  .switch.on .knob{ transform:translateX(26px); }
+  .switch.pulse{ animation: switchPulse .4s ease; }
+  @keyframes switchPulse{
+    0%{ box-shadow: inset 0 2px 5px rgba(0,0,0,.7), 0 0 0 0 rgba(126,230,168,.55); }
+    100%{ box-shadow: inset 0 2px 5px rgba(0,0,0,.7), 0 0 0 14px rgba(126,230,168,0); }
+  }
+
+  /* ---------- Zipper ---------- */
+  .zip-track{
+    position:relative; width:86px; height:320px; border-radius:12px; background:#101014;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); touch-action:none;
+  }
+  .tooth-row{ position:absolute; left:0; right:0; height:20px; display:flex; justify-content:center; }
+  .tooth{ width:17px; height:17px; background:linear-gradient(160deg,#d8b756,#8a6d24); transition: transform .12s ease; }
+  .tooth.l{ clip-path: polygon(0 20%, 100% 50%, 0 80%); transform-origin:right center; margin-right:-1px; }
+  .tooth.r{ clip-path: polygon(100% 20%, 0 50%, 100% 80%); transform-origin:left center; margin-left:-1px; }
+  .tooth-row.open .tooth.l{ transform: translateX(-11px) rotate(-8deg); }
+  .tooth-row.open .tooth.r{ transform: translateX(11px) rotate(8deg); }
+  .zip-handle{
+    position:absolute; left:50%; top:0; width:42px; height:32px; margin-left:-21px;
+    background:linear-gradient(160deg,#eee,#9a9a9a); border-radius:6px 6px 3px 3px;
+    box-shadow:0 4px 10px rgba(0,0,0,.5); cursor: grab; z-index:2;
+  }
+  .zip-handle::after{
+    content:''; position:absolute; left:50%; bottom:-16px; width:7px; height:18px; margin-left:-3.5px;
+    background:#9a9a9a; border-radius:3px;
+  }
+  .zip-handle.grabbing{ cursor:grabbing; }
+
+  /* ---------- Slime ---------- */
+  .slime{
+    width:200px; height:160px;
+    background: radial-gradient(circle at 35% 30%, #ffd4ea, var(--pink) 45%, #d9418f 100%);
+    border-radius: 58% 42% 55% 45% / 55% 45% 60% 40%;
+    box-shadow: inset -10px -14px 26px rgba(0,0,0,.25), inset 8px 10px 20px rgba(255,255,255,.35), 0 18px 30px rgba(0,0,0,.35);
+    cursor:grab; touch-action:none;
+  }
+  .slime.idle{ animation: blobwobble 5s ease-in-out infinite; }
+  .slime.grabbing{ cursor:grabbing; animation:none; }
+  @keyframes blobwobble{
+    0%,100%{ border-radius: 58% 42% 55% 45% / 55% 45% 60% 40%; }
+    33%{ border-radius: 45% 55% 48% 52% / 45% 55% 45% 55%; }
+    66%{ border-radius: 52% 48% 60% 40% / 60% 40% 50% 50%; }
+  }
+
+  /* ---------- Scratch / Sand canvases ---------- */
+  .canvas-wrap{ position:relative; width:100%; height:100%; border-radius:16px; overflow:hidden; touch-action:none; }
+  .canvas-wrap canvas{ position:absolute; inset:0; width:100%; height:100%; }
+  #scratchCanvas{ cursor:crosshair; }
+  #sandCanvas{ cursor:pointer; }
+
+  /* ---------- Big button ---------- */
+  .button-wrap{ display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .thock-outer{ position:relative; width:180px; height:180px; }
+  .thock-btn{
+    width:180px; height:180px; border-radius:50%;
+    background: radial-gradient(circle at 35% 28%, #ff9186, var(--coral) 55%, #b3372c 100%);
+    box-shadow: 0 14px 0 #7c2016, 0 20px 30px rgba(0,0,0,.5);
+    border:none; cursor:pointer; transition: transform .06s ease, box-shadow .06s ease;
+  }
+  .thock-btn.pressed{ transform: translateY(12px); box-shadow: 0 2px 0 #7c2016, 0 6px 14px rgba(0,0,0,.4); }
+  .counter{ font-family:var(--disp); font-weight:600; font-size:38px; }
+  .confetti-bit{ position:absolute; width:7px; height:7px; border-radius:2px; left:50%; top:50%; pointer-events:none; }
+
+  /* ---------- Newton's cradle ---------- */
+  .cradle-frame{ position:relative; width:250px; height:250px; margin-top:6px; }
+  .cradle-bar{ position:absolute; top:0; left:-12px; right:-12px; height:9px; border-radius:4px; background:linear-gradient(180deg,#7a7a84,#3a3a42); box-shadow:0 3px 6px rgba(0,0,0,.4); }
+  .cradle-unit{ position:absolute; top:9px; width:50px; height:200px; transform-origin: 50% 0%; touch-action:none; }
+  .cradle-string{ position:absolute; top:0; left:50%; width:1px; height:150px; background:rgba(255,255,255,.22); margin-left:-.5px; }
+  .cradle-ball{
+    position:absolute; top:150px; left:50%; width:50px; height:50px; margin-left:-25px; border-radius:50%;
+    background:radial-gradient(circle at 32% 28%, #fff, #b9c2cc 45%, #5c6672 100%); box-shadow:0 6px 10px rgba(0,0,0,.4);
+  }
+  .cradle-unit.draggable .cradle-ball{ cursor:grab; }
+  .cradle-unit.draggable.grabbing .cradle-ball{ cursor:grabbing; }
+
+  /* ---------- Click pen ---------- */
+  .pen-col{ display:flex; flex-direction:column; align-items:center; gap:18px; }
+  .pen{ position:relative; width:50px; height:240px; }
+  .pen-barrel{
+    position:absolute; bottom:18px; left:4px; width:42px; height:165px; border-radius:10px 10px 5px 5px;
+    background:linear-gradient(90deg,#2b2b33,#3d3d46 50%,#242429); box-shadow:0 8px 16px rgba(0,0,0,.4);
+  }
+  .pen-clip{ position:absolute; bottom:100px; left:-4px; width:7px; height:58px; background:#1a1a1f; border-radius:3px; }
+  .pen-button{
+    position:absolute; top:0; left:11px; width:28px; height:25px; border-radius:8px 8px 4px 4px;
+    background:linear-gradient(160deg,#e2e2e2,#a8a8a8); box-shadow:0 3px 6px rgba(0,0,0,.4);
+    cursor:pointer; transition: transform .08s ease;
+  }
+  .pen-button.pressed{ transform: translateY(7px); }
+  .pen-tip{
+    position:absolute; bottom:-2px; left:15px; width:0; height:0;
+    border-left:9px solid transparent; border-right:9px solid transparent; border-top:20px solid var(--sand);
+    transform: translateY(-20px); transition: transform .1s cubic-bezier(.4,1.6,.6,1);
+  }
+  .pen-tip.out{ transform: translateY(0); }
+  .pen-ink{ font-size:12px; color:var(--ink-dim); display:flex; align-items:center; gap:6px; }
+  .pen-ink .sw{ width:10px; height:10px; border-radius:50%; background:var(--sand); }
+
+  /* ---------- Marble bowl ---------- */
+  .bowl{
+    position:relative; width:280px; height:280px; border-radius:50%;
+    background: radial-gradient(circle at 50% 55%, #0c0c10 0%, #17171e 55%, #26262f 78%, #34343f 100%);
+    box-shadow: inset 0 10px 26px rgba(0,0,0,.7), 0 10px 20px rgba(0,0,0,.3);
+    touch-action:none;
+  }
+  .marble{
+    position:absolute; width:44px; height:44px; border-radius:50%; top:50%; left:50%; margin:-22px 0 0 -22px;
+    background:radial-gradient(circle at 32% 26%, #fff, var(--violet) 45%, #5a3ea8 100%);
+    box-shadow:0 6px 10px rgba(0,0,0,.5); cursor:grab;
+  }
+  .marble.grabbing{ cursor:grabbing; }
+
+  /* ---------- Bead slider ---------- */
+  .bead-wrap{ width:100%; padding:28px 24px; }
+  .bead-track{
+    position:relative; width:100%; height:14px; border-radius:8px; background:#101014;
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.7); touch-action:none;
+  }
+  .bead{
+    position:absolute; top:50%; width:48px; height:48px; margin-top:-24px; border-radius:50%;
+    background:radial-gradient(circle at 32% 26%, #fff, var(--pink) 45%, #c23e86 100%);
+    box-shadow:0 5px 10px rgba(0,0,0,.45); cursor:grab;
+  }
+  .bead.grabbing{ cursor:grabbing; z-index:2; }
+
+  /* ---------- Pachinko drop ---------- */
+  .pachinko-wrap{ position:relative; width:100%; height:100%; display:flex; gap:10px; }
+  .pachinko-wrap canvas{ flex:1; min-width:0; height:100%; border-radius:14px; background:#101014; touch-action:none; }
+  .plunger-track{
+    position:relative; width:30px; height:100%; border-radius:15px; background:#0c0c10;
+    box-shadow:inset 0 2px 8px rgba(0,0,0,.8); touch-action:none;
+  }
+  .plunger-handle{
+    position:absolute; left:2px; top:2px; width:26px; height:48px; border-radius:9px;
+    background:linear-gradient(160deg,#eee,#9a9a9a); box-shadow:0 4px 10px rgba(0,0,0,.5); cursor:grab;
+  }
+  .plunger-handle.grabbing{ cursor:grabbing; }
+
+  /* ---------- Ratchet dial ---------- */
+  .dial-wrap{ display:flex; flex-direction:column; align-items:center; gap:18px; }
+  .dial{
+    position:relative; width:220px; height:220px; border-radius:50%;
+    background: repeating-conic-gradient(from 0deg, #2b2b34 0deg 33deg, #232329 33deg 36deg);
+    box-shadow: 0 10px 24px rgba(0,0,0,.5), inset 0 0 0 8px #16161c, inset 0 0 0 11px rgba(255,255,255,.05);
+    cursor:grab; touch-action:none;
+  }
+  .dial.grabbing{ cursor:grabbing; }
+  .dial-pointer{
+    position:absolute; top:10px; left:50%; width:8px; height:28px; margin-left:-4px; border-radius:4px;
+    background:var(--yellow); box-shadow:0 0 8px rgba(255,207,86,.6);
+  }
+  .dial-readout{
+    font-family:var(--disp); font-weight:600; font-size:30px; background:#101014; padding:8px 22px;
+    border-radius:10px; box-shadow:inset 0 2px 6px rgba(0,0,0,.7); min-width:1ch; text-align:center;
+  }
+
+  /* ---------- Stretch band ---------- */
+  .band-svg{ width:100%; max-width:440px; height:auto; touch-action:none; }
+  #bandHandle{ cursor:grab; } #bandHandle.grabbing{ cursor:grabbing; }
+
+  /* ---------- Etch pad ---------- */
+  .etch-col{ display:flex; flex-direction:column; align-items:center; gap:18px; width:100%; height:100%; justify-content:center; }
+  .etch-frame{
+    width:100%; max-width:360px; aspect-ratio:4/3; border-radius:16px; padding:16px;
+    background: linear-gradient(160deg,#c23e2e,#8f2c20); box-shadow:0 14px 26px rgba(0,0,0,.4);
+  }
+  .etch-frame canvas{ width:100%; height:100%; border-radius:6px; background:#c7cbd2; touch-action:none; display:block; }
+  .etch-knobs{ display:flex; gap:50px; }
+  .etch-knob{
+    width:56px; height:56px; border-radius:50%; cursor:grab; touch-action:none;
+    background: repeating-conic-gradient(#3a3a44 0deg 9deg, #232329 9deg 18deg);
+    box-shadow:0 6px 14px rgba(0,0,0,.4), inset 0 0 0 5px #16161c;
+  }
+  .etch-knob.grabbing{ cursor:grabbing; }
+  .etch-frame.shaking{ animation: etchShake .4s ease; }
+  @keyframes etchShake{
+    0%,100%{ transform:translateX(0) rotate(0deg); }
+    20%{ transform:translateX(-6px) rotate(-1.5deg); }
+    40%{ transform:translateX(5px) rotate(1.5deg); }
+    60%{ transform:translateX(-4px) rotate(-1deg); }
+    80%{ transform:translateX(3px) rotate(1deg); }
+  }
+
+  /* ---------- Pop tube ---------- */
+  .tube-wrap{ position:relative; width:70px; height:100%; max-height:340px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; touch-action:none; }
+  .tube-top{ width:52px; height:16px; border-radius:7px; background:linear-gradient(160deg,#c79fff,#8a5fd8); box-shadow:0 4px 8px rgba(0,0,0,.4); z-index:2; }
+  .tube-body{
+    width:52px; height:80px; margin-top:-2px;
+    background: repeating-linear-gradient(180deg, #b28dff 0 11px, #9066e0 11px 20px);
+    border-radius:7px; box-shadow:0 4px 10px rgba(0,0,0,.3);
+  }
+  .tube-handle{
+    width:52px; height:16px; border-radius:7px; margin-top:-2px;
+    background:linear-gradient(160deg,#c79fff,#8a5fd8); box-shadow:0 4px 8px rgba(0,0,0,.4);
+    cursor:grab; touch-action:none;
+  }
+  .tube-handle.grabbing{ cursor:grabbing; }
+
+  footer{ text-align:center; color:var(--ink-dim); font-size:11px; margin-top:34px; letter-spacing:.03em; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="hero">
+    <div>
+      <h1>The Fidget Shelf</h1>
+      <p>Seventeen small, pointless, deeply satisfying things. One at a time — pick from the row below.</p>
+    </div>
+    <button class="mute-btn" id="muteBtn" aria-pressed="false">
+      <span id="muteIcon">🔊</span><span id="muteLabel">Sound on</span>
+    </button>
+  </header>
+
+  <nav class="toy-nav" id="toyNav">
+    <button class="toy-pill" style="--accent:var(--coral)"><span class="ic">🫧</span>Bubble wrap</button>
+    <button class="toy-pill" style="--accent:var(--blue)"><span class="ic">🌀</span>Spinner</button>
+    <button class="toy-pill" style="--accent:var(--yellow)"><span class="ic">🔘</span>Switches</button>
+    <button class="toy-pill" style="--accent:var(--violet)"><span class="ic">🤐</span>Zipper</button>
+    <button class="toy-pill" style="--accent:var(--pink)"><span class="ic">🩸</span>Slime</button>
+    <button class="toy-pill" style="--accent:var(--teal)"><span class="ic">🎫</span>Scratch card</button>
+    <button class="toy-pill" style="--accent:var(--sand)"><span class="ic">🏝️</span>Sand tray</button>
+    <button class="toy-pill" style="--accent:var(--mint)"><span class="ic">🔴</span>The button</button>
+    <button class="toy-pill" style="--accent:var(--coral)"><span class="ic">⚪</span>Cradle</button>
+    <button class="toy-pill" style="--accent:var(--blue)"><span class="ic">🖊️</span>Click pen</button>
+    <button class="toy-pill" style="--accent:var(--violet)"><span class="ic">🔮</span>Marble bowl</button>
+    <button class="toy-pill" style="--accent:var(--pink)"><span class="ic">📿</span>Beads</button>
+    <button class="toy-pill" style="--accent:var(--mint)"><span class="ic">🕳️</span>Pachinko</button>
+    <button class="toy-pill" style="--accent:var(--yellow)"><span class="ic">🎛️</span>Ratchet dial</button>
+    <button class="toy-pill" style="--accent:var(--coral)"><span class="ic">➰</span>Stretch band</button>
+    <button class="toy-pill" style="--accent:var(--blue)"><span class="ic">📺</span>Etch pad</button>
+    <button class="toy-pill" style="--accent:var(--violet)"><span class="ic">🪗</span>Pop tube</button>
+  </nav>
+
+  <div class="stage-row">
+    <button class="stage-arrow" id="prevBtn" aria-label="Previous toy">‹</button>
+    <div class="stage" id="stage">
+
+      <!-- 1 Bubble wrap -->
+      <section class="panel">
+        <span class="tag" style="background:var(--coral)">Press to pop</span>
+        <h2>Bubble Wrap</h2>
+        <p class="sub">Click, or drag across the sheet, to pop every last one.</p>
+        <div class="panel-body"><div class="bubble-grid" id="bubbleGrid"></div></div>
+        <div class="panel-foot"><button class="ghost-btn" id="resetBubbles">Reset sheet</button></div>
+      </section>
+
+      <!-- 2 Spinner -->
+      <section class="panel">
+        <span class="tag" style="background:var(--blue)">Pull to launch</span>
+        <h2>Flick Spinner</h2>
+        <p class="sub">Grab the wheel and flick it, or pull the cord to the right and let go.</p>
+        <div class="panel-body">
+          <div class="spinner-col">
+            <div class="spinner-wrap"><div class="spinner" id="spinner"></div></div>
+            <div class="ripcord-wrap">
+              <div class="ripcord-track" id="ripTrack">
+                <div class="ripcord-handle" id="ripHandle">➜</div>
+              </div>
+              <span class="ripcord-hint">pull the handle right, then let go</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 Switches -->
+      <section class="panel">
+        <span class="tag" style="background:var(--yellow)">Click to toggle</span>
+        <h2>Switch Row</h2>
+        <p class="sub">Ten tiny clicky switches. There is no wrong pattern.</p>
+        <div class="panel-body"><div class="switch-row" id="switchRow"></div></div>
+      </section>
+
+      <!-- 4 Zipper -->
+      <section class="panel">
+        <span class="tag" style="background:var(--violet)">Drag the pull</span>
+        <h2>Zipper</h2>
+        <p class="sub">Zip it down, zip it back up.</p>
+        <div class="panel-body"><div class="zip-track" id="zipTrack"></div></div>
+      </section>
+
+      <!-- 5 Slime -->
+      <section class="panel">
+        <span class="tag" style="background:var(--pink)">Press and squish</span>
+        <h2>Slime Blob</h2>
+        <p class="sub">Poke it, stretch it, watch it wobble back into shape.</p>
+        <div class="panel-body"><div class="slime idle" id="slime"></div></div>
+      </section>
+
+      <!-- 6 Scratch card -->
+      <section class="panel">
+        <span class="tag" style="background:var(--teal)">Scratch the foil</span>
+        <h2>Scratch Card</h2>
+        <p class="sub">Something's hiding underneath.</p>
+        <div class="panel-body"><div class="canvas-wrap" id="scratchWrap"><canvas id="scratchCanvas"></canvas></div></div>
+        <div class="panel-foot"><button class="ghost-btn" id="resetScratch">Refoil</button></div>
+      </section>
+
+      <!-- 7 Sand tray -->
+      <section class="panel">
+        <span class="tag" style="background:var(--sand);color:#111">Rake the sand</span>
+        <h2>Kinetic Sand Tray</h2>
+        <p class="sub">Drag your finger to carve grooves.</p>
+        <div class="panel-body"><div class="canvas-wrap" id="sandWrap"><canvas id="sandCanvas"></canvas></div></div>
+        <div class="panel-foot"><button class="ghost-btn" id="resetSand">Smooth sand</button></div>
+      </section>
+
+      <!-- 8 Big button -->
+      <section class="panel">
+        <span class="tag" style="background:var(--mint)">Press it</span>
+        <h2>The Button</h2>
+        <p class="sub">It does nothing. Press it anyway.</p>
+        <div class="panel-body">
+          <div class="button-wrap">
+            <div class="thock-outer"><button class="thock-btn" id="thockBtn" aria-label="press"></button></div>
+            <div class="counter" id="counter">0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9 Newton's cradle -->
+      <section class="panel">
+        <span class="tag" style="background:var(--coral)">Pull an end ball</span>
+        <h2>Newton's Cradle</h2>
+        <p class="sub">Pull either end ball out and let it swing.</p>
+        <div class="panel-body"><div class="cradle-frame" id="cradleFrame"><div class="cradle-bar"></div></div></div>
+      </section>
+
+      <!-- 10 Click pen -->
+      <section class="panel">
+        <span class="tag" style="background:var(--blue)">Click the top</span>
+        <h2>Click Pen</h2>
+        <p class="sub">The most-fidgeted-with object in every office.</p>
+        <div class="panel-body">
+          <div class="pen-col">
+            <div class="pen">
+              <div class="pen-clip"></div>
+              <button class="pen-button" id="penButton" aria-label="click pen"></button>
+              <div class="pen-barrel"></div>
+              <div class="pen-tip" id="penTip"></div>
+            </div>
+            <div class="pen-ink"><span class="sw" id="penSwatch"></span><span id="penLabel">ink: sand</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11 Marble bowl -->
+      <section class="panel">
+        <span class="tag" style="background:var(--violet)">Drag the marble</span>
+        <h2>Marble Bowl</h2>
+        <p class="sub">Pull it to the rim, then let it roll home.</p>
+        <div class="panel-body"><div class="bowl" id="bowl"><div class="marble" id="marble"></div></div></div>
+      </section>
+
+      <!-- 12 Bead slider -->
+      <section class="panel">
+        <span class="tag" style="background:var(--pink)">Slide the beads</span>
+        <h2>Bead Slider</h2>
+        <p class="sub">Push them together, spread them apart, feel them click.</p>
+        <div class="panel-body"><div class="bead-wrap"><div class="bead-track" id="beadTrack"></div></div></div>
+      </section>
+
+      <!-- 13 Pachinko drop -->
+      <section class="panel">
+        <span class="tag" style="background:var(--mint)">Pull and release</span>
+        <h2>Pachinko Drop</h2>
+        <p class="sub">Pull the plunger to load a ball, let go, and watch it fall from the top through the pins.</p>
+        <div class="panel-body">
+          <div class="pachinko-wrap" id="pachinkoWrap">
+            <canvas id="pachinkoCanvas"></canvas>
+            <div class="plunger-track" id="plungerTrack"><div class="plunger-handle" id="plungerHandle"></div></div>
+          </div>
+        </div>
+        <div class="panel-foot"><button class="ghost-btn" id="clearPachinko">Clear slots</button></div>
+      </section>
+
+      <!-- 14 Ratchet dial -->
+      <section class="panel">
+        <span class="tag" style="background:var(--yellow)">Twist to click</span>
+        <h2>Ratchet Dial</h2>
+        <p class="sub">Ten firm detents — like a volume knob that means it.</p>
+        <div class="panel-body">
+          <div class="dial-wrap">
+            <div class="dial" id="ratchetDial"><div class="dial-pointer"></div></div>
+            <div class="dial-readout" id="dialReadout">0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 15 Stretch band -->
+      <section class="panel">
+        <span class="tag" style="background:var(--coral)">Pull and let go</span>
+        <h2>Stretch Band</h2>
+        <p class="sub">Pull it far enough and it snaps. Not too far, and it springs back.</p>
+        <div class="panel-body">
+          <svg class="band-svg" id="bandSvg" viewBox="0 0 260 160">
+            <line x1="30" y1="30" x2="30" y2="130" stroke="#3a3a44" stroke-width="10" stroke-linecap="round"></line>
+            <line x1="230" y1="30" x2="230" y2="130" stroke="#3a3a44" stroke-width="10" stroke-linecap="round"></line>
+            <path id="bandPath" d="M30,80 L230,80" stroke="#ff6b5e" stroke-width="7" stroke-linecap="round" fill="none"></path>
+            <circle id="bandHandle" cx="130" cy="80" r="11" fill="#f3f1ea"></circle>
+          </svg>
+        </div>
+      </section>
+
+      <!-- 16 Etch pad -->
+      <section class="panel">
+        <span class="tag" style="background:var(--blue)">Turn the knobs</span>
+        <h2>Etch Pad</h2>
+        <p class="sub">Left knob moves sideways, right knob moves up and down. Shake to clear.</p>
+        <div class="panel-body">
+          <div class="etch-col">
+            <div class="etch-frame"><canvas id="etchCanvas"></canvas></div>
+            <div class="etch-knobs">
+              <div class="etch-knob" id="etchKnobX"></div>
+              <div class="etch-knob" id="etchKnobY"></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-foot"><button class="ghost-btn" id="etchClear">Shake to clear</button></div>
+      </section>
+
+      <!-- 17 Pop tube -->
+      <section class="panel">
+        <span class="tag" style="background:var(--violet)">Pull to extend</span>
+        <h2>Pop Tube</h2>
+        <p class="sub">Stretch it out stage by stage, then scrunch it back down.</p>
+        <div class="panel-body">
+          <div class="tube-wrap">
+            <div class="tube-top"></div>
+            <div class="tube-body" id="tubeBody"></div>
+            <div class="tube-handle" id="tubeHandle"></div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+    <button class="stage-arrow" id="nextBtn" aria-label="Next toy">›</button>
+  </div>
+
+  <footer>made of div tags and good intentions</footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ================= audio ================= */
+  let muted = false;
+  let actx = null;
+  function getCtx(){
+    if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if(actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function beep(freq, dur, type, gain, glideTo){
+    if(muted) return;
+    try{
+      const ac = getCtx();
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(freq, ac.currentTime);
+      if(glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, ac.currentTime + dur);
+      g.gain.setValueAtTime(gain || 0.05, ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
+      o.connect(g).connect(ac.destination);
+      o.start();
+      o.stop(ac.currentTime + dur);
+    }catch(e){}
+  }
+
+  let noiseBuffer = null, noiseBufferCtx = null;
+  function getNoiseBuffer(){
+    const ac = getCtx();
+    if(noiseBuffer && noiseBufferCtx === ac) return noiseBuffer;
+    const len = ac.sampleRate * 1;
+    const buf = ac.createBuffer(1, len, ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<len;i++) data[i] = Math.random()*2 - 1;
+    noiseBuffer = buf; noiseBufferCtx = ac;
+    return buf;
+  }
+  function noiseBurst(opts){
+    if(muted) return;
+    opts = opts || {};
+    const dur = opts.dur || 0.08, freq = opts.freq || 1400, type = opts.type || 'bandpass',
+          q = opts.q || 1, gain = opts.gain || 0.1;
+    try{
+      const ac = getCtx();
+      const src = ac.createBufferSource();
+      src.buffer = getNoiseBuffer();
+      const filter = ac.createBiquadFilter();
+      filter.type = type; filter.frequency.value = freq; filter.Q.value = q;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(gain, ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
+      src.connect(filter).connect(g).connect(ac.destination);
+      src.start();
+      src.stop(ac.currentTime + dur);
+    }catch(e){}
+  }
+  /* looping filtered-noise voice, used for the continuous scratch sound */
+  function makeNoiseLoop(){
+    const ac = getCtx();
+    const src = ac.createBufferSource();
+    src.buffer = getNoiseBuffer(); src.loop = true;
+    const filter = ac.createBiquadFilter();
+    filter.type = 'bandpass'; filter.frequency.value = 2000; filter.Q.value = 1.1;
+    const g = ac.createGain();
+    g.gain.value = 0.0001;
+    src.connect(filter).connect(g).connect(ac.destination);
+    src.start();
+    return { src, filter, gain: g };
+  }
+
+  const muteBtn = document.getElementById('muteBtn');
+  const muteIcon = document.getElementById('muteIcon');
+  const muteLabel = document.getElementById('muteLabel');
+  muteBtn.addEventListener('click', ()=>{
+    muted = !muted;
+    muteBtn.setAttribute('aria-pressed', String(muted));
+    muteIcon.textContent = muted ? '🔇' : '🔊';
+    muteLabel.textContent = muted ? 'Sound off' : 'Sound on';
+  });
+
+  /* ================= carousel ================= */
+  const panels = Array.from(document.querySelectorAll('.panel'));
+  const pills = Array.from(document.querySelectorAll('.toy-pill'));
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const onShow = {}; // index -> callback
+  const onHide = {}; // index -> callback, called on the previously active panel before switching
+  let activeIndex = 0;
+
+  function showPanel(i){
+    const next = (i + panels.length) % panels.length;
+    if(onHide[activeIndex] && activeIndex !== next) onHide[activeIndex]();
+    activeIndex = next;
+    panels.forEach((p, idx)=> p.classList.toggle('active', idx === activeIndex));
+    pills.forEach((p, idx)=> p.classList.toggle('active', idx === activeIndex));
+    pills[activeIndex].scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+    if(onShow[activeIndex]) onShow[activeIndex]();
+  }
+  prevBtn.addEventListener('click', ()=> showPanel(activeIndex - 1));
+  nextBtn.addEventListener('click', ()=> showPanel(activeIndex + 1));
+  pills.forEach((p, idx)=> p.addEventListener('click', ()=> showPanel(idx)));
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'ArrowLeft') showPanel(activeIndex - 1);
+    if(e.key === 'ArrowRight') showPanel(activeIndex + 1);
+  });
+
+  /* ================= 1. Bubble wrap ================= */
+  const bubbleGrid = document.getElementById('bubbleGrid');
+  for(let i=0;i<70;i++){
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    bubbleGrid.appendChild(b);
+  }
+  const popColors = ['#f3f1ea','#c7c9d1','#9aa0ab'];
+  function spawnPopParticles(el){
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+    const n = 6 + Math.floor(Math.random()*3);
+    for(let i=0;i<n;i++){
+      const p = document.createElement('div');
+      p.className = 'pop-particle';
+      p.style.background = popColors[i % popColors.length];
+      p.style.left = cx + 'px'; p.style.top = cy + 'px';
+      document.body.appendChild(p);
+      const angle = Math.random()*Math.PI*2, dist = 12 + Math.random()*22;
+      const tx = Math.cos(angle)*dist, ty = Math.sin(angle)*dist;
+      const anim = p.animate([
+        { transform:'translate(-50%,-50%) scale(1)', opacity:1 },
+        { transform:'translate('+(tx-2.5)+'px,'+(ty-2.5)+'px) scale(0)', opacity:0 }
+      ], { duration: 360 + Math.random()*180, easing:'cubic-bezier(.2,.8,.3,1)' });
+      anim.onfinish = ()=> p.remove();
+    }
+  }
+  function popSound(){
+    noiseBurst({ dur:0.05, freq:3200, type:'highpass', gain:0.09 });
+    beep(170 + Math.random()*70, 0.09, 'triangle', 0.05, 65);
+  }
+  function popBubble(el){
+    if(!el || !el.classList || !el.classList.contains('bubble') || el.classList.contains('popped')) return;
+    el.classList.add('popped');
+    spawnPopParticles(el);
+    popSound();
+  }
+  let bwDragging = false;
+  bubbleGrid.addEventListener('pointerdown', (e)=>{ bwDragging = true; popBubble(e.target); });
+  bubbleGrid.addEventListener('pointermove', (e)=>{
+    if(!bwDragging) return;
+    popBubble(document.elementFromPoint(e.clientX, e.clientY));
+  });
+  window.addEventListener('pointerup', ()=>{ bwDragging = false; });
+  document.getElementById('resetBubbles').addEventListener('click', ()=>{
+    bubbleGrid.querySelectorAll('.bubble.popped').forEach((b,i)=> setTimeout(()=>b.classList.remove('popped'), i*4));
+  });
+
+  /* ================= 2. Spinner + ripcord ================= */
+  const spinner = document.getElementById('spinner');
+  let rotation = 0, velocity = 0, lastAngle = 0, spDragging = false, lastTime = 0, lastTick = 0;
+  function angleAt(cx2, cy2){
+    const r = spinner.getBoundingClientRect();
+    const cx = r.left + r.width/2, cy = r.top + r.height/2;
+    return Math.atan2(cy2-cy, cx2-cx) * 180/Math.PI;
+  }
+  function applyRotation(){
+    spinner.style.transform = 'rotate(' + rotation + 'deg)';
+    spinner.style.filter = Math.abs(velocity) > 2.5 ? 'blur(' + Math.min(Math.abs(velocity)*0.3, 4.5) + 'px)' : 'none';
+    const tick = Math.floor(rotation/30);
+    if(tick !== lastTick){ beep(500, 0.03, 'square', 0.02); lastTick = tick; }
+  }
+  spinner.addEventListener('pointerdown', (e)=>{
+    spDragging = true; spinner.classList.add('grabbing');
+    lastAngle = angleAt(e.clientX, e.clientY); lastTime = performance.now(); velocity = 0;
+    spinner.setPointerCapture(e.pointerId);
+  });
+  spinner.addEventListener('pointermove', (e)=>{
+    if(!spDragging) return;
+    const now = performance.now();
+    const a = angleAt(e.clientX, e.clientY);
+    let delta = a - lastAngle;
+    if(delta > 180) delta -= 360;
+    if(delta < -180) delta += 360;
+    const dt = Math.max(now-lastTime,1);
+    velocity = delta/dt*16;
+    rotation += delta; applyRotation();
+    lastAngle = a; lastTime = now;
+  });
+  function endSpinDrag(){
+    if(!spDragging) return;
+    spDragging = false; spinner.classList.remove('grabbing'); inertia();
+  }
+  spinner.addEventListener('pointerup', endSpinDrag);
+  spinner.addEventListener('pointercancel', endSpinDrag);
+  function inertia(){
+    if(Math.abs(velocity) < 0.05) return;
+    rotation += velocity; velocity *= 0.965; applyRotation();
+    requestAnimationFrame(inertia);
+  }
+
+  const ripTrack = document.getElementById('ripTrack');
+  const ripHandle = document.getElementById('ripHandle');
+  let ripDragging = false, ripMax = 0, ripX = 0, ripLastTick = -1;
+  function ripSetup(){ ripMax = ripTrack.clientWidth - ripHandle.offsetWidth - 6; }
+  ripHandle.addEventListener('pointerdown', (e)=>{
+    ripSetup(); ripDragging = true; ripHandle.classList.add('grabbing'); ripLastTick = -1;
+    ripHandle.style.transition = 'none';
+    ripHandle.setPointerCapture(e.pointerId);
+  });
+  ripHandle.addEventListener('pointermove', (e)=>{
+    if(!ripDragging) return;
+    const r = ripTrack.getBoundingClientRect();
+    ripX = Math.max(0, Math.min(ripMax, e.clientX - r.left - ripHandle.offsetWidth/2));
+    ripHandle.style.transform = 'translateX(' + ripX + 'px)';
+    const tick = Math.floor(ripX/18);
+    if(tick !== ripLastTick){ beep(240 + tick*10, 0.02, 'square', 0.025); ripLastTick = tick; }
+  });
+  function ripRelease(){
+    if(!ripDragging) return;
+    ripDragging = false; ripHandle.classList.remove('grabbing');
+    const ratio = ripMax > 0 ? ripX/ripMax : 0;
+    if(ratio > 0.08){
+      velocity = 8 + ratio*30;
+      lastTick = Math.floor(rotation/30);
+      beep(180, 0.25, 'sawtooth', 0.05, 500);
+      inertia();
+    }
+    ripHandle.style.transition = 'transform .4s cubic-bezier(.2,.9,.3,1.4)';
+    ripHandle.style.transform = 'translateX(0px)';
+    ripX = 0;
+  }
+  ripHandle.addEventListener('pointerup', ripRelease);
+  ripHandle.addEventListener('pointercancel', ripRelease);
+
+  /* ================= 3. Switches ================= */
+  const switchRow = document.getElementById('switchRow');
+  for(let i=0;i<10;i++){
+    const s = document.createElement('div');
+    s.className = 'switch';
+    s.innerHTML = '<div class="knob"></div>';
+    s.addEventListener('click', ()=>{
+      s.classList.toggle('on');
+      noiseBurst({ dur:0.02, freq:3000, type:'highpass', gain:0.05 });
+      beep(s.classList.contains('on') ? 640 : 340, 0.05, 'square', 0.04);
+      if(s.classList.contains('on')){
+        s.classList.remove('pulse'); void s.offsetWidth; s.classList.add('pulse');
+      }
+    });
+    switchRow.appendChild(s);
+  }
+
+  /* ================= 4. Zipper ================= */
+  const zipTrack = document.getElementById('zipTrack');
+  const ZTEETH = 16, trackH = 320, toothH = trackH/ZTEETH, handleH = 32;
+  const teethEls = [];
+  for(let i=0;i<ZTEETH;i++){
+    const row = document.createElement('div');
+    row.className = 'tooth-row'; row.style.top = (i*toothH)+'px';
+    row.innerHTML = '<div class="tooth l"></div><div class="tooth r"></div>';
+    zipTrack.appendChild(row); teethEls.push(row);
+  }
+  const zHandle = document.createElement('div');
+  zHandle.className = 'zip-handle';
+  zipTrack.appendChild(zHandle);
+  let zHandleY = 0, zOpenIndex = -1, zDragging = false, zTouched = false;
+  function zipChime(open){
+    if(open){ beep(700, 0.05, 'sine', 0.05, 950); setTimeout(()=> beep(1050, 0.09, 'sine', 0.05), 45); }
+    else { beep(500, 0.05, 'sine', 0.05, 280); setTimeout(()=> beep(240, 0.09, 'sine', 0.05), 45); }
+  }
+  function setZHandle(y){
+    zHandleY = Math.max(0, Math.min(trackH-handleH, y));
+    zHandle.style.transform = 'translateY(' + zHandleY + 'px)';
+    const idx = Math.floor((zHandleY+handleH/2)/toothH);
+    if(idx !== zOpenIndex){
+      zOpenIndex = idx;
+      teethEls.forEach((row,i)=> row.classList.toggle('open', i < zOpenIndex));
+      noiseBurst({ dur:0.025, freq:2200, type:'highpass', gain:0.04 });
+      beep(300 + Math.random()*80, 0.02, 'square', 0.03);
+      if(zTouched && zOpenIndex >= ZTEETH) zipChime(true);
+      if(zTouched && zOpenIndex <= 0) zipChime(false);
+    }
+  }
+  zHandle.addEventListener('pointerdown', (e)=>{ zDragging = true; zTouched = true; zHandle.classList.add('grabbing'); zHandle.setPointerCapture(e.pointerId); });
+  zHandle.addEventListener('pointermove', (e)=>{
+    if(!zDragging) return;
+    const r = zipTrack.getBoundingClientRect();
+    setZHandle(e.clientY - r.top - handleH/2);
+  });
+  function endZip(){ zDragging = false; zHandle.classList.remove('grabbing'); }
+  zHandle.addEventListener('pointerup', endZip);
+  zHandle.addEventListener('pointercancel', endZip);
+  setZHandle(0);
+
+  /* ================= 5. Slime ================= */
+  const slime = document.getElementById('slime');
+  let slDragging = false, slStartX = 0, slStartY = 0;
+  slime.addEventListener('pointerdown', (e)=>{
+    slDragging = true; slime.classList.remove('idle'); slime.classList.add('grabbing');
+    slStartX = e.clientX; slStartY = e.clientY; slime.style.transition = 'none';
+    slime.setPointerCapture(e.pointerId);
+  });
+  slime.addEventListener('pointermove', (e)=>{
+    if(!slDragging) return;
+    let dx = (e.clientX - slStartX)*0.45, dy = (e.clientY - slStartY)*0.45;
+    const mag = Math.hypot(dx,dy), max = 46;
+    if(mag > max){ dx = dx/mag*max; dy = dy/mag*max; }
+    const stretch = Math.min(mag/max,1);
+    slime.style.transform = 'translate('+dx+'px,'+dy+'px) scale('+(1+stretch*0.18)+','+(1-stretch*0.12)+')';
+    const r1 = 58-stretch*14, r2 = 42+stretch*14;
+    slime.style.borderRadius = r1+'% '+r2+'% '+r1+'% '+r2+'% / '+r2+'% '+r1+'% '+r2+'% '+r1+'%';
+  });
+  function endSlime(){
+    if(!slDragging) return;
+    slDragging = false; slime.classList.remove('grabbing');
+    const startTransform = slime.style.transform || 'translate(0,0) scale(1,1)';
+    slime.style.transition = 'border-radius .5s ease';
+    slime.style.borderRadius = '';
+    const anim = slime.animate([
+      { transform: startTransform },
+      { transform: 'scale(1.12,0.88)' },
+      { transform: 'scale(0.94,1.07)' },
+      { transform: 'scale(1.04,0.97)' },
+      { transform: 'scale(1,1)' }
+    ], { duration: 600, easing:'cubic-bezier(.36,.07,.19,.97)' });
+    anim.onfinish = ()=>{ slime.style.transform = ''; };
+    beep(200, 0.12, 'sine', 0.04, 90);
+    setTimeout(()=>{ slime.classList.add('idle'); slime.style.transition=''; }, 650);
+  }
+  slime.addEventListener('pointerup', endSlime);
+  slime.addEventListener('pointercancel', endSlime);
+
+  /* ================= 6. Scratch card ================= */
+  const scratchWrap = document.getElementById('scratchWrap');
+  const scratchCanvas = document.getElementById('scratchCanvas');
+  const sctx = scratchCanvas.getContext('2d');
+  function paintScratchBase(){
+    const w = scratchCanvas.width, h = scratchCanvas.height;
+    const g = sctx.createLinearGradient(0,0,w,h);
+    g.addColorStop(0,'#ff8fc7'); g.addColorStop(0.5,'#ffcf56'); g.addColorStop(1,'#3ddad0');
+    sctx.fillStyle = g; sctx.fillRect(0,0,w,h);
+    sctx.fillStyle = '#111';
+    sctx.font = 'bold ' + Math.floor(h*0.18) + 'px Fredoka, sans-serif';
+    sctx.textAlign = 'center'; sctx.textBaseline = 'middle';
+    sctx.fillText('you found it ✨', w/2, h/2);
+  }
+  function paintScratchFoil(){
+    const w = scratchCanvas.width, h = scratchCanvas.height;
+    sctx.globalCompositeOperation = 'source-over';
+    const g = sctx.createLinearGradient(0,0,w,h);
+    g.addColorStop(0,'#9a9aa4'); g.addColorStop(0.5,'#c7c7d1'); g.addColorStop(1,'#8a8a94');
+    sctx.fillStyle = g; sctx.fillRect(0,0,w,h);
+    sctx.fillStyle = 'rgba(0,0,0,.15)';
+    for(let i=0;i<40;i++) sctx.fillRect(Math.random()*w, Math.random()*h, Math.random()*30, 1);
+  }
+  function sizeScratch(){
+    const r = scratchWrap.getBoundingClientRect();
+    if(r.width < 2) return;
+    scratchCanvas.width = r.width; scratchCanvas.height = r.height;
+    paintScratchBase(); paintScratchFoil();
+  }
+  let scratching = false, lastSX = null, lastSY = null, lastSTime = 0;
+  function scratchPos(e){ const r = scratchCanvas.getBoundingClientRect(); return { x:e.clientX-r.left, y:e.clientY-r.top }; }
+  function stampTexture(cx, cy){
+    sctx.fillStyle = '#000';
+    const flecks = 4 + Math.floor(Math.random()*3);
+    for(let i=0;i<flecks;i++){
+      const rr = 6 + Math.random()*11;
+      const ox = (Math.random()-0.5)*20, oy = (Math.random()-0.5)*20;
+      sctx.globalAlpha = 0.3 + Math.random()*0.45;
+      sctx.beginPath();
+      sctx.arc(cx+ox, cy+oy, rr, 0, Math.PI*2);
+      sctx.fill();
+    }
+    sctx.globalAlpha = 1;
+  }
+  function scratchAt(x,y){
+    sctx.globalCompositeOperation = 'destination-out';
+    if(lastSX === null){ stampTexture(x,y); }
+    else{
+      const dx = x-lastSX, dy = y-lastSY, dist = Math.hypot(dx,dy);
+      const steps = Math.max(1, Math.ceil(dist/5));
+      for(let i=1;i<=steps;i++) stampTexture(lastSX + dx*(i/steps), lastSY + dy*(i/steps));
+    }
+    lastSX = x; lastSY = y;
+  }
+  let scratchVoice = null;
+  function scratchSoundStart(){
+    if(muted || scratchVoice) return;
+    try{ scratchVoice = makeNoiseLoop(); }catch(e){ scratchVoice = null; }
+  }
+  function scratchSoundUpdate(speed){
+    if(!scratchVoice) return;
+    const ac = getCtx();
+    const g = muted ? 0.0001 : Math.min(0.1, 0.02 + speed*0.006);
+    scratchVoice.gain.gain.setTargetAtTime(g, ac.currentTime, 0.04);
+    scratchVoice.filter.frequency.setTargetAtTime(1500 + Math.min(speed,50)*35, ac.currentTime, 0.05);
+  }
+  function scratchSoundStop(){
+    if(!scratchVoice) return;
+    const ac = getCtx();
+    const voice = scratchVoice; scratchVoice = null;
+    try{
+      voice.gain.gain.setTargetAtTime(0.0001, ac.currentTime, 0.05);
+      setTimeout(()=>{ try{ voice.src.stop(); }catch(e){} }, 200);
+    }catch(e){}
+  }
+  scratchCanvas.addEventListener('pointerdown', (e)=>{
+    scratching = true; lastSX=null; lastSY=null; lastSTime = performance.now();
+    const p = scratchPos(e); scratchAt(p.x,p.y);
+    scratchCanvas.setPointerCapture(e.pointerId);
+    scratchSoundStart();
+    noiseBurst({ dur:0.06, freq:2600, type:'bandpass', q:0.9, gain:0.05 });
+  });
+  scratchCanvas.addEventListener('pointermove', (e)=>{
+    if(!scratching) return;
+    const p = scratchPos(e);
+    const now = performance.now();
+    const dt = Math.max(now-lastSTime, 1);
+    const speed = (lastSX!==null ? Math.hypot(p.x-lastSX, p.y-lastSY) : 0) / dt * 16;
+    scratchAt(p.x,p.y);
+    scratchSoundUpdate(speed);
+    lastSTime = now;
+  });
+  function endScratch(){ scratching=false; lastSX=null; lastSY=null; scratchSoundStop(); }
+  scratchCanvas.addEventListener('pointerup', endScratch);
+  scratchCanvas.addEventListener('pointercancel', endScratch);
+  document.getElementById('resetScratch').addEventListener('click', paintScratchFoil);
+
+  /* ================= 7. Sand tray ================= */
+  const sandWrap = document.getElementById('sandWrap');
+  const sandCanvas = document.getElementById('sandCanvas');
+  const dctx = sandCanvas.getContext('2d');
+  function paintSand(){
+    const w = sandCanvas.width, h = sandCanvas.height;
+    dctx.fillStyle = '#d8c188'; dctx.fillRect(0,0,w,h);
+    dctx.fillStyle = 'rgba(0,0,0,.04)';
+    for(let i=0;i<900;i++) dctx.fillRect(Math.random()*w, Math.random()*h, 1, 1);
+  }
+  function sizeSand(){
+    const r = sandWrap.getBoundingClientRect();
+    if(r.width < 2) return;
+    sandCanvas.width = r.width; sandCanvas.height = r.height; paintSand();
+  }
+  let raking = false, lastRX = null, lastRY = null, lastRTime = 0;
+  function rakePos(e){ const r = sandCanvas.getBoundingClientRect(); return { x:e.clientX-r.left, y:e.clientY-r.top }; }
+  function rakeAt(x,y){
+    if(lastRX!==null){
+      const dx = x-lastRX, dy = y-lastRY, len = Math.hypot(dx,dy) || 1;
+      const px = -dy/len, py = dx/len, spacing = 7;
+      for(let t=-1;t<=1;t++){
+        const ox = px*spacing*t, oy = py*spacing*t;
+        dctx.strokeStyle='rgba(255,255,255,.32)'; dctx.lineWidth=5; dctx.lineCap='round'; dctx.lineJoin='round';
+        dctx.beginPath(); dctx.moveTo(lastRX+ox,lastRY+oy-1); dctx.lineTo(x+ox,y+oy-1); dctx.stroke();
+        dctx.strokeStyle='rgba(90,65,20,.32)'; dctx.lineWidth=5;
+        dctx.beginPath(); dctx.moveTo(lastRX+ox,lastRY+oy+1); dctx.lineTo(x+ox,y+oy+1); dctx.stroke();
+      }
+    }
+    lastRX=x; lastRY=y;
+  }
+  let sandVoice = null;
+  function sandSoundStart(){
+    if(muted || sandVoice) return;
+    try{ sandVoice = makeNoiseLoop(); sandVoice.filter.type='lowpass'; sandVoice.filter.frequency.value=900; }catch(e){ sandVoice=null; }
+  }
+  function sandSoundUpdate(speed){
+    if(!sandVoice) return;
+    const ac = getCtx();
+    const g = muted ? 0.0001 : Math.min(0.07, 0.015 + speed*0.004);
+    sandVoice.gain.gain.setTargetAtTime(g, ac.currentTime, 0.05);
+    sandVoice.filter.frequency.setTargetAtTime(600 + Math.min(speed,50)*14, ac.currentTime, 0.06);
+  }
+  function sandSoundStop(){
+    if(!sandVoice) return;
+    const ac = getCtx();
+    const voice = sandVoice; sandVoice = null;
+    try{
+      voice.gain.gain.setTargetAtTime(0.0001, ac.currentTime, 0.06);
+      setTimeout(()=>{ try{ voice.src.stop(); }catch(e){} }, 220);
+    }catch(e){}
+  }
+  sandCanvas.addEventListener('pointerdown', (e)=>{
+    raking = true; lastRX=null; lastRY=null; lastRTime = performance.now();
+    const p = rakePos(e); rakeAt(p.x,p.y);
+    sandCanvas.setPointerCapture(e.pointerId);
+    sandSoundStart();
+  });
+  sandCanvas.addEventListener('pointermove', (e)=>{
+    if(!raking) return;
+    const p = rakePos(e);
+    const now = performance.now();
+    const dt = Math.max(now-lastRTime, 1);
+    const speed = (lastRX!==null ? Math.hypot(p.x-lastRX, p.y-lastRY) : 0) / dt * 16;
+    rakeAt(p.x,p.y);
+    sandSoundUpdate(speed);
+    lastRTime = now;
+  });
+  function endRake(){ raking=false; lastRX=null; lastRY=null; sandSoundStop(); }
+  sandCanvas.addEventListener('pointerup', endRake);
+  sandCanvas.addEventListener('pointercancel', endRake);
+  document.getElementById('resetSand').addEventListener('click', paintSand);
+
+  /* ================= 8. Big button ================= */
+  const thockBtn = document.getElementById('thockBtn');
+  const thockOuter = document.querySelector('.thock-outer');
+  const counterEl = document.getElementById('counter');
+  let count = 0;
+  const confettiColors = ['#ff6b5e','#ffcf56','#3ddad0','#b28dff','#ff8fc7','#6fb1ff','#7ee6a8'];
+  function burstConfetti(){
+    for(let i=0;i<22;i++){
+      const bit = document.createElement('div');
+      bit.className = 'confetti-bit'; bit.style.background = confettiColors[i % confettiColors.length];
+      thockOuter.appendChild(bit);
+      const angle = Math.random()*Math.PI*2, dist = 60+Math.random()*70;
+      const tx = Math.cos(angle)*dist, ty = Math.sin(angle)*dist;
+      bit.animate([
+        { transform:'translate(-50%,-50%) rotate(0deg)', opacity:1 },
+        { transform:'translate('+(tx-3)+'px,'+(ty-3)+'px) rotate('+(Math.random()*400-200)+'deg)', opacity:0 }
+      ], { duration: 700+Math.random()*300, easing:'cubic-bezier(.2,.8,.3,1)' });
+      setTimeout(()=>bit.remove(), 1050);
+    }
+  }
+  function press(){
+    thockBtn.classList.add('pressed'); count++; counterEl.textContent = count;
+    noiseBurst({ dur:0.04, freq:400, type:'lowpass', gain:0.07 });
+    beep(112 + Math.random()*16, 0.09, 'sine', 0.08, 52 + Math.random()*12);
+    if(count % 25 === 0) burstConfetti();
+  }
+  function release(){ thockBtn.classList.remove('pressed'); }
+  thockBtn.addEventListener('pointerdown', press);
+  thockBtn.addEventListener('pointerup', release);
+  thockBtn.addEventListener('pointerleave', release);
+  thockBtn.addEventListener('pointercancel', release);
+
+  /* ================= 9. Newton's cradle ================= */
+  const cradleFrame = document.getElementById('cradleFrame');
+  const CBALLS = 5, cw = 50;
+  const startLeft = (250 - CBALLS*cw)/2;
+  const cradleUnits = [];
+  for(let i=0;i<CBALLS;i++){
+    const unit = document.createElement('div');
+    unit.className = 'cradle-unit';
+    unit.style.left = (startLeft + i*cw) + 'px';
+    unit.innerHTML = '<div class="cradle-string"></div><div class="cradle-ball"></div>';
+    cradleFrame.appendChild(unit);
+    cradleUnits.push(unit);
+  }
+  cradleUnits[0].classList.add('draggable');
+  cradleUnits[CBALLS-1].classList.add('draggable');
+
+  function squashBall(unit){
+    const ball = unit.querySelector('.cradle-ball');
+    if(!ball) return;
+    ball.animate(
+      [{ transform:'scale(1,1)' }, { transform:'scale(1.16,0.86)' }, { transform:'scale(1,1)' }],
+      { duration:150, easing:'ease-out' }
+    );
+  }
+  function impact(amp, unit){
+    noiseBurst({ dur:0.04, freq:1800, type:'bandpass', q:2.2, gain:0.05 });
+    beep(180 + Math.min(amp,55)*2, 0.06, 'sine', 0.05, 140);
+    if(unit) squashBall(unit);
+  }
+  // Each swing is two smooth halves: fly out from the strike (fast, decelerating
+  // into the top of the arc) then fall back down (slow start, accelerating into
+  // the next strike) — matching how a real pendulum actually moves, so it never
+  // has to "snap" direction at the top.
+  // Note: with transform-origin at the top, a *positive* CSS rotation swings the
+  // ball to the LEFT and a *negative* rotation swings it RIGHT — so the ball that
+  // ends up on idx0 (the left ball) swings out on a positive angle, and the ball
+  // on the last index (right ball) swings out on a negative angle.
+  function chain(fromIdx, amp){
+    const toIdx = fromIdx === 0 ? CBALLS-1 : 0;
+    const nextAmp = amp * 0.82;
+    if(nextAmp < 3) return;
+    const sign = toIdx === 0 ? 1 : -1;
+    const target = sign * nextAmp;
+    const unit = cradleUnits[toIdx];
+    const halfDur = 140 + nextAmp*4;
+    const anim = unit.animate(
+      [
+        { transform:'rotate(0deg)', easing:'cubic-bezier(.35,.55,.35,1)' },
+        { transform:'rotate('+target+'deg)', easing:'cubic-bezier(.65,0,.85,.25)' },
+        { transform:'rotate(0deg)' }
+      ],
+      { duration: halfDur*2 }
+    );
+    anim.onfinish = ()=>{ impact(nextAmp, unit); chain(toIdx, nextAmp); };
+  }
+  function pluckRelease(idx, startAngle){
+    const unit = cradleUnits[idx];
+    const dur = Math.max(170, Math.abs(startAngle)*5);
+    const anim = unit.animate(
+      [{ transform:'rotate('+startAngle+'deg)' }, { transform:'rotate(0deg)' }],
+      { duration: dur, easing:'cubic-bezier(.45,.15,.85,.25)' }
+    );
+    anim.onfinish = ()=>{ unit.style.transform = 'rotate(0deg)'; impact(Math.abs(startAngle), unit); chain(idx, Math.abs(startAngle)); };
+  }
+  function setupCradleDrag(idx, side){
+    const unit = cradleUnits[idx];
+    let dragging = false, pivotX = 0, pivotY = 0, curAngle = 0;
+    unit.addEventListener('pointerdown', (e)=>{
+      dragging = true; unit.classList.add('grabbing');
+      const r = unit.getBoundingClientRect();
+      pivotX = r.left + r.width/2; pivotY = r.top;
+      unit.setPointerCapture(e.pointerId);
+      unit.getAnimations().forEach(a=>a.cancel());
+    });
+    unit.addEventListener('pointermove', (e)=>{
+      if(!dragging) return;
+      // Negated because a positive CSS rotation swings the ball left, not right
+      // (see note above) — this keeps the drag direction matching the pointer.
+      let ang = -Math.atan2(e.clientX-pivotX, e.clientY-pivotY) * 180/Math.PI;
+      if(side < 0) ang = Math.max(0, Math.min(58, ang));
+      else ang = Math.max(-58, Math.min(0, ang));
+      curAngle = ang;
+      unit.style.transform = 'rotate(' + ang + 'deg)';
+    });
+    function release(){
+      if(!dragging) return;
+      dragging = false; unit.classList.remove('grabbing');
+      if(Math.abs(curAngle) > 3) pluckRelease(idx, curAngle);
+      else unit.style.transform = 'rotate(0deg)';
+      curAngle = 0;
+    }
+    unit.addEventListener('pointerup', release);
+    unit.addEventListener('pointercancel', release);
+  }
+  setupCradleDrag(0, -1);
+  setupCradleDrag(CBALLS-1, 1);
+
+  /* ================= 10. Click pen ================= */
+  const penButton = document.getElementById('penButton');
+  const penTip = document.getElementById('penTip');
+  const penSwatch = document.getElementById('penSwatch');
+  const penLabel = document.getElementById('penLabel');
+  const penEl = document.querySelector('.pen');
+  const inks = [
+    { name:'sand', hex:'#d8b756' }, { name:'coral', hex:'#ff6b5e' }, { name:'teal', hex:'#3ddad0' },
+    { name:'violet', hex:'#b28dff' }, { name:'blue', hex:'#6fb1ff' }, { name:'mint', hex:'#7ee6a8' },
+    { name:'pink', hex:'#ff8fc7' }
+  ];
+  let penExtended = false, inkIdx = 0;
+  penButton.addEventListener('click', ()=>{
+    penExtended = !penExtended;
+    penButton.classList.add('pressed');
+    setTimeout(()=> penButton.classList.remove('pressed'), 110);
+    penEl.animate(
+      [{ transform:'rotate(0deg)' }, { transform:'rotate(-3deg)' }, { transform:'rotate(2deg)' }, { transform:'rotate(0deg)' }],
+      { duration:260, easing:'ease-out' }
+    );
+    if(penExtended){
+      inkIdx = (inkIdx+1) % inks.length;
+      penTip.style.borderTopColor = inks[inkIdx].hex;
+      penSwatch.style.background = inks[inkIdx].hex;
+      penLabel.textContent = 'ink: ' + inks[inkIdx].name;
+      penTip.classList.add('out');
+      beep(900, 0.03, 'square', 0.05);
+      setTimeout(()=> beep(500, 0.04, 'square', 0.04), 60);
+    } else {
+      penTip.classList.remove('out');
+      beep(500, 0.03, 'square', 0.05);
+      setTimeout(()=> beep(300, 0.05, 'square', 0.04), 50);
+    }
+  });
+
+  /* ================= 11. Marble bowl ================= */
+  const bowl = document.getElementById('bowl');
+  const marble = document.getElementById('marble');
+  let mDragging = false, mPos = {x:0,y:0}, mVel = {x:0,y:0}, mMaxR = 115, mClamped = false;
+  let marbleVoice = null;
+  function marbleRollStart(){
+    if(muted || marbleVoice) return;
+    try{ marbleVoice = makeNoiseLoop(); marbleVoice.filter.type='lowpass'; marbleVoice.filter.frequency.value=500; }catch(e){ marbleVoice=null; }
+  }
+  function marbleRollUpdate(speed){
+    if(!marbleVoice) return;
+    const ac = getCtx();
+    const g = muted ? 0.0001 : Math.min(0.07, speed*0.01);
+    marbleVoice.gain.gain.setTargetAtTime(g, ac.currentTime, 0.05);
+    marbleVoice.filter.frequency.setTargetAtTime(280 + Math.min(speed,20)*40, ac.currentTime, 0.08);
+  }
+  function marbleRollStop(){
+    if(!marbleVoice) return;
+    const ac = getCtx();
+    const voice = marbleVoice; marbleVoice = null;
+    try{
+      voice.gain.gain.setTargetAtTime(0.0001, ac.currentTime, 0.06);
+      setTimeout(()=>{ try{ voice.src.stop(); }catch(e){} }, 220);
+    }catch(e){}
+  }
+  function renderMarble(){ marble.style.transform = 'translate(' + mPos.x + 'px,' + mPos.y + 'px)'; }
+  marble.addEventListener('pointerdown', (e)=>{
+    mDragging = true; marble.classList.add('grabbing'); mClamped = false;
+    marble.setPointerCapture(e.pointerId);
+    marbleRollStart();
+  });
+  marble.addEventListener('pointermove', (e)=>{
+    if(!mDragging) return;
+    const r = bowl.getBoundingClientRect();
+    const cx = r.left + r.width/2, cy = r.top + r.height/2;
+    let dx = e.clientX - cx, dy = e.clientY - cy;
+    const dist = Math.hypot(dx,dy);
+    const moveDist = Math.hypot(dx-mPos.x, dy-mPos.y);
+    if(dist > mMaxR){
+      dx = dx/dist*mMaxR; dy = dy/dist*mMaxR;
+      if(!mClamped){ beep(180, 0.05, 'sine', 0.03); mClamped = true; }
+    } else mClamped = false;
+    mPos.x = dx; mPos.y = dy; renderMarble();
+    marbleRollUpdate(moveDist);
+  });
+  function marbleRelease(){
+    if(!mDragging) return;
+    mDragging = false; marble.classList.remove('grabbing');
+    mVel = {x:0,y:0};
+    requestAnimationFrame(springLoop);
+  }
+  marble.addEventListener('pointerup', marbleRelease);
+  marble.addEventListener('pointercancel', marbleRelease);
+  function springLoop(){
+    if(mDragging) return; // re-grabbed mid-flight — a fresh loop starts on the next release
+    const k = 0.1, damping = 0.86;
+    mVel.x = (mVel.x - k*mPos.x) * damping;
+    mVel.y = (mVel.y - k*mPos.y) * damping;
+    mPos.x += mVel.x; mPos.y += mVel.y;
+    renderMarble();
+    const speed = Math.hypot(mVel.x, mVel.y), rest = Math.hypot(mPos.x, mPos.y);
+    marbleRollUpdate(speed);
+    if(speed > 0.06 || rest > 0.6) requestAnimationFrame(springLoop);
+    else { mPos = {x:0,y:0}; mVel = {x:0,y:0}; renderMarble(); marbleRollStop(); beep(520, 0.06, 'sine', 0.03); }
+  }
+
+  /* ================= 12. Bead slider ================= */
+  const beadTrack = document.getElementById('beadTrack');
+  const BEADS = 7, beadSize = 48;
+  const beadEls = [];
+  const beadPos = [];
+  const touchL = [], touchR = [];
+  const beadColors = ['var(--coral)','var(--yellow)','var(--teal)','var(--violet)','var(--pink)','var(--blue)','var(--mint)'];
+  for(let i=0;i<BEADS;i++){
+    const b = document.createElement('div');
+    b.className = 'bead';
+    b.style.background = 'radial-gradient(circle at 32% 26%, #fff, ' + beadColors[i % beadColors.length] + ' 50%, #14141a 115%)';
+    beadTrack.appendChild(b);
+    beadEls.push(b);
+    touchL.push(false); touchR.push(false);
+  }
+  function renderBeads(){ beadEls.forEach((b,i)=>{ b.style.transform = 'translateX(' + beadPos[i] + 'px)'; }); }
+  function sizeBeads(){
+    const w = beadTrack.clientWidth;
+    if(w < 2) return;
+    const usable = w - beadSize;
+    const gap = BEADS > 1 ? usable/(BEADS-1) : 0;
+    for(let i=0;i<BEADS;i++) beadPos[i] = i*gap;
+    renderBeads();
+  }
+  function clack(){
+    noiseBurst({ dur:0.03, freq:2400, type:'bandpass', q:1.5, gain:0.05 });
+    beep(300 + Math.random()*150, 0.04, 'triangle', 0.05);
+  }
+  beadEls.forEach((b, i)=>{
+    let dragging = false, startX = 0, startPos = 0;
+    b.addEventListener('pointerdown', (e)=>{
+      dragging = true; b.classList.add('grabbing');
+      startX = e.clientX; startPos = beadPos[i];
+      touchL[i] = false; touchR[i] = false;
+      b.setPointerCapture(e.pointerId);
+    });
+    b.addEventListener('pointermove', (e)=>{
+      if(!dragging) return;
+      let x = startPos + (e.clientX - startX);
+      const trackW = beadTrack.clientWidth;
+      const minX = i > 0 ? beadPos[i-1] + beadSize*0.86 : 0;
+      const maxX = i < BEADS-1 ? beadPos[i+1] - beadSize*0.86 : trackW - beadSize;
+      if(x <= minX){ x = minX; if(!touchL[i]){ clack(); touchL[i] = true; } } else touchL[i] = false;
+      if(x >= maxX){ x = maxX; if(!touchR[i]){ clack(); touchR[i] = true; } } else touchR[i] = false;
+      beadPos[i] = x; renderBeads();
+    });
+    function endBead(){ dragging = false; b.classList.remove('grabbing'); }
+    b.addEventListener('pointerup', endBead);
+    b.addEventListener('pointercancel', endBead);
+  });
+
+  /* ================= 13. Pachinko drop ================= */
+  const pachinkoWrap = document.getElementById('pachinkoWrap');
+  const pachinkoCanvas = document.getElementById('pachinkoCanvas');
+  const pctx = pachinkoCanvas.getContext('2d');
+  const plungerTrack = document.getElementById('plungerTrack');
+  const plungerHandle = document.getElementById('plungerHandle');
+  let pW = 0, pH = 0, pegs = [], dividerXs = [], settledBalls = [], activeBalls = [], pRAF = null;
+  const GRAVITY = 0.32;
+  function sizeField(){
+    const r = pachinkoCanvas.getBoundingClientRect();
+    if(r.width < 2) return;
+    pachinkoCanvas.width = r.width; pachinkoCanvas.height = r.height;
+    pW = pachinkoCanvas.width; pH = pachinkoCanvas.height;
+    pegs = [];
+    const rows = 5, rowSpacing = (pH-90)/rows, cols = Math.max(2, Math.floor(pW/34));
+    for(let row=0; row<rows; row++){
+      const y = 58 + row*rowSpacing;
+      const offset = (row % 2 === 0) ? 0 : 17;
+      for(let c=0; c<cols; c++){
+        const x = offset + 18 + c*34;
+        if(x < pW-12) pegs.push({ x, y, r:4 });
+      }
+    }
+    dividerXs = [];
+    const slotsN = 5;
+    for(let i=1;i<slotsN;i++) dividerXs.push(pW*i/slotsN);
+    settledBalls = []; activeBalls = [];
+    drawField();
+  }
+  function drawField(){
+    pctx.fillStyle = '#101014'; pctx.fillRect(0,0,pW,pH);
+    pctx.fillStyle = 'rgba(255,255,255,.5)';
+    for(const p of pegs){ pctx.beginPath(); pctx.arc(p.x,p.y,p.r,0,Math.PI*2); pctx.fill(); }
+    pctx.strokeStyle = 'rgba(255,255,255,.14)'; pctx.lineWidth = 2;
+    for(const sx of dividerXs){ pctx.beginPath(); pctx.moveTo(sx,pH-46); pctx.lineTo(sx,pH); pctx.stroke(); }
+    pctx.fillStyle = '#7ee6a8';
+    for(const s of settledBalls){ pctx.beginPath(); pctx.arc(s.x,s.y,6,0,Math.PI*2); pctx.fill(); }
+    for(const b of activeBalls){
+      const grad = pctx.createRadialGradient(b.x-2,b.y-2,1,b.x,b.y,b.r);
+      grad.addColorStop(0,'#fff'); grad.addColorStop(1,'#ff6b5e');
+      pctx.fillStyle = grad;
+      pctx.beginPath(); pctx.arc(b.x,b.y,b.r,0,Math.PI*2); pctx.fill();
+    }
+  }
+  function pegHitSound(){ noiseBurst({ dur:0.03, freq:1700+Math.random()*900, type:'bandpass', q:3, gain:0.045 }); }
+  function settleSound(){ beep(280+Math.random()*100, 0.08, 'sine', 0.05, 170); }
+  function dropSound(ratio){
+    noiseBurst({ dur:0.08, freq:1600, type:'highpass', gain:0.05 });
+    beep(700, 0.06, 'sine', 0.04, 500 - ratio*120);
+  }
+  function ensurePLoop(){ if(pRAF === null) pRAF = requestAnimationFrame(pStep); }
+  function pStep(){
+    for(let i=activeBalls.length-1; i>=0; i--){
+      const b = activeBalls[i];
+      b.vy += GRAVITY; b.x += b.vx; b.y += b.vy;
+      if(b.x-b.r < 0){ b.x = b.r; b.vx *= -0.7; }
+      if(b.x+b.r > pW){ b.x = pW-b.r; b.vx *= -0.7; }
+      for(const peg of pegs){
+        const dx = b.x-peg.x, dy = b.y-peg.y, dist = Math.hypot(dx,dy), minD = b.r+peg.r;
+        if(dist < minD && dist > 0.001){
+          const nx = dx/dist, ny = dy/dist;
+          b.x = peg.x+nx*minD; b.y = peg.y+ny*minD;
+          const dot = b.vx*nx+b.vy*ny;
+          b.vx = (b.vx - 2*dot*nx) * 0.7; b.vy = (b.vy - 2*dot*ny) * 0.7;
+          b.vx += (Math.random()-0.5)*0.5;
+          pegHitSound();
+        }
+      }
+      for(const sx of dividerXs){
+        if(b.y > pH-46 && Math.abs(b.x-sx) < b.r+2){
+          b.x = b.x < sx ? sx-(b.r+2) : sx+(b.r+2);
+          b.vx *= -0.4;
+        }
+      }
+      if(b.y+b.r > pH){
+        b.y = pH-b.r; b.vy *= -0.3;
+        if(Math.abs(b.vy) < 0.7 && Math.abs(b.vx) < 0.5){
+          settledBalls.push({ x:b.x, y:b.y }); settleSound();
+          activeBalls.splice(i,1);
+        }
+      }
+    }
+    drawField();
+    pRAF = activeBalls.length > 0 ? requestAnimationFrame(pStep) : null;
+  }
+  let plDragging = false, plMax = 0, plY = 0, plLastTick = -1;
+  function plSetup(){ plMax = plungerTrack.clientHeight - plungerHandle.offsetHeight - 4; }
+  plungerHandle.addEventListener('pointerdown', (e)=>{
+    plSetup(); plDragging = true; plLastTick = -1;
+    plungerHandle.classList.add('grabbing');
+    plungerHandle.style.transition = 'none';
+    plungerHandle.setPointerCapture(e.pointerId);
+  });
+  plungerHandle.addEventListener('pointermove', (e)=>{
+    if(!plDragging) return;
+    const r = plungerTrack.getBoundingClientRect();
+    plY = Math.max(0, Math.min(plMax, e.clientY - r.top - plungerHandle.offsetHeight/2));
+    plungerHandle.style.transform = 'translateY(' + plY + 'px)';
+    const tick = Math.floor(plY/14);
+    if(tick !== plLastTick){ beep(220+tick*12, 0.02, 'square', 0.02); plLastTick = tick; }
+  });
+  function plRelease(){
+    if(!plDragging) return;
+    plDragging = false; plungerHandle.classList.remove('grabbing');
+    const ratio = plMax > 0 ? plY/plMax : 0;
+    if(ratio > 0.06){
+      activeBalls.push({
+        x: pW/2 + (Math.random()-0.5)*20*(1+ratio*2), y: 7,
+        vx: (Math.random()-0.5)*1.6*(0.4+ratio), vy: 0.6
+        , r:7
+      });
+      dropSound(ratio);
+      ensurePLoop();
+    }
+    plungerHandle.style.transition = 'transform .35s cubic-bezier(.2,.9,.3,1.4)';
+    plungerHandle.style.transform = 'translateY(0px)';
+    plY = 0;
+  }
+  plungerHandle.addEventListener('pointerup', plRelease);
+  plungerHandle.addEventListener('pointercancel', plRelease);
+  document.getElementById('clearPachinko').addEventListener('click', ()=>{ settledBalls = []; drawField(); });
+
+  /* ================= 14. Ratchet dial ================= */
+  const ratchetDial = document.getElementById('ratchetDial');
+  const dialReadout = document.getElementById('dialReadout');
+  const DETENT = 36;
+  let dialRotation = 0, dialDragging = false, dialLastAngle = 0, dialLastDetent = 0;
+  function dialAngleAt(cx2,cy2){
+    const r = ratchetDial.getBoundingClientRect();
+    const cx = r.left+r.width/2, cy = r.top+r.height/2;
+    return Math.atan2(cy2-cy, cx2-cx) * 180/Math.PI;
+  }
+  function applyDial(){
+    ratchetDial.style.transform = 'rotate(' + dialRotation + 'deg)';
+    const detent = Math.round(dialRotation/DETENT);
+    if(detent !== dialLastDetent){
+      dialLastDetent = detent;
+      noiseBurst({ dur:0.02, freq:2600, type:'highpass', gain:0.06 });
+      beep(700, 0.03, 'square', 0.05);
+      dialReadout.textContent = ((detent % 10) + 10) % 10;
+    }
+  }
+  ratchetDial.addEventListener('pointerdown', (e)=>{
+    dialDragging = true; ratchetDial.classList.add('grabbing');
+    dialLastAngle = dialAngleAt(e.clientX, e.clientY);
+    ratchetDial.setPointerCapture(e.pointerId);
+    ratchetDial.getAnimations().forEach(a=>a.cancel());
+  });
+  ratchetDial.addEventListener('pointermove', (e)=>{
+    if(!dialDragging) return;
+    const a = dialAngleAt(e.clientX, e.clientY);
+    let delta = a - dialLastAngle;
+    if(delta > 180) delta -= 360;
+    if(delta < -180) delta += 360;
+    dialRotation += delta; applyDial();
+    dialLastAngle = a;
+  });
+  function dialRelease(){
+    if(!dialDragging) return;
+    dialDragging = false; ratchetDial.classList.remove('grabbing');
+    const target = Math.round(dialRotation/DETENT) * DETENT;
+    const anim = ratchetDial.animate(
+      [{ transform:'rotate('+dialRotation+'deg)' }, { transform:'rotate('+target+'deg)' }],
+      { duration:180, easing:'cubic-bezier(.34,1.8,.64,1)' }
+    );
+    anim.onfinish = ()=>{ ratchetDial.style.transform = 'rotate('+target+'deg)'; };
+    dialRotation = target;
+    beep(500, 0.05, 'square', 0.05, 650);
+  }
+  ratchetDial.addEventListener('pointerup', dialRelease);
+  ratchetDial.addEventListener('pointercancel', dialRelease);
+
+  /* ================= 15. Stretch band ================= */
+  const bandSvg = document.getElementById('bandSvg');
+  const bandPath = document.getElementById('bandPath');
+  const bandHandle = document.getElementById('bandHandle');
+  const BAND_REST = { x:130, y:80 };
+  let bandDragging = false, bandPos = { x:130, y:80 }, bandVel = { x:0, y:0 };
+  function renderBand(){
+    bandPath.setAttribute('d', 'M30,80 L'+bandPos.x+','+bandPos.y+' L230,80');
+    bandHandle.setAttribute('cx', bandPos.x); bandHandle.setAttribute('cy', bandPos.y);
+    const stretch = Math.hypot(bandPos.x-BAND_REST.x, bandPos.y-BAND_REST.y);
+    bandPath.setAttribute('stroke-width', Math.max(2.5, 7 - stretch*0.03));
+    bandPath.setAttribute('stroke', stretch > 10 ? 'hsl(' + (8+Math.min(stretch*0.3,40)) + ',90%,' + (62+Math.min(stretch*0.05,15)) + '%)' : '#ff6b5e');
+  }
+  function svgPoint(e){
+    const pt = bandSvg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const ctm = bandSvg.getScreenCTM().inverse();
+    return pt.matrixTransform(ctm);
+  }
+  bandHandle.addEventListener('pointerdown', (e)=>{
+    bandDragging = true; bandHandle.classList.add('grabbing');
+    bandHandle.setPointerCapture(e.pointerId);
+  });
+  bandHandle.addEventListener('pointermove', (e)=>{
+    if(!bandDragging) return;
+    const p = svgPoint(e);
+    bandPos.x = Math.max(45, Math.min(215, p.x));
+    bandPos.y = Math.max(15, Math.min(145, p.y));
+    renderBand();
+  });
+  function bandSpring(){
+    if(bandDragging) return;
+    const k = 0.16, damping = 0.78;
+    bandVel.x = (bandVel.x - k*(bandPos.x-BAND_REST.x)) * damping;
+    bandVel.y = (bandVel.y - k*(bandPos.y-BAND_REST.y)) * damping;
+    bandPos.x += bandVel.x; bandPos.y += bandVel.y;
+    renderBand();
+    const speed = Math.hypot(bandVel.x,bandVel.y), rest = Math.hypot(bandPos.x-BAND_REST.x, bandPos.y-BAND_REST.y);
+    if(speed > 0.05 || rest > 0.4) requestAnimationFrame(bandSpring);
+    else { bandPos = { x:BAND_REST.x, y:BAND_REST.y }; renderBand(); beep(420, 0.05, 'sine', 0.03); }
+  }
+  function bandRelease(){
+    if(!bandDragging) return;
+    bandDragging = false; bandHandle.classList.remove('grabbing');
+    const stretch = Math.hypot(bandPos.x-BAND_REST.x, bandPos.y-BAND_REST.y);
+    if(stretch > 55){
+      noiseBurst({ dur:0.05, freq:1200, type:'highpass', gain:0.08 });
+      beep(700, 0.18, 'sawtooth', 0.06, 140);
+      bandPos = { x:BAND_REST.x, y:BAND_REST.y }; renderBand();
+      bandSvg.animate(
+        [{ transform:'translateX(0)' }, { transform:'translateX(-4px)' }, { transform:'translateX(4px)' }, { transform:'translateX(0)' }],
+        { duration:220, easing:'ease-out' }
+      );
+    } else if(stretch > 2){
+      bandVel = { x:0, y:0 };
+      requestAnimationFrame(bandSpring);
+    }
+  }
+  bandHandle.addEventListener('pointerup', bandRelease);
+  bandHandle.addEventListener('pointercancel', bandRelease);
+
+  /* ================= 16. Etch pad ================= */
+  const etchCanvas = document.getElementById('etchCanvas');
+  const ectx = etchCanvas.getContext('2d');
+  const etchFrame = document.querySelector('.etch-frame');
+  const etchKnobX = document.getElementById('etchKnobX');
+  const etchKnobY = document.getElementById('etchKnobY');
+  let stylus = { x:0, y:0 };
+  function paintEtchBg(){ ectx.fillStyle = '#c7cbd2'; ectx.fillRect(0,0,etchCanvas.width,etchCanvas.height); }
+  function sizeEtch(){
+    const r = etchCanvas.getBoundingClientRect();
+    if(r.width < 2) return;
+    etchCanvas.width = r.width; etchCanvas.height = r.height;
+    stylus = { x:etchCanvas.width/2, y:etchCanvas.height/2 };
+    paintEtchBg();
+  }
+  function etchLineTo(nx,ny){
+    ectx.strokeStyle = '#3a3a44'; ectx.lineWidth = 2.2; ectx.lineCap = 'round';
+    ectx.beginPath(); ectx.moveTo(stylus.x, stylus.y); ectx.lineTo(nx, ny); ectx.stroke();
+    stylus.x = nx; stylus.y = ny;
+  }
+  function setupEtchKnob(el, axis){
+    let dragging = false, lastAngle = 0, rot = 0, tickAccum = 0;
+    function angleAt(cx2,cy2){
+      const r = el.getBoundingClientRect();
+      const px = r.left+r.width/2, py = r.top+r.height/2;
+      return Math.atan2(cy2-py, cx2-px) * 180/Math.PI;
+    }
+    el.addEventListener('pointerdown', (e)=>{
+      dragging = true; el.classList.add('grabbing');
+      lastAngle = angleAt(e.clientX, e.clientY);
+      el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener('pointermove', (e)=>{
+      if(!dragging) return;
+      const a = angleAt(e.clientX, e.clientY);
+      let delta = a - lastAngle;
+      if(delta > 180) delta -= 360;
+      if(delta < -180) delta += 360;
+      rot += delta; el.style.transform = 'rotate(' + rot + 'deg)';
+      const px = delta*0.55;
+      if(axis === 'x') etchLineTo(Math.max(3, Math.min(etchCanvas.width-3, stylus.x+px)), stylus.y);
+      else etchLineTo(stylus.x, Math.max(3, Math.min(etchCanvas.height-3, stylus.y+px)));
+      tickAccum += Math.abs(delta);
+      if(tickAccum > 14){ tickAccum = 0; noiseBurst({ dur:0.015, freq:2400, type:'highpass', gain:0.03 }); }
+      lastAngle = a;
+    });
+    function end(){ dragging = false; el.classList.remove('grabbing'); }
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+  }
+  setupEtchKnob(etchKnobX, 'x');
+  setupEtchKnob(etchKnobY, 'y');
+  document.getElementById('etchClear').addEventListener('click', ()=>{
+    etchFrame.classList.remove('shaking'); void etchFrame.offsetWidth; etchFrame.classList.add('shaking');
+    noiseBurst({ dur:0.35, freq:1500, type:'bandpass', q:0.6, gain:0.06 });
+    setTimeout(()=> noiseBurst({ dur:0.2, freq:900, type:'bandpass', gain:0.05 }), 120);
+    setTimeout(()=>{ paintEtchBg(); stylus = { x:etchCanvas.width/2, y:etchCanvas.height/2 }; }, 180);
+  });
+
+  /* ================= 17. Pop tube ================= */
+  const tubeBody = document.getElementById('tubeBody');
+  const tubeHandle = document.getElementById('tubeHandle');
+  const TUBE_MIN = 70, TUBE_MAX = 260, TUBE_STAGES = 7, TUBE_STEP = (TUBE_MAX-TUBE_MIN)/(TUBE_STAGES-1);
+  let tubeHeight = TUBE_MIN, tubeDragging = false, tubeStartY = 0, tubeStartH = TUBE_MIN, tubeStage = 0;
+  function applyTube(){
+    tubeBody.style.height = tubeHeight + 'px';
+    const stage = Math.round((tubeHeight-TUBE_MIN)/TUBE_STEP);
+    if(stage !== tubeStage){
+      tubeStage = stage;
+      noiseBurst({ dur:0.03, freq:900+stage*80, type:'bandpass', q:2, gain:0.07 });
+      beep(260+stage*30, 0.05, 'square', 0.05);
+      tubeHandle.animate([{ transform:'scaleX(1)' }, { transform:'scaleX(1.15)' }, { transform:'scaleX(1)' }], { duration:120, easing:'ease-out' });
+    }
+  }
+  tubeBody.style.height = tubeHeight + 'px';
+  tubeHandle.addEventListener('pointerdown', (e)=>{
+    tubeDragging = true; tubeHandle.classList.add('grabbing');
+    tubeStartY = e.clientY; tubeStartH = tubeHeight;
+    tubeHandle.setPointerCapture(e.pointerId);
+  });
+  tubeHandle.addEventListener('pointermove', (e)=>{
+    if(!tubeDragging) return;
+    tubeHeight = Math.max(TUBE_MIN, Math.min(TUBE_MAX, tubeStartH + (e.clientY - tubeStartY)));
+    applyTube();
+  });
+  function tubeEnd(){ tubeDragging = false; tubeHandle.classList.remove('grabbing'); }
+  tubeHandle.addEventListener('pointerup', tubeEnd);
+  tubeHandle.addEventListener('pointercancel', tubeEnd);
+
+  /* ================= wire up resize-on-show ================= */
+  onShow[5] = sizeScratch;   // scratch card panel index
+  onShow[6] = sizeSand;      // sand tray panel index
+  onShow[11] = sizeBeads;    // bead slider panel index
+  onShow[12] = sizeField;    // pachinko panel index
+  onShow[15] = sizeEtch;     // etch pad panel index
+
+  window.addEventListener('resize', ()=>{ sizeScratch(); sizeSand(); sizeBeads(); sizeField(); sizeEtch(); });
+
+  showPanel(0);
+})();
+</script>
+</body>
+</html>
