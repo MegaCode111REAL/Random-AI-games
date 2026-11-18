@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MARKET//MAYHEM</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+:root{--bg:#080b11;--panel:#101722;--panel2:#151f2c;--border:#263344;--text:#e8eef7;--muted:#8492a6;--green:#49e0a1;--red:#ff647c;--blue:#69aaff;--yellow:#ffd36a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh}
+button{font:inherit;cursor:pointer}
+header{height:76px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid var(--border);background:#0b1019;position:sticky;top:0;z-index:10}
+.logo{font-size:19px;font-weight:700;letter-spacing:1.5px}.logo span{color:var(--green)}
+.header-right{display:flex;gap:18px;color:var(--muted);font:12px 'DM Mono',monospace}
+#dayCounter{color:var(--blue)}
+main{max-width:1450px;margin:auto;padding:24px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:17px 19px;min-width:0}
+.stat-label{font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:9px}
+.stat-value{font:500 clamp(18px,2vw,25px) 'DM Mono',monospace;overflow-wrap:anywhere}
+.stat-sub{color:var(--muted);font-size:11px;margin-top:6px}
+.green{color:var(--green)}.red{color:var(--red)}.blue{color:var(--blue)}.yellow{color:var(--yellow)}
+.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,.9fr);gap:18px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:18px}
+.panel-head{padding:17px 19px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.panel-title{font-size:13px;font-weight:700;letter-spacing:1px}.panel-content{padding:17px 19px}
+.stock-list{display:flex;flex-direction:column;gap:9px}
+.stock{border:1px solid var(--border);background:var(--panel2);border-radius:9px;padding:13px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;cursor:pointer;transition:.15s}
+.stock:hover{border-color:#526982}.stock.selected{border-color:var(--blue);background:#172638}
+.stock-name{font-weight:700;font-size:14px}.stock-symbol{color:var(--muted);font:11px 'DM Mono',monospace;margin-top:4px}
+.stock-right{text-align:right}.stock-price{font:14px 'DM Mono',monospace}.stock-change{font:11px 'DM Mono',monospace;margin-top:5px}
+.detail-name{font-size:23px;font-weight:700}.detail-symbol{font:12px 'DM Mono',monospace;color:var(--muted);margin-top:3px}
+.detail-price{font:29px 'DM Mono',monospace;margin-top:17px}.detail-change{font-size:12px;margin-top:6px}
+.trade-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.btn{border:1px solid var(--border);background:#1b2938;color:var(--text);border-radius:7px;padding:10px 8px;font-size:12px;font-weight:600;transition:.15s}
+.btn:hover{filter:brightness(1.25)}.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.buy{background:#123a30;border-color:#236b54;color:var(--green)}
+.btn.sell{background:#3b1c29;border-color:#793348;color:var(--red)}
+.btn.primary{background:#183b62;border-color:#37699e;color:#a9d0ff}
+.btn.small{padding:7px 10px}
+.section-label{font-size:10px;letter-spacing:1px;color:var(--muted);margin:19px 0 9px;text-transform:uppercase}
+.holding{padding:12px 0;border-bottom:1px solid var(--border)}.holding:last-child{border-bottom:0}
+.holding-top{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.holding-bottom{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font:11px 'DM Mono',monospace;margin-top:6px}
+.empty{color:var(--muted);font-size:12px;padding:12px 0}
+.upgrade{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)}
+.upgrade:last-child{border-bottom:0}.upgrade-name{font-weight:600;font-size:13px}
+.upgrade-desc{font-size:11px;color:var(--muted);margin-top:4px}
+.upgrade-level{font:10px 'DM Mono',monospace;color:var(--blue);margin-top:5px}
+.upgrade-buy{text-align:right;flex-shrink:0}.upgrade-cost{font:11px 'DM Mono',monospace;color:var(--yellow);margin-bottom:6px}
+.log{max-height:250px;overflow-y:auto}.log-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #202c3a;font-size:11px;line-height:1.5}
+.log-item:last-child{border-bottom:0}.log-day{color:var(--muted);font:11px 'DM Mono',monospace;white-space:nowrap}
+.log-message{color:#c5d0df}.speed-controls{display:flex;gap:5px}
+.speed-btn{padding:6px 9px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);border-radius:5px;font:11px 'DM Mono',monospace}
+.speed-btn.active{color:var(--green);border-color:var(--green)}
+.footer{text-align:center;color:#596779;font-size:10px;padding:18px;letter-spacing:1px}
+#toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#1c2b3b;border:1px solid #40546b;border-radius:8px;padding:12px 18px;font-size:12px;z-index:50;transition:.2s;box-shadow:0 8px 30px #0008}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* LIVE STOCK GRAPH */
+.chart-wrap{margin-top:20px;border:1px solid #26394b;border-radius:10px;background:linear-gradient(180deg,#0c1721,#0a111a);overflow:hidden;position:relative}
+.chart-top{display:flex;justify-content:space-between;align-items:center;padding:12px 13px 0}
+.chart-caption{font:10px 'DM Mono',monospace;letter-spacing:1px;color:var(--muted)}
+.chart-live{font:10px 'DM Mono',monospace;color:var(--green);display:flex;align-items:center;gap:6px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 9px var(--green);animation:pulse 1.5s infinite}
+@keyframes pulse{50%{opacity:.35;box-shadow:0 0 2px var(--green)}}
+#stockChart{width:100%;height:220px;display:block}
+.chart-bottom{display:flex;justify-content:space-between;padding:0 13px 11px;color:#65768a;font:10px 'DM Mono',monospace}
+.chart-tooltip{position:absolute;right:12px;top:35px;font:11px 'DM Mono',monospace;color:#dce8f7;pointer-events:none}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){header{padding:0 14px}main{padding:13px}.stats{gap:8px}.stat{padding:13px}.header-right{gap:8px;font-size:10px}.trade-buttons{grid-template-columns:repeat(2,1fr)}#stockChart{height:190px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">MARKET<span>//</span>MAYHEM</div>
+  <div class="header-right"><span id="dayCounter">DAY 1</span><span>·</span><span>MARKET OPEN</span></div>
+</header>
+
+<main>
+<section class="stats">
+  <div class="stat"><div class="stat-label">Available cash</div><div class="stat-value green" id="cashValue">$200.00</div><div class="stat-sub">Money available to trade</div></div>
+  <div class="stat"><div class="stat-label">Investments</div><div class="stat-value blue" id="investmentValue">$0.00</div><div class="stat-sub">Current value of your shares</div></div>
+  <div class="stat"><div class="stat-label">Total net worth</div><div class="stat-value" id="netWorth">$200.00</div><div class="stat-sub">Cash + investments</div></div>
+  <div class="stat"><div class="stat-label">Unrealised profit / loss</div><div class="stat-value" id="unrealisedValue">$0.00</div><div class="stat-sub">Profit or loss on unsold shares</div></div>
+</section>
+
+<div class="layout">
+<div>
+  <section class="panel">
+    <div class="panel-head"><div class="panel-title">STOCK EXCHANGE</div>
+      <div class="speed-controls">
+        <button class="speed-btn active" data-speed="1">1×</button>
+        <button class="speed-btn" data-speed="2">2×</button>
+        <button class="speed-btn" data-speed="5">5×</button>
+        <button class="speed-btn" data-speed="10">10×</button>
+      </div>
+    </div>
+    <div class="panel-content"><div class="stock-list" id="stockList"></div></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><div class="panel-title">YOUR PORTFOLIO</div><span id="holdingCount" class="stock-symbol">0 POSITIONS</span></div>
+    <div class="panel-content" id="portfolio"></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><div class="panel-title">MARKET ACTIVITY</div><span class="stock-symbol" id="eventCount">0 EVENTS</span></div>
+    <div class="panel-content log" id="eventLog"></div>
+  </section>
+</div>
+
+<div>
+  <section class="panel">
+    <div class="panel-head"><div class="panel-title">TRADE</div><span class="stock-symbol" id="selectedSymbol">NOVA</span></div>
+    <div class="panel-content" id="tradePanel"></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><div class="panel-title">UPGRADES</div><span class="stock-symbol">REPEATABLE</span></div>
+    <div class="panel-content" id="upgrades"></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><div class="panel-title">GAME CONTROLS</div></div>
+    <div class="panel-content">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn primary" onclick="saveGame(true)">SAVE GAME</button>
+        <button class="btn" onclick="resetGame()">RESET GAME</button>
+      </div>
+      <div class="upgrade-desc" style="margin-top:12px">Your game saves automatically in this browser.</div>
+    </div>
+  </section>
+</div>
+</div>
+</main>
+<div class="footer">MARKET//MAYHEM — THE MARKET NEVER SLEEPS</div>
+<div id="toast"></div>
+
+<script>
+class Big{
+  constructor(m=0,e=0){this.m=Number(m);this.e=Number(e);this.normalize()}
+  normalize(){
+    if(!Number.isFinite(this.m)||this.m===0){this.m=0;this.e=0;return this}
+    const s=Math.sign(this.m);let v=Math.abs(this.m);
+    while(v>=10){v/=10;this.e++}
+    while(v<1){v*=10;this.e--}
+    this.m=s*v;return this
+  }
+  static from(v){
+    if(v instanceof Big)return new Big(v.m,v.e);
+    if(v&&typeof v==="object"&&"m"in v&&"e"in v)return new Big(v.m,v.e);
+    if(typeof v==="string"){
+      const a=v.trim().match(/^([+-]?\d*\.?\d+)(?:e([+-]?\d+))?$/i);
+      return a?new Big(Number(a[1]),Number(a[2]||0)):new Big(0)
+    }
+    const n=Number(v);if(!Number.isFinite(n)||n===0)return new Big(0);
+    const p=n.toExponential(14).split("e");return new Big(Number(p[0]),Number(p[1]))
+  }
+  toJSON(){return {m:this.m,e:this.e}}
+  add(v){v=Big.from(v);if(!this.m)return v;if(!v.m)return Big.from(this);let e=Math.max(this.e,v.e);return new Big(this.m*10**(this.e-e)+v.m*10**(v.e-e),e)}
+  sub(v){v=Big.from(v);return this.add(new Big(-v.m,v.e))}
+  mul(v){v=Big.from(v);return new Big(this.m*v.m,this.e+v.e)}
+  div(v){v=Big.from(v);return v.m?new Big(this.m/v.m,this.e-v.e):new Big(0)}
+  compare(v){
+    v=Big.from(v);if(this.m<0&&v.m>=0)return -1;if(this.m>=0&&v.m<0)return 1;
+    if(!this.m&&!v.m)return 0;if(!this.m)return v.m>0?-1:1;if(!v.m)return this.m>0?1:-1;
+    const s=this.m<0?-1:1;if(this.e!==v.e)return (this.e>v.e?1:-1)*s;
+    return this.m===v.m?0:this.m>v.m?1:-1
+  }
+  abs(){return new Big(Math.abs(this.m),this.e)}
+  min(v){v=Big.from(v);return this.compare(v)<=0?Big.from(this):v}
+  max(v){v=Big.from(v);return this.compare(v)>=0?Big.from(this):v}
+  isZero(){return this.m===0}
+}
+const SUFFIXES=["","k","m","b","t","Qa","Qi","Sx","Sp","Oc","No","Dc","Ud","Dd","Td","Qad","Qid","Sxd","Spd","Ocd","Nod","Vg","Uvg","Dvg","Tvg","Qavg","Qivg","Sxvg","Spvg","Ocvg","Novg","Tg","Utg","Dtg","Ttg","Qatg","Qitg","Sxtg","Sptg","Octg","Notg","Qag","Uqag","Dqag","Tqag"];
+function fmt(v,d=2){
+  const b=Big.from(v);if(!b.m)return "0";const sign=b.m<0?"-":"",a=b.abs();
+  if(a.e<3){const n=a.m*10**a.e;if(n>=.01)return sign+n.toLocaleString("en-US",{maximumFractionDigits:d,minimumFractionDigits:d})}
+  const g=Math.floor(a.e/3),s=SUFFIXES[g];
+  return s!==undefined?sign+(a.m*10**(a.e-g*3)).toFixed(d)+s:sign+a.m.toFixed(d)+"e"+a.e
+}
+function money(v){return "$"+fmt(v)}
+function signedMoney(v){const b=Big.from(v);return (b.m>0?"+":b.m<0?"−":"")+"$"+fmt(b.abs())}
+function random(a,b){return a+Math.random()*(b-a)}
+function normalRandom(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+
+const STARTING_CASH=Big.from(200);
+const DEFAULT_COMPANIES=[
+{id:"nova",name:"Nova Technologies",symbol:"NOVA",price:18.50,volatility:.012},
+{id:"orbit",name:"Orbit Dynamics",symbol:"ORBT",price:42.25,volatility:.016},
+{id:"pixel",name:"Pixel Industries",symbol:"PIXL",price:7.80,volatility:.022},
+{id:"titan",name:"Titan Energy",symbol:"TITN",price:85.40,volatility:.011},
+{id:"quantum",name:"Quantum Systems",symbol:"QNTM",price:126.75,volatility:.019},
+{id:"flux",name:"Flux Robotics",symbol:"FLUX",price:3.25,volatility:.028},
+{id:"vertex",name:"Vertex Capital",symbol:"VRTX",price:250,volatility:.014},
+{id:"aster",name:"Aster Biotech",symbol:"ASTR",price:12.60,volatility:.025}
+];
+let cash=Big.from(STARTING_CASH),day=1,selected="nova",speed=1;
+let companies=[],holdings={},upgrades={growth:0,chaos:0,research:0},events=[],totalEvents=0;
+function createCompanies(){return DEFAULT_COMPANIES.map(c=>({...c,price:Big.from(c.price),change:0,history:[Big.from(c.price)]}))}
+companies=createCompanies();
+function getCompany(id){return companies.find(c=>c.id===id)}
+function getLots(id){return holdings[id]||[]}
+function getShares(id){return getLots(id).reduce((s,l)=>s.add(l.qty),Big.from(0))}
+function getInvestmentValue(id){const c=getCompany(id);return c?getShares(id).mul(c.price):Big.from(0)}
+function getTotalInvestments(){return companies.reduce((s,c)=>s.add(getInvestmentValue(c.id)),Big.from(0))}
+function getTotalCost(){return companies.reduce((s,c)=>s.add(getLots(c.id).reduce((a,l)=>a.add(l.qty.mul(l.buyPrice)),Big.from(0))),Big.from(0))}
+function getUnrealisedProfit(){return getTotalInvestments().sub(getTotalCost())}
+
+function buyShares(id,amount){
+ const c=getCompany(id);if(!c)return;
+ const spend=(amount==="all"?Big.from(cash):Big.from(amount)).min(cash);
+ if(spend.compare(0)<=0){toast("You don't have enough cash.");return}
+ const qty=spend.div(c.price);if(qty.isZero())return;
+ cash=cash.sub(spend);if(!holdings[id])holdings[id]=[];
+ holdings[id].push({qty,buyPrice:Big.from(c.price),day});
+ addEvent("BUY","Bought "+fmt(qty,4)+" "+c.symbol+" shares for "+money(spend)+".","blue");
+ toast("Bought "+fmt(qty,4)+" shares of "+c.symbol);updateUI();saveGame()
+}
+function sellShares(id,fraction){
+ const c=getCompany(id),lots=getLots(id);if(!c||!lots.length){toast("You don't own any shares.");return}
+ const target=getShares(id).mul(fraction);let remaining=Big.from(target),proceeds=Big.from(0),cost=Big.from(0);
+ while(remaining.compare(0)>0&&lots.length){
+  const lot=lots[0],qty=lot.qty.min(remaining);
+  proceeds=proceeds.add(qty.mul(c.price));cost=cost.add(qty.mul(lot.buyPrice));
+  lot.qty=lot.qty.sub(qty);remaining=remaining.sub(qty);
+  if(lot.qty.compare(0)<=0)lots.shift()
+ }
+ cash=cash.add(proceeds);if(!lots.length)delete holdings[id];
+ const profit=proceeds.sub(cost);
+ addEvent("SELL","Sold "+fmt(target,4)+" "+c.symbol+" for "+money(proceeds)+" ("+signedMoney(profit)+").",profit.compare(0)>=0?"green":"red");
+ toast("Sold for "+money(proceeds)+" · "+signedMoney(profit));updateUI();saveGame()
+}
+
+const UPGRADE_DATA={
+ growth:{name:"Growth Engine",description:"Slightly increases average daily growth.",base:Big.from(150)},
+ chaos:{name:"Volatility Reactor",description:"Makes price movements more extreme.",base:Big.from(100)},
+ research:{name:"Market Research",description:"Reduces unpredictable daily fluctuations.",base:Big.from(250)}
+};
+function upgradeCost(id){return UPGRADE_DATA[id].base.mul(Math.pow(1.65,upgrades[id]))}
+function buyUpgrade(id){
+ const cost=upgradeCost(id);if(cash.compare(cost)<0){toast("Not enough cash.");return}
+ cash=cash.sub(cost);upgrades[id]++;
+ addEvent("UPGRADE","Purchased "+UPGRADE_DATA[id].name+" level "+upgrades[id]+".","yellow");
+ updateUI();saveGame();toast("Upgrade purchased!")
+}
+
+const MARKET_EVENTS=[
+{name:"BREAKTHROUGH",message:"A major technology breakthrough boosts investor confidence.",effect:.09,positive:true},
+{name:"MARKET PANIC",message:"Investors panic as uncertainty spreads across the market.",effect:-.10,positive:false},
+{name:"RECORD PROFITS",message:"Strong earnings lift market sentiment.",effect:.075,positive:true},
+{name:"REGULATORY CRACKDOWN",message:"New regulations unsettle investors.",effect:-.08,positive:false},
+{name:"INVESTOR FRENZY",message:"Retail investors rush into the market.",effect:.12,positive:true},
+{name:"GLOBAL RECESSION",message:"Economic fears trigger a broad sell-off.",effect:-.13,positive:false},
+{name:"NEW CONTRACT",message:"A major company wins a lucrative contract.",effect:.15,positive:true},
+{name:"SUPPLY SHORTAGE",message:"Supply chain problems hit company operations.",effect:-.09,positive:false}
+];
+function simulateDay(){
+ day++;
+ const growthBonus=Math.min(upgrades.growth*.00015,.004);
+ const volatilityBonus=Math.min(upgrades.chaos*.002,.08);
+ const researchReduction=Math.min(upgrades.research*.025,.65);
+ companies.forEach(c=>{
+  const volatility=c.volatility*(1+volatilityBonus)*(1-researchReduction);
+  const movement=Math.max(-.35,Math.min(.35,.00005+growthBonus+normalRandom()*volatility));
+  c.price=c.price.mul(Math.max(.05,1+movement)).max(Big.from(.00000001));
+  c.change=movement*100;c.history.push(Big.from(c.price));
+  if(c.history.length>100)c.history.shift()
+ });
+ if(Math.random()<.055)triggerMarketEvent();
+ updateUI()
+}
+function triggerMarketEvent(){
+ const e=MARKET_EVENTS[Math.floor(Math.random()*MARKET_EVENTS.length)];
+ const c=companies[Math.floor(Math.random()*companies.length)];
+ const effect=e.effect*random(.7,1.3);
+ c.price=c.price.mul(1+effect);c.change+=effect*100;totalEvents++;
+ c.history[c.history.length-1]=Big.from(c.price);
+ addEvent(e.name,c.symbol+": "+e.message,e.positive?"green":"red")
+}
+function addEvent(type,message,color=""){
+ events.unshift({day,type,message,color});if(events.length>100)events.pop()
+}
+
+/* GRAPH DRAWING */
+let chartAnimation=0;
+function drawChart(){
+ const canvas=document.getElementById("stockChart");
+ if(!canvas)return;
+ const rect=canvas.getBoundingClientRect();
+ if(!rect.width||!rect.height)return;
+ const dpr=Math.min(window.devicePixelRatio||1,2);
+ const w=Math.round(rect.width*dpr),h=Math.round(rect.height*dpr);
+ if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
+ const ctx=canvas.getContext("2d");
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ const width=rect.width,height=rect.height;
+ ctx.clearRect(0,0,width,height);
+ const c=getCompany(selected);if(!c)return;
+ const values=c.history.slice(-70).map(p=>p.e+Math.log10(Math.abs(p.m||1)));
+ if(values.length<2)values.push(values[0]);
+ let min=Math.min(...values),max=Math.max(...values);
+ if(max-min<.0001){min-=.01;max+=.01}
+ const pad={l:12,r:13,t:18,b:17};
+ const cw=width-pad.l-pad.r,ch=height-pad.t-pad.b;
+ const y=value=>pad.t+(1-(value-min)/(max-min))*ch;
+ const x=i=>pad.l+(i/(values.length-1))*cw;
+
+ // Grid
+ ctx.lineWidth=1;ctx.strokeStyle="rgba(130,160,190,.12)";
+ for(let i=0;i<5;i++){
+  const yy=pad.t+i*ch/4;
+  ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(width-pad.r,yy);ctx.stroke()
+ }
+ for(let i=0;i<7;i++){
+  const xx=pad.l+i*cw/6;
+  ctx.beginPath();ctx.moveTo(xx,pad.t);ctx.lineTo(xx,height-pad.b);ctx.stroke()
+ }
+
+ const rising=values[values.length-1]>=values[0];
+ const color=rising?"#49e0a1":"#ff647c";
+ const points=values.map((v,i)=>[x(i),y(v)]);
+
+ // Gradient fill
+ const fill=ctx.createLinearGradient(0,pad.t,0,height-pad.b);
+ fill.addColorStop(0,rising?"rgba(73,224,161,.27)":"rgba(255,100,124,.25)");
+ fill.addColorStop(1,"rgba(73,224,161,0)");
+ ctx.beginPath();ctx.moveTo(points[0][0],height-pad.b);
+ points.forEach(p=>ctx.lineTo(p[0],p[1]));
+ ctx.lineTo(points[points.length-1][0],height-pad.b);ctx.closePath();
+ ctx.fillStyle=fill;ctx.fill();
+
+ // Main glowing line
+ ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+ ctx.strokeStyle=color;ctx.lineWidth=2.3;ctx.shadowColor=color;ctx.shadowBlur=12;
+ ctx.lineJoin="round";ctx.lineCap="round";ctx.stroke();ctx.shadowBlur=0;
+
+ // Bright endpoint
+ const last=points[points.length-1];
+ ctx.beginPath();ctx.arc(last[0],last[1],3.5,0,Math.PI*2);
+ ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=13;ctx.fill();ctx.shadowBlur=0;
+
+ // Subtle moving shimmer along the line
+ const t=(performance.now()%2400)/2400;
+ const shimmerX=pad.l+t*cw;
+ ctx.beginPath();ctx.moveTo(shimmerX,pad.t);ctx.lineTo(shimmerX,height-pad.b);
+ ctx.strokeStyle="rgba(255,255,255,.035)";ctx.lineWidth=1;ctx.stroke();
+
+ const tooltip=document.getElementById("chartPrice");
+ if(tooltip)tooltip.textContent=money(c.price);
+ chartAnimation=requestAnimationFrame(drawChart)
+}
+
+function renderStats(){
+ const inv=getTotalInvestments(),profit=getUnrealisedProfit();
+ document.getElementById("cashValue").textContent=money(cash);
+ document.getElementById("investmentValue").textContent=money(inv);
+ document.getElementById("netWorth").textContent=money(cash.add(inv));
+ const p=document.getElementById("unrealisedValue");
+ p.textContent=signedMoney(profit);p.className="stat-value "+(profit.compare(0)>=0?"green":"red");
+ document.getElementById("dayCounter").textContent="DAY "+day;
+ document.getElementById("holdingCount").textContent=companies.filter(c=>getShares(c.id).compare(0)>0).length+" POSITIONS"
+}
+function renderStocks(){
+ document.getElementById("stockList").innerHTML=companies.map(c=>`
+ <div class="stock ${selected===c.id?"selected":""}" onclick="selectStock('${c.id}')">
+  <div><div class="stock-name">${c.name}</div><div class="stock-symbol">${c.symbol}</div></div>
+  <div class="stock-right"><div class="stock-price">${money(c.price)}</div>
+  <div class="stock-change ${c.change>=0?"green":"red"}">${c.change>=0?"+":""}${c.change.toFixed(2)}%</div></div>
+ </div>`).join("")
+}
+function selectStock(id){selected=id;updateUI()}
+function renderTrade(){
+ const c=getCompany(selected);if(!c)return;
+ const shares=getShares(c.id),value=getInvestmentValue(c.id),lots=getLots(c.id);
+ const cost=lots.reduce((s,l)=>s.add(l.qty.mul(l.buyPrice)),Big.from(0));
+ const profit=value.sub(cost);
+ const returnPct=cost.compare(0)>0?value.div(cost).mul(100).sub(100):Big.from(0);
+ document.getElementById("selectedSymbol").textContent=c.symbol;
+ document.getElementById("tradePanel").innerHTML=`
+ <div class="detail-name">${c.name}</div>
+ <div class="detail-symbol">${c.symbol} · MARKET PRICE</div>
+ <div class="detail-price">${money(c.price)}</div>
+ <div class="detail-change ${c.change>=0?"green":"red"}">${c.change>=0?"+":""}${c.change.toFixed(2)}% TODAY</div>
+
+ <div class="chart-wrap">
+  <div class="chart-top"><span class="chart-caption">LIVE PRICE HISTORY</span><span class="chart-live"><i class="live-dot"></i> LIVE</span></div>
+  <div class="chart-tooltip" id="chartPrice">${money(c.price)}</div>
+  <canvas id="stockChart" aria-label="Live stock price history graph"></canvas>
+  <div class="chart-bottom"><span>OLDER</span><span>DAY ${Math.max(1,day-c.history.length+1)}</span><span>NOW</span></div>
+ </div>
+
+ <div class="section-label">BUY SHARES</div>
+ <div class="trade-buttons">
+  <button class="btn buy" onclick="buyShares('${c.id}',10)">BUY $10</button>
+  <button class="btn buy" onclick="buyShares('${c.id}',25)">BUY $25</button>
+  <button class="btn buy" onclick="buyShares('${c.id}',50)">BUY $50</button>
+  <button class="btn buy" onclick="buyShares('${c.id}','all')">BUY MAX</button>
+ </div>
+ <div class="section-label">SELL SHARES</div>
+ <div class="trade-buttons">
+  <button class="btn sell" onclick="sellShares('${c.id}',.25)" ${shares.isZero()?"disabled":""}>SELL 25%</button>
+  <button class="btn sell" onclick="sellShares('${c.id}',.5)" ${shares.isZero()?"disabled":""}>SELL 50%</button>
+  <button class="btn sell" onclick="sellShares('${c.id}',1)" ${shares.isZero()?"disabled":""}>SELL ALL</button>
+ </div>
+ <div class="section-label">YOUR POSITION</div>
+ <div class="holding">
+  <div class="holding-top"><span>Shares owned</span><strong>${fmt(shares,5)}</strong></div>
+  <div class="holding-bottom"><span>Current value</span><span>${money(value)}</span></div>
+  <div class="holding-bottom"><span>Original purchase cost</span><span>${money(cost)}</span></div>
+  <div class="holding-bottom"><span>Unrealised profit / loss</span><span class="${profit.compare(0)>=0?"green":"red"}">${signedMoney(profit)}</span></div>
+  <div class="holding-bottom"><span>Return</span><span class="${returnPct.compare(0)>=0?"green":"red"}">${fmt(returnPct,2)}%</span></div>
+ </div>`;
+}
+function renderPortfolio(){
+ const owned=companies.filter(c=>getShares(c.id).compare(0)>0);
+ document.getElementById("portfolio").innerHTML=!owned.length?'<div class="empty">You have no investments yet. Buy some shares to get started.</div>':owned.map(c=>{
+  const shares=getShares(c.id),value=getInvestmentValue(c.id);
+  const cost=getLots(c.id).reduce((s,l)=>s.add(l.qty.mul(l.buyPrice)),Big.from(0));
+  const profit=value.sub(cost);
+  return `<div class="holding">
+   <div class="holding-top"><strong>${c.name} (${c.symbol})</strong><strong>${money(value)}</strong></div>
+   <div class="holding-bottom"><span>${fmt(shares,5)} shares</span><span class="${profit.compare(0)>=0?"green":"red"}">${signedMoney(profit)}</span></div>
+   <div class="holding-bottom"><span>Purchase cost: ${money(cost)}</span><span>Price: ${money(c.price)}</span></div>
+   <div style="margin-top:9px"><button class="btn small sell" onclick="sellShares('${c.id}',1)">SELL ALL</button> <button class="btn small" onclick="selectStock('${c.id}')">VIEW STOCK</button></div>
+  </div>`
+ }).join("")
+}
+function renderUpgrades(){
+ document.getElementById("upgrades").innerHTML=Object.keys(UPGRADE_DATA).map(id=>{
+  const d=UPGRADE_DATA[id],cost=upgradeCost(id),ok=cash.compare(cost)>=0;
+  return `<div class="upgrade"><div><div class="upgrade-name">${d.name}</div><div class="upgrade-desc">${d.description}</div><div class="upgrade-level">LEVEL ${upgrades[id]}</div></div>
+  <div class="upgrade-buy"><div class="upgrade-cost">${money(cost)}</div><button class="btn small primary" onclick="buyUpgrade('${id}')" ${ok?"":"disabled"}>UPGRADE</button></div></div>`
+ }).join("")
+}
+function renderEvents(){
+ document.getElementById("eventCount").textContent=totalEvents+" EVENTS";
+ document.getElementById("eventLog").innerHTML=events.length?events.slice(0,40).map(e=>`<div class="log-item"><div class="log-day">D${e.day}</div><div><strong class="${e.color}">${e.type}</strong><div class="log-message">${e.message}</div></div></div>`).join(""):'<div class="empty">No market activity yet.</div>'
+}
+function updateUI(){
+ renderStats();renderStocks();renderTrade();renderPortfolio();renderUpgrades();renderEvents()
+}
+
+document.querySelectorAll(".speed-btn").forEach(b=>b.addEventListener("click",()=>{
+ speed=Number(b.dataset.speed);
+ document.querySelectorAll(".speed-btn").forEach(x=>x.classList.toggle("active",x===b));
+ restartTimer()
+}));
+let timer;
+function restartTimer(){if(timer)clearInterval(timer);timer=setInterval(simulateDay,1000/speed)}
+
+const SAVE_KEY="marketMayhemSave_v2";
+function saveGame(show=false){
+ try{
+  localStorage.setItem(SAVE_KEY,JSON.stringify({cash,day,selected,companies,holdings,upgrades,events,totalEvents}));
+  if(show)toast("Game saved!")
+ }catch(e){console.error(e);if(show)toast("Could not save game.")}
+}
+function loadGame(){
+ try{
+  const raw=localStorage.getItem(SAVE_KEY);if(!raw)return false;
+  const d=JSON.parse(raw);cash=Big.from(d.cash);day=Number(d.day)||1;selected=d.selected||"nova";
+  upgrades={...upgrades,...d.upgrades};events=d.events||[];totalEvents=d.totalEvents||0;
+  companies=d.companies.map(s=>({...s,price:Big.from(s.price),history:(s.history||[]).map(Big.from)}));
+  holdings={};for(const id in d.holdings)holdings[id]=d.holdings[id].map(l=>({qty:Big.from(l.qty),buyPrice:Big.from(l.buyPrice),day:l.day||1}));
+  if(!getCompany(selected))selected=companies[0].id;return true
+ }catch(e){console.error("Load failed",e);return false}
+}
+function resetGame(){
+ if(!confirm("Reset your entire game? This deletes your saved progress."))return;
+ localStorage.removeItem(SAVE_KEY);cash=Big.from(STARTING_CASH);day=1;selected="nova";
+ companies=createCompanies();holdings={};upgrades={growth:0,chaos:0,research:0};events=[];totalEvents=0;
+ addEvent("NEW GAME","Welcome to the stock market. You have $200 to invest.","blue");
+ updateUI();saveGame();toast("New game started!")
+}
+let toastTimer;
+function toast(message){
+ const el=document.getElementById("toast");el.textContent=message;el.classList.add("show");
+ clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2600)
+}
+if(!loadGame())addEvent("NEW GAME","Welcome to the stock market. You have $200 to invest.","blue");
+updateUI();restartTimer();
+requestAnimationFrame(drawChart);
+window.addEventListener("resize",()=>{});
+setInterval(()=>saveGame(),5000);
+window.addEventListener("beforeunload",()=>saveGame());
+</script>
+</body>
+</html>
