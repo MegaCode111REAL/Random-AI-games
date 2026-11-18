@@ -1,0 +1,398 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUCKY//777</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg:#10091b;
+  --panel:#21132e;
+  --gold:#ffd76b;
+  --gold2:#ffad32;
+  --pink:#ff4e9b;
+  --purple:#a96bff;
+  --text:#fff4e5;
+  --muted:#b9a4ca;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;
+  background:
+    radial-gradient(ellipse at 50% 15%,#48215d 0%,transparent 50%),
+    radial-gradient(ellipse at 50% 100%,#30152d 0%,transparent 55%),
+    var(--bg);
+  color:var(--text);font-family:Outfit,sans-serif;
+  display:flex;justify-content:center;align-items:center;
+  padding:25px 14px;overflow-x:hidden;
+}
+body:before{
+  content:"";position:fixed;inset:0;pointer-events:none;opacity:.15;
+  background-image:radial-gradient(#ffd76b 1px,transparent 1px);
+  background-size:35px 35px;
+}
+.game{width:min(760px,100%);position:relative;z-index:1}
+header{text-align:center;margin-bottom:22px}
+.eyebrow{font:11px 'DM Mono',monospace;letter-spacing:5px;color:var(--gold);margin-bottom:7px}
+h1{font-size:clamp(35px,8vw,65px);font-weight:900;letter-spacing:-3px;margin:0;line-height:1}
+h1 span{color:var(--gold);text-shadow:0 0 25px #ffad3277}
+.subtitle{color:var(--muted);font-size:12px;letter-spacing:2px;margin-top:10px}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px}
+.stat{background:#21152dce;border:1px solid #70477d;border-radius:12px;padding:13px;text-align:center;box-shadow:0 6px 25px #0003}
+.stat-label{font:10px 'DM Mono',monospace;color:var(--muted);letter-spacing:1px}
+.stat-value{font:700 clamp(17px,4vw,24px) 'DM Mono',monospace;color:var(--gold);margin-top:6px}
+.machine{
+  background:linear-gradient(145deg,#54265e,#261534 50%,#51264d);
+  border:3px solid var(--gold2);border-radius:25px;
+  padding:19px;box-shadow:0 0 0 5px #7b3e6b,0 0 45px #ffad3240,0 20px 50px #0008;
+  position:relative;
+}
+.machine:before{
+  content:"";position:absolute;inset:7px;border:1px solid #ffd76b66;
+  border-radius:17px;pointer-events:none;
+}
+.machine-title{text-align:center;font-size:13px;letter-spacing:4px;font-weight:800;color:var(--gold);margin:0 0 16px}
+.lights{display:flex;justify-content:center;gap:12px;margin-bottom:15px}
+.light{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold);animation:blink 1s infinite alternate}
+.light:nth-child(even){animation-delay:.5s}
+@keyframes blink{to{opacity:.2;box-shadow:none}}
+.reels{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:9px;
+  padding:13px;background:#100b17;border:3px solid #d18c35;
+  border-radius:15px;box-shadow:inset 0 0 30px #000b,0 0 20px #0006;
+  position:relative;
+}
+.reel{
+  height:clamp(105px,22vw,155px);background:linear-gradient(180deg,#fff5df,#e8d4b5);
+  border:2px solid #b98c52;border-radius:9px;display:flex;
+  align-items:center;justify-content:center;overflow:hidden;
+  position:relative;box-shadow:inset 0 8px 15px #0002,inset 0 -8px 15px #0002;
+}
+.reel:before,.reel:after{
+  content:"";position:absolute;left:0;right:0;height:24%;z-index:2;pointer-events:none;
+}
+.reel:before{top:0;background:linear-gradient(#fff8,transparent)}
+.reel:after{bottom:0;background:linear-gradient(transparent,#0002)}
+.symbol{font-size:clamp(54px,12vw,85px);line-height:1;filter:drop-shadow(0 5px 2px #0002);user-select:none}
+.reel.spinning .symbol{animation:blurSpin .11s linear infinite}
+@keyframes blurSpin{0%{transform:translateY(-20px);filter:blur(3px)}100%{transform:translateY(20px);filter:blur(3px)}}
+.reel.win{box-shadow:inset 0 0 25px #ffe46a,0 0 25px #ffe46a;animation:winPulse .5s infinite alternate}
+@keyframes winPulse{to{border-color:#fff5a3}}
+.payline{
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  font:10px 'DM Mono',monospace;color:#d7b8e8;margin-top:12px;
+}
+.payline i{height:1px;background:#a66d9e;flex:1;max-width:90px}
+.result{
+  min-height:48px;display:flex;align-items:center;justify-content:center;
+  text-align:center;font-weight:800;font-size:18px;color:var(--gold);
+  letter-spacing:1px;text-shadow:0 0 15px #ffd76b66;margin-top:8px;
+}
+.result.big{font-size:27px;color:#fff1a3;animation:jackpot .5s infinite alternate}
+@keyframes jackpot{to{transform:scale(1.05);text-shadow:0 0 30px #ffd76b}}
+.controls{
+  background:#21152d;border:1px solid #70477d;border-radius:15px;
+  margin-top:18px;padding:17px;
+}
+.bet-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.control-label{font:10px 'DM Mono',monospace;letter-spacing:1px;color:var(--muted)}
+.bet-controls{display:flex;align-items:center;gap:8px}
+.bet-button{
+  background:#352044;border:1px solid #8e5c9e;color:white;
+  border-radius:7px;width:34px;height:34px;font-size:19px;
+}
+.bet-value{font:700 18px 'DM Mono',monospace;color:var(--gold);min-width:75px;text-align:center}
+.bet-presets{display:flex;gap:6px;margin-top:13px}
+.preset{flex:1;background:#352044;border:1px solid #69477a;color:#d9c4e9;border-radius:7px;padding:8px 4px;font:11px 'DM Mono',monospace}
+.preset.active{border-color:var(--gold);color:var(--gold);background:#51351f}
+.spin-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:16px}
+.spin{
+  border:0;border-radius:12px;padding:17px 12px;
+  color:#381b22;background:linear-gradient(180deg,#ffe78b,#ffad32);
+  font-size:22px;font-weight:900;letter-spacing:2px;
+  box-shadow:0 5px 0 #a95b1e,0 8px 20px #ffad3240;
+  transition:.1s;
+}
+.spin:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.spin:active{transform:translateY(3px);box-shadow:0 2px 0 #a95b1e}
+.spin:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.auto{
+  background:#382044;border:1px solid #885a9a;color:#e8d5f2;
+  border-radius:12px;padding:10px 14px;font-weight:700;font-size:12px;
+}
+.auto.active{border-color:var(--pink);color:var(--pink)}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:17px}
+.info{background:#1a1123;border:1px solid #493153;border-radius:11px;padding:13px}
+.info h3{font:10px 'DM Mono',monospace;color:var(--muted);letter-spacing:1px;margin:0 0 9px}
+.pay-row{display:flex;justify-content:space-between;font-size:12px;margin:6px 0;color:#e6d5ef}
+.pay-row strong{color:var(--gold);font-family:'DM Mono',monospace}
+.history{max-height:170px;overflow-y:auto}
+.history-item{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #392744;font-size:11px}
+.history-item:last-child{border:0}
+.history-item span:first-child{color:#c9b5d5}
+.positive{color:var(--green)}.negative{color:var(--pink)}
+.footer{text-align:center;color:#a48aad;font:10px 'DM Mono',monospace;margin-top:17px;letter-spacing:1px}
+.particles{position:fixed;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+.particle{position:absolute;font-size:20px;animation:fall 1.5s ease-out forwards}
+@keyframes fall{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(500deg);opacity:0}}
+@media(max-width:480px){.machine{padding:13px}.info-grid{grid-template-columns:1fr}.stat{padding:10px}.bet-row{align-items:flex-start}.spin-row{grid-template-columns:1fr}.auto{padding:12px}}
+</style>
+</head>
+<body>
+<div class="particles" id="particles"></div>
+<div class="game">
+<header>
+  <div class="eyebrow">THE ORIGINAL LUCKY MACHINE</div>
+  <h1>LUCKY<span>//777</span></h1>
+  <div class="subtitle">THREE REELS. ONE BIG WIN.</div>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="stat-label">YOUR CREDITS</div><div class="stat-value" id="balance">1,000</div></div>
+  <div class="stat"><div class="stat-label">TOTAL WON</div><div class="stat-value" id="totalWon">0</div></div>
+  <div class="stat"><div class="stat-label">BEST WIN</div><div class="stat-value" id="bestWin">0</div></div>
+</div>
+
+<div class="machine">
+  <div class="machine-title">✦ THE GOLDEN REELS ✦</div>
+  <div class="lights"><i class="light"></i><i class="light"></i><i class="light"></i><i class="light"></i><i class="light"></i><i class="light"></i><i class="light"></i></div>
+  <div class="reels">
+    <div class="reel" id="reel0"><div class="symbol">🍒</div></div>
+    <div class="reel" id="reel1"><div class="symbol">🍋</div></div>
+    <div class="reel" id="reel2"><div class="symbol">🍇</div></div>
+  </div>
+  <div class="payline"><i></i> PAYOUT LINE <i></i></div>
+  <div class="result" id="result">PRESS SPIN TO PLAY</div>
+</div>
+
+<div class="controls">
+  <div class="bet-row">
+    <div class="control-label">BET PER SPIN</div>
+    <div class="bet-controls">
+      <button class="bet-button" id="minus">−</button>
+      <div class="bet-value" id="betValue">10</div>
+      <button class="bet-button" id="plus">+</button>
+    </div>
+  </div>
+  <div class="bet-presets">
+    <button class="preset" data-bet="5">5</button>
+    <button class="preset active" data-bet="10">10</button>
+    <button class="preset" data-bet="25">25</button>
+    <button class="preset" data-bet="50">50</button>
+    <button class="preset" data-bet="100">100</button>
+  </div>
+  <div class="spin-row">
+    <button class="spin" id="spin">SPIN ✦</button>
+    <button class="auto" id="auto">AUTO: OFF</button>
+  </div>
+</div>
+
+<div class="info-grid">
+  <div class="info">
+    <h3>✦ PAYOUT TABLE</h3>
+    <div class="pay-row"><span>💎 💎 💎</span><strong>×50</strong></div>
+    <div class="pay-row"><span>7️⃣ 7️⃣ 7️⃣</span><strong>×100</strong></div>
+    <div class="pay-row"><span>⭐ ⭐ ⭐</span><strong>×25</strong></div>
+    <div class="pay-row"><span>🔔 🔔 🔔</span><strong>×15</strong></div>
+    <div class="pay-row"><span>🍇 🍇 🍇</span><strong>×10</strong></div>
+    <div class="pay-row"><span>🍊 🍊 🍊</span><strong>×8</strong></div>
+    <div class="pay-row"><span>🍋 🍋 🍋</span><strong>×5</strong></div>
+    <div class="pay-row"><span>🍒 🍒 🍒</span><strong>×4</strong></div>
+    <div class="pay-row"><span>Any pair</span><strong>×1.5</strong></div>
+  </div>
+  <div class="info">
+    <h3>✦ SPIN HISTORY</h3>
+    <div class="history" id="history"><div class="empty">No spins yet. Good luck!</div></div>
+  </div>
+</div>
+<div class="footer">VIRTUAL CREDITS ONLY · LUCKY//777</div>
+</div>
+
+<script>
+const SYMBOLS=[
+ {icon:"🍒",weight:28,mult:4},
+ {icon:"🍋",weight:24,mult:5},
+ {icon:"🍊",weight:19,mult:8},
+ {icon:"🍇",weight:14,mult:10},
+ {icon:"🔔",weight:8,mult:15},
+ {icon:"⭐",weight:5,mult:25},
+ {icon:"💎",weight:1.5,mult:50},
+ {icon:"7️⃣",weight:.5,mult:100}
+];
+
+let balance=1000;
+let bet=10;
+let totalWon=0;
+let bestWin=0;
+let spinning=false;
+let auto=false;
+let autoTimer=null;
+let history=[];
+
+const $=id=>document.getElementById(id);
+const reels=[0,1,2].map(i=>$("reel"+i));
+
+function format(n){return Math.floor(n).toLocaleString("en-US")}
+function chooseSymbol(){
+ let total=SYMBOLS.reduce((s,x)=>s+x.weight,0);
+ let r=Math.random()*total;
+ for(const s of SYMBOLS){r-=s.weight;if(r<=0)return s}
+ return SYMBOLS[0];
+}
+function setReel(i,symbol){
+ reels[i].querySelector(".symbol").textContent=symbol.icon;
+}
+function setBalance(){
+ $("balance").textContent=format(balance);
+ $("totalWon").textContent=format(totalWon);
+ $("bestWin").textContent=format(bestWin);
+ $("betValue").textContent=format(bet);
+ $("spin").disabled=spinning||balance<bet;
+}
+function setBet(value){
+ bet=Math.max(1,Math.min(100000,Math.floor(value)));
+ document.querySelectorAll(".preset").forEach(b=>b.classList.toggle("active",Number(b.dataset.bet)===bet));
+ setBalance();
+}
+$("minus").onclick=()=>setBet(Math.max(1,bet-5));
+$("plus").onclick=()=>setBet(bet+5);
+document.querySelectorAll(".preset").forEach(b=>b.onclick=()=>setBet(Number(b.dataset.bet)));
+
+function payout(result,stake){
+ const [a,b,c]=result;
+ if(a.icon===b.icon&&b.icon===c.icon)return stake*a.mult;
+ if(a.icon===b.icon||a.icon===c.icon||b.icon===c.icon)return stake*1.5;
+ return 0;
+}
+
+function showResult(result,win){
+ const el=$("result");
+ el.classList.remove("big");
+ if(win>=bet*20){
+  el.textContent="✦ JACKPOT! "+format(win)+" CREDITS! ✦";
+  el.classList.add("big");
+  confetti();
+ }else if(win>0){
+  el.textContent="YOU WON "+format(win)+" CREDITS!";
+ }else if(result[0].icon===result[1].icon||result[1].icon===result[2].icon){
+  el.textContent="SO CLOSE!";
+ }else{
+  el.textContent="NO WIN — TRY AGAIN";
+ }
+}
+
+function addHistory(result,win,stake){
+ history.unshift({result:result.map(x=>x.icon).join(" "),win,stake});
+ history=history.slice(0,30);
+ $("history").innerHTML=history.map(h=>`
+  <div class="history-item">
+   <span>${h.result}</span>
+   <strong class="${h.win>0?"positive":"negative"}">${h.win>0?"+"+format(h.win):"-"+format(h.stake)}</strong>
+  </div>`).join("");
+}
+
+function confetti(){
+ const container=$("particles");
+ const icons=["✨","⭐","💎","🪙","🎉","🌟"];
+ for(let i=0;i<45;i++){
+  const p=document.createElement("div");
+  p.className="particle";
+  p.textContent=icons[Math.floor(Math.random()*icons.length)];
+  p.style.left=Math.random()*100+"%";
+  p.style.top="-30px";
+  p.style.animationDelay=Math.random()*.7+"s";
+  container.appendChild(p);
+  setTimeout(()=>p.remove(),2500);
+ }
+}
+
+function spin(){
+ if(spinning||balance<bet)return;
+ spinning=true;
+ const stake=bet;
+ balance-=stake;
+ setBalance();
+ $("result").textContent="GOOD LUCK...";
+ $("result").classList.remove("big");
+ reels.forEach(r=>r.classList.remove("win"));
+
+ const result=[chooseSymbol(),chooseSymbol(),chooseSymbol()];
+ const durations=[750,1150,1550];
+
+ reels.forEach((reel,i)=>{
+  reel.classList.add("spinning");
+  const start=performance.now();
+  const animate=()=>{
+   if(performance.now()-start<durations[i]){
+    setReel(i,chooseSymbol());
+    setTimeout(animate,65);
+   }else{
+    setReel(i,result[i]);
+    reel.classList.remove("spinning");
+    if(i===2)finishSpin(result,stake);
+   }
+  };
+  setTimeout(animate,i*100);
+ });
+}
+
+function finishSpin(result,stake){
+ const win=payout(result,stake);
+ balance+=win;
+ totalWon+=win;
+ bestWin=Math.max(bestWin,win);
+ const isTriple=result.every(s=>s.icon===result[0].icon);
+ if(isTriple)reels.forEach(r=>r.classList.add("win"));
+ showResult(result,win);
+ addHistory(result,win,stake);
+ spinning=false;
+ setBalance();
+
+ if(auto&&balance>=bet){
+  autoTimer=setTimeout(spin,550);
+ }else if(auto){
+  stopAuto();
+ }
+}
+function stopAuto(){
+ auto=false;
+ clearTimeout(autoTimer);
+ $("auto").textContent="AUTO: OFF";
+ $("auto").classList.remove("active");
+}
+$("spin").onclick=spin;
+$("auto").onclick=()=>{
+ if(auto){stopAuto();return}
+ if(balance<bet){return}
+ auto=true;
+ $("auto").textContent="AUTO: ON";
+ $("auto").classList.add("active");
+ if(!spinning)spin();
+};
+
+function save(){
+ localStorage.setItem("lucky777_save",JSON.stringify({balance,bet,totalWon,bestWin,history}));
+}
+function load(){
+ try{
+  const s=JSON.parse(localStorage.getItem("lucky777_save"));
+  if(!s)return;
+  balance=Math.max(0,Number(s.balance)||0);
+  bet=Math.max(1,Number(s.bet)||10);
+  totalWon=Math.max(0,Number(s.totalWon)||0);
+  bestWin=Math.max(0,Number(s.bestWin)||0);
+  history=Array.isArray(s.history)?s.history.slice(0,30):[];
+  $("history").innerHTML=history.length?history.map(h=>`
+   <div class="history-item"><span>${h.result}</span><strong class="${h.win>0?"positive":"negative"}">${h.win>0?"+"+format(h.win):"-"+format(h.stake)}</strong></div>`).join(""):'<div class="empty">No spins yet. Good luck!</div>';
+ }catch(e){console.warn("Save load failed",e)}
+}
+load();
+setBet(bet);
+setInterval(save,3000);
+window.addEventListener("beforeunload",save);
+</script>
+</body>
+</html>
